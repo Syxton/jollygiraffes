@@ -235,13 +235,13 @@ function CreateConfirm(id, messageText, okText, cancelText, okCallback, cancelCa
         buttons: [{
             text: okText,
             click : function() { 
-                $(thisdialog).dialog("close");
+                $(thisdialog).dialog("destroy");
                 okCallback();
                 }
             }, {
             text: cancelText,
             click: function() {
-                $(thisdialog).dialog("close");
+                $(thisdialog).dialog("destroy");
                 cancelCallback();
         }}]
     });

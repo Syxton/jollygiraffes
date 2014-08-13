@@ -3294,8 +3294,8 @@ global $MYVARS;
     }
     $returnme .= '</div>
                     <div class="list_box_item_right">
-                            <div style="width:100px;text-align:center;background:none;line-height: 17px;vertical-align:top;color:white;text-shadow: black 1px 1px 3px;">Only Active Accounts
-                                <input type="checkbox" onclick="if($(this).prop(\'checked\')){ $(\'.inactiveaccount\').hide(); }else{ $(\'.inactiveaccount\').show(); } $(\'.scroll-pane\').sbscroller(\'refresh\');" />
+                            <div style="width:100px;text-align:center;background:none;line-height: 17px;vertical-align:top;color:white;text-shadow: black 1px 1px 3px;">
+                                Only Active Accounts <input type="checkbox" onclick="if($(this).prop(\'checked\')){ $(\'.inactiveaccount\').hide(); }else{ $(\'.inactiveaccount\').show(); } $(\'.scroll-pane\').sbscroller(\'refresh\');" />
                             </div>
                             <div style="width:100px;text-align:center;background:none;display:inline-block;color:white;text-shadow: black 1px 1px 3px;">Active Children:
                                 '.get_db_count("SELECT * FROM enrollments WHERE pid='$pid' AND deleted='0'").'

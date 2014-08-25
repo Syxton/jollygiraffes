@@ -1823,7 +1823,7 @@ global $CFG, $MYVARS;
             type: \'POST\',
             url: \'ajax/ajax.php\',
             data: { action: \'view_invoices\', aid: \''.$aid.'\',pid: \''.$pid.'\' },
-            success: function(data) { $(\'#dialog-confirm\').dialog(\'close\'); $(\'#info_div\').html(data); refresh_all(); }
+            success: function(data) { $(\'#info_div\').html(data); refresh_all(); }
             });">'.get_icon('search').'</button>';
     }
 

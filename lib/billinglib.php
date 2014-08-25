@@ -157,7 +157,7 @@ function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$l
     $discount_rule = empty($program["discount_rule"]) || $program["discount_rule"] < $program["multiple_discount"] ? "(bill >= ".$program["multiple_discount"]."" : "(bill >= ".$program["discount_rule"].")";
 
     $exempt = $exempt == "unknown" ? get_db_field("exempt","enrollments","chid='$chid' AND pid='".$program["pid"]."'") : $exempt;
-
+    $days_attending = get_db_field("days_attending","enrollments","chid='$chid' AND pid='".$program["pid"]."'");
     //SQL that finds other children on the account that would qualify this child for a discount
     $otherchildrenthatmatch = "SELECT * FROM billing_perchild WHERE
         0='$exempt' /* this child is not exempt */
@@ -170,8 +170,9 @@ function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$l
         AND chid!='$chid' /* the record cannot match another record of the same child */
         AND $discount_rule /* record must also meet the discount rules */";
 
-    if(count(explode(",",$billed_by)) >= $program["consider_full"]){ //If enrollment is considered full time
-        if(!$activities = get_db_row("SELECT * FROM activity WHERE tag='in' AND pid='".$program["pid"]."' AND chid='$chid' AND timelog >= '$invoiceweek' AND timelog < '$endofweek'")){
+    // $billed_by is either enrollment or days the child attended ex. M,W,Th,F
+    if(($billed_by == "enrollment" && count(explode(",",$days_attending)) >= $program["consider_full"]) || ($billed_by != "enrollment" && !empty($attendance) && $attendance[0] >= $program["consider_full"])){ // If enrollment is considered full time
+        if(empty($attendance)){
             $bill = $program["vacation"];
             $rate = "Did Not Attend [Vacation Rate]";
         }else{

@@ -29,6 +29,15 @@ body, html {
 
 .draggable { cursor: move; }
 
+.mylogo {
+    margin: 50px 30px 0px;
+    height:25%;
+    text-align:center;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center; 
+}
+
 button span {
     white-space: nowrap;    
 }
@@ -412,7 +421,8 @@ h3 {
     height: 100%;
     width: 100%;
     position: absolute;
-    left: 0; top: 0;   
+    left: 0; top: 0;
+    z-index: 99999; 
 }
 
 /*Absolute positions*/

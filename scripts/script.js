@@ -21,11 +21,12 @@ var scriptTimer = {
 
 function refresh_all(){
 //scriptTimer.startTimer();
+    // Make jQuery UI buttons of all buttons and submits and .button that are not alreayd "buttonized"
     $("input:submit, button, .button").not('.ui-button').button();
 //scriptTimer.stopTimer(); alert(scriptTimer.scriptRunTime);
-
+    
     $(".button").click(function() { return false; });
-    $(".toggleswitch").toggleSwitch();
+    $(".toggleswitch").toggleSwitch(); // Make toggle switches
     $('.flexsection').click(function() {
 		$(this).next().toggle('blind');
 		return false;
@@ -49,7 +50,7 @@ function refresh_all(){
     }
 
     $('.keyboard').keyboard({
-        change: function(e, keyboard, el){ var cp_value= ucwords($('.keyboard').last().val(),true); $('.keyboard').last().val(cp_value); },
+        change: function(e, keyboard, el){ var last = $('.keyboard').last(); var cp_value = ucwords(last.val(),true); last.val(cp_value); },
         stickyShift: false,
         autoAccept: true,
         position     : {
@@ -77,7 +78,7 @@ function refresh_all(){
 
     //Delete old
     $('.colorPicker-picker').remove();
-    $('.colorpicker').colorPicker({ onColorChange : function(id, newValue) { $('#'+id+'_field').val(newValue); $('#'+id+'_field').keyup() }});
+    $('.colorpicker').colorPicker({ onColorChange : function(id, newValue) { var cp = $('#'+id+'_field'); cp.val(newValue); cp.keyup() }});
 
     $('.autocapitalizewords').keyup(function(evt){
       // to capitalize all words
@@ -289,7 +290,7 @@ function numpad(id){
         resizable: false,
         draggable: false,
         modal: true,
-        open: function() { $(':input',thisdialog).val(''); $('.'+id+'keypad_submit').button('destroy'); $('.'+id+'keypad_submit').children().removeClass("ui-button-text"); $('.'+id+'keypad_submit').button(); $('.'+id+'keypad_submit').button('option','disabled',true); }
+        open: function() { $(':input',thisdialog).val(''); var kpad = $('.'+id+'keypad_submit'); kpad.button('destroy'); kpad.children().removeClass("ui-button-text"); kpad.button(); kpad.button('option','disabled',true); }
     });
 }
 
@@ -306,7 +307,8 @@ function resize_modal(){
 
 
     $('.printthis .doc').each(function(){ //reduce the size of an image if it is still too big
-        $(this).width($(this).width() > maxWidth ? maxWidth-100 : $(this).width());
+        var w = $(this).width();
+        $(this).width(w > maxWidth ? maxWidth-100 : w);
     });
 
     $.nmTop().sizes.initW = width;

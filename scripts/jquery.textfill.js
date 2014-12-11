@@ -8,10 +8,12 @@
 		return this.each(function() {
 			var fontSize = Opts.maxFontPixels;
 			var ourText = $(Opts.innerTag + ':visible:first', this);
-            var wpadding = $(this).innerWidth() - $(this).width();
-            var hpadding = $(this).innerHeight() - $(this).height();
-			var maxHeight = $(this).height() - hpadding;
-			var maxWidth = $(this).width() - wpadding;
+            var w = $(this).width();
+            var h = $(this).height();
+            var wpadding = $(this).innerWidth() - w;
+            var hpadding = $(this).innerHeight() - h;
+			var maxHeight = h - hpadding;
+			var maxWidth = w - wpadding;
 			var textHeight;
 			var textWidth;
 			do {

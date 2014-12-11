@@ -130,7 +130,7 @@ global $CFG;
     echo '<div class="top-center">
             <div class="footer-text">'.$CFG->sitename ."<br />". $CFG->streetaddress.'</div>
     </div>';
-    echo '<div style="margin-top:50px;height:25%;text-align:center;"><img src="'.$CFG->wwwroot.'/images/'.$CFG->logo.'" style="height:100%;" /></div>';
+    echo '<div class="mylogo" style="background-image: url(\''.$CFG->wwwroot.'/images/'.$CFG->logo.'\');"></div>';
     $checkout_button = checked_in_children();
     $checkin_button = checked_out_children();
     echo '<div class="middle-center" style="height: 40%;margin-top:80px;">';

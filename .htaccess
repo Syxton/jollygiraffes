@@ -1,4 +1,4 @@
-AuthUserFile /devserver/data/localweb/personal/hh/.htpasswd 
+AuthUserFile /xampp/htdocs/personal/hh/.htpasswd 
 AuthName HH 
 AuthType Basic
 <Limit GET>

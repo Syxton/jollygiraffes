@@ -550,43 +550,43 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "name":
-                $name = mysql_real_escape_string($field["value"]);
+                $name = dbescape($field["value"]);
                 break;
             case "timeopen":
-                $timeopen = mysql_real_escape_string($field["value"]);
+                $timeopen = dbescape($field["value"]);
                 break;
             case "timeclosed":
-                $timeclosed = mysql_real_escape_string($field["value"]);
+                $timeclosed = dbescape($field["value"]);
                 break;
             case "perday":
-                $perday = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $perday = str_replace("$","",dbescape($field["value"]));
                 break;
             case "fulltime":
-                $fulltime = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $fulltime = str_replace("$","",dbescape($field["value"]));
                 break;
             case "minimum":
-                $minimum = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $minimum = str_replace("$","",dbescape($field["value"]));
                 break;
             case "multiple_discount":
-                $multiple_discount = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $multiple_discount = str_replace("$","",dbescape($field["value"]));
                 break;
             case "vacation":
-                $vacation = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $vacation = str_replace("$","",dbescape($field["value"]));
                 break;
             case "pid":
-                $pid = mysql_real_escape_string($field["value"]);
+                $pid = dbescape($field["value"]);
                 break;
             case "consider_full":
-                $consider_full = mysql_real_escape_string($field["value"]);
+                $consider_full = dbescape($field["value"]);
                 break;
             case "bill_by":
-                $bill_by = mysql_real_escape_string($field["value"]);
+                $bill_by = dbescape($field["value"]);
                 break;
             case "discount_rule":
-                $discount_rule = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $discount_rule = str_replace("$","",dbescape($field["value"]));
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
         }
     }
@@ -625,19 +625,19 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "amount":
-                $amount = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $amount = str_replace("$","",dbescape($field["value"]));
                 break;
             case "timelog":
-                $timelog = strtotime(mysql_real_escape_string($field["value"]));
+                $timelog = strtotime(dbescape($field["value"]));
                 break;
             case "note":
-                $note = mysql_real_escape_string($field["value"]);
+                $note = dbescape($field["value"]);
                 break;
             case "pid":
-                $pid = mysql_real_escape_string($field["value"]);
+                $pid = dbescape($field["value"]);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
         }
     }
@@ -673,43 +673,43 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "perday":
-                $perday = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $perday = str_replace("$","",dbescape($field["value"]));
                 break;
             case "fulltime":
-                $fulltime = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $fulltime = str_replace("$","",dbescape($field["value"]));
                 break;
             case "minimum":
-                $minimum = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $minimum = str_replace("$","",dbescape($field["value"]));
                 break;
             case "multiple_discount":
-                $multiple_discount = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $multiple_discount = str_replace("$","",dbescape($field["value"]));
                 break;
             case "vacation":
-                $vacation = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $vacation = str_replace("$","",dbescape($field["value"]));
                 break;
             case "pid":
-                $pid = mysql_real_escape_string($field["value"]);
+                $pid = dbescape($field["value"]);
                 break;
             case "aid":
-                $aid = mysql_real_escape_string($field["value"]);
+                $aid = dbescape($field["value"]);
                 break;
             case "oid":
-                $oid = mysql_real_escape_string($field["value"]);
+                $oid = dbescape($field["value"]);
                 break;
             case "consider_full":
-                $consider_full = mysql_real_escape_string($field["value"]);
+                $consider_full = dbescape($field["value"]);
                 break;
             case "bill_by":
-                $bill_by = mysql_real_escape_string($field["value"]);
+                $bill_by = dbescape($field["value"]);
                 break;
             case "discount_rule":
-                $discount_rule = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $discount_rule = str_replace("$","",dbescape($field["value"]));
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
             case "callbackinfo":
-                $callbackinfo = mysql_real_escape_string($field["value"]);
+                $callbackinfo = dbescape($field["value"]);
                 break;
         }
     }
@@ -755,25 +755,25 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "tagtype":
-                $tagtype = mysql_real_escape_string($field["value"]);
+                $tagtype = dbescape($field["value"]);
                 break;
             case "update":
-                $update = mysql_real_escape_string($field["value"]);
+                $update = dbescape($field["value"]);
                 break;
             case "tag":
-                $tag = mysql_real_escape_string($field["value"]);
+                $tag = dbescape($field["value"]);
                 break;
             case "title":
-                $title = mysql_real_escape_string($field["value"]);
+                $title = dbescape($field["value"]);
                 break;
             case "color":
-                $color = mysql_real_escape_string($field["value"]);
+                $color = dbescape($field["value"]);
                 break;
             case "textcolor":
-                $textcolor = mysql_real_escape_string($field["value"]);
+                $textcolor = dbescape($field["value"]);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
         }
     }
@@ -817,28 +817,28 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "note":
-                $note = mysql_real_escape_string($field["value"]);
+                $note = dbescape($field["value"]);
                 break;
             case "payment":
-                $payment = str_replace("$","",mysql_real_escape_string($field["value"]));
+                $payment = str_replace("$","",dbescape($field["value"]));
                 break;
             case "payid":
-                $payid = mysql_real_escape_string($field["value"]);
+                $payid = dbescape($field["value"]);
                 break;
             case "aid":
-                $aid = mysql_real_escape_string($field["value"]);
+                $aid = dbescape($field["value"]);
                 break;
             case "timelog":
-                $timelog = strtotime(mysql_real_escape_string($field["value"]));
+                $timelog = strtotime(dbescape($field["value"]));
                 break;
             case "pid":
-                $pid = mysql_real_escape_string($field["value"]);
+                $pid = dbescape($field["value"]);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
             case "callbackinfo":
-                $callbackinfo = mysql_real_escape_string($field["value"]);
+                $callbackinfo = dbescape($field["value"]);
                 break;
         }
     }
@@ -881,22 +881,22 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "password":
-                $password = mysql_real_escape_string($field["value"]);
+                $password = dbescape($field["value"]);
                 break;
             case "name":
-                $name = mysql_real_escape_string($field["value"]);
+                $name = dbescape($field["value"]);
                 break;
             case "aid":
-                $aid = mysql_real_escape_string($field["value"]);
+                $aid = dbescape($field["value"]);
                 break;
             case "meal_status":
-                $meal_status = mysql_real_escape_string($field["value"]);
+                $meal_status = dbescape($field["value"]);
                 break;
             case "recover":
-                $recover = mysql_real_escape_string($field["value"]);
+                $recover = dbescape($field["value"]);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
 
         }
@@ -937,26 +937,26 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "password":
-                $password = mysql_real_escape_string($field["value"]);
+                $password = dbescape($field["value"]);
                 break;
             case "first":
-                $first = mysql_real_escape_string($field["value"]);
+                $first = dbescape($field["value"]);
                 break;
             case "last":
-                $last = mysql_real_escape_string($field["value"]);
+                $last = dbescape($field["value"]);
                 break;
             case "employeeid":
-                $employeeid = mysql_real_escape_string($field["value"]);
+                $employeeid = dbescape($field["value"]);
                 break;
             case "wage":
-                $wage = mysql_real_escape_string($field["value"]);
+                $wage = dbescape($field["value"]);
                 $wage = str_replace("$","",$wage);
                 break;
             case "recover":
-                $recover = mysql_real_escape_string($field["value"]);
+                $recover = dbescape($field["value"]);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
 
         }
@@ -1013,31 +1013,31 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "chid":
-                $chid = mysql_real_escape_string($field["value"]);
+                $chid = dbescape($field["value"]);
                 break;
             case "aid":
-                $aid = mysql_real_escape_string($field["value"]);
+                $aid = dbescape($field["value"]);
                 break;
             case "pid":
-                $pid = mysql_real_escape_string($field["value"]);
+                $pid = dbescape($field["value"]);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
             case "first":
-                $first = mysql_real_escape_string($field["value"]);
+                $first = dbescape($field["value"]);
                 break;
             case "last":
-                $last = mysql_real_escape_string($field["value"]);
+                $last = dbescape($field["value"]);
                 break;
             case "sex":
-                $sex = mysql_real_escape_string($field["value"]);
+                $sex = dbescape($field["value"]);
                 break;
             case "grade":
-                $grade = mysql_real_escape_string($field["value"]);
+                $grade = dbescape($field["value"]);
                 break;
             case "birthdate":
-                $birthdate = strtotime(mysql_real_escape_string($field["value"]));
+                $birthdate = strtotime(dbescape($field["value"]));
                 break;
         }
     }
@@ -1089,52 +1089,52 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "cid":
-                $cid = mysql_real_escape_string($field["value"]);
+                $cid = dbescape($field["value"]);
                 break;
             case "aid":
-                $aid = mysql_real_escape_string($field["value"]);
+                $aid = dbescape($field["value"]);
                 break;
             case "first":
-                $first = mysql_real_escape_string($field["value"]);
+                $first = dbescape($field["value"]);
                 break;
             case "last":
-                $last = mysql_real_escape_string($field["value"]);
+                $last = dbescape($field["value"]);
                 break;
             case "relation":
-                $relation = mysql_real_escape_string($field["value"]);
+                $relation = dbescape($field["value"]);
                 break;
             case "primary_address":
-                $primary_address =  mysql_real_escape_string($field["value"]);
+                $primary_address =  dbescape($field["value"]);
                 break;
             case "home_address":
-                $home_address = mysql_real_escape_string($field["value"]);
+                $home_address = dbescape($field["value"]);
                 break;
             case "phone1":
-                $phone1 = mysql_real_escape_string($field["value"]);
+                $phone1 = dbescape($field["value"]);
                 break;
             case "phone2":
-                $phone2 = mysql_real_escape_string($field["value"]);
+                $phone2 = dbescape($field["value"]);
                 break;
             case "phone3":
-                $phone3 = mysql_real_escape_string($field["value"]);
+                $phone3 = dbescape($field["value"]);
                 break;
             case "phone4":
-                $phone4 = mysql_real_escape_string($field["value"]);
+                $phone4 = dbescape($field["value"]);
                 break;
             case "employer":
-                $employer = mysql_real_escape_string($field["value"]);
+                $employer = dbescape($field["value"]);
                 break;
             case "employer_address":
-                $employer_address = mysql_real_escape_string($field["value"]);
+                $employer_address = dbescape($field["value"]);
                 break;
             case "hours":
-                $hours = mysql_real_escape_string($field["value"]);
+                $hours = dbescape($field["value"]);
                 break;
             case "emergency":
-                $emergency =  mysql_real_escape_string($field["value"]);
+                $emergency =  dbescape($field["value"]);
                 break;
             case "callback":
-                $callback =  mysql_real_escape_string($field["value"]);
+                $callback =  dbescape($field["value"]);
                 break;
         }
     }
@@ -1178,35 +1178,35 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "note":
-                $note = mysql_real_escape_string($field["value"]);
+                $note = dbescape($field["value"]);
                 break;
             case "notify":
-                $notify = mysql_real_escape_string($field["value"]);
+                $notify = dbescape($field["value"]);
                 break;
             case "persistent":
-                $persistent = mysql_real_escape_string($field["value"]);
+                $persistent = dbescape($field["value"]);
                 break;
             case "tag":
-                $tag = mysql_real_escape_string($field["value"]);
+                $tag = dbescape($field["value"]);
                 $tag = make_or_get_tag($tag,"notes");
                 break;
             case "nid":
-                $nid = mysql_real_escape_string($field["value"]);
+                $nid = dbescape($field["value"]);
                 break;
             case "chid":
-                $chid = mysql_real_escape_string($field["value"]);
+                $chid = dbescape($field["value"]);
                 break;
             case "cid":
-                $cid = mysql_real_escape_string($field["value"]);
+                $cid = dbescape($field["value"]);
                 break;
             case "aid":
-                $aid = mysql_real_escape_string($field["value"]);
+                $aid = dbescape($field["value"]);
                 break;
             case "actid":
-                $actid = mysql_real_escape_string($field["value"]);
+                $actid = dbescape($field["value"]);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
         }
     }
@@ -1273,19 +1273,19 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "note":
-                $note = mysql_real_escape_string($field["value"]);
+                $note = dbescape($field["value"]);
                 break;
             case "notify":
-                $notify = mysql_real_escape_string($field["value"]);
+                $notify = dbescape($field["value"]);
                 break;
             case "aid":
-                $aid = mysql_real_escape_string($field["value"]);
+                $aid = dbescape($field["value"]);
                 break;
             case "pid":
-                $pid = mysql_real_escape_string($field["value"]);
+                $pid = dbescape($field["value"]);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
         }
     }
@@ -1333,29 +1333,29 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "note":
-                $note = mysql_real_escape_string($field["value"]);
+                $note = dbescape($field["value"]);
                 break;
             case "tag":
-                $tag = mysql_real_escape_string($field["value"]);
+                $tag = dbescape($field["value"]);
                 $tag = make_or_get_tag($tag,"events");
                 break;
             case "nid":
-                $nid = mysql_real_escape_string($field["value"]);
+                $nid = dbescape($field["value"]);
                 break;
             case "chid":
-                $chid = mysql_real_escape_string($field["value"]);
+                $chid = dbescape($field["value"]);
                 break;
             case "cid":
-                $cid = mysql_real_escape_string($field["value"]);
+                $cid = dbescape($field["value"]);
                 break;
             case "aid":
-                $aid = mysql_real_escape_string($field["value"]);
+                $aid = dbescape($field["value"]);
                 break;
             case "actid":
-                $actid = mysql_real_escape_string($field["value"]);
+                $actid = dbescape($field["value"]);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
         }
     }
@@ -1414,21 +1414,21 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "newtime":
-                $newtime = mysql_real_escape_string($field["value"]);
+                $newtime = dbescape($field["value"]);
                 $newtime = seconds_from_midnight($newtime);
                 break;
             case "oldtime":
-                $oldtime = mysql_real_escape_string($field["value"]);
+                $oldtime = dbescape($field["value"]);
                 $oldtime = strtotime('midnight',$oldtime);
                 break;
             case "nid":
-                $nid = mysql_real_escape_string($field["value"]);
+                $nid = dbescape($field["value"]);
                 break;
             case "actid":
-                $actid = mysql_real_escape_string($field["value"]);
+                $actid = dbescape($field["value"]);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
         }
     }
@@ -1467,16 +1467,16 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "employeeid":
-                $employeeid = mysql_real_escape_string($field["value"]);
+                $employeeid = dbescape($field["value"]);
                 break;
             case "id":
-                $id = mysql_real_escape_string($field["value"]);
+                $id = dbescape($field["value"]);
                 break;
             case "hours":
-                $hours = mysql_real_escape_string($field["value"]);
+                $hours = dbescape($field["value"]);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
         }
 
@@ -1514,21 +1514,21 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "employeeid":
-                $employeeid = mysql_real_escape_string($field["value"]);
+                $employeeid = dbescape($field["value"]);
                 break;
             case "id":
-                $id = mysql_real_escape_string($field["value"]);
+                $id = dbescape($field["value"]);
                 break;
             case "date":
-                $date = mysql_real_escape_string($field["value"]);
+                $date = dbescape($field["value"]);
                 $date = strtotime($date);
                 break;
             case "wage":
-                $wage = mysql_real_escape_string($field["value"]);
+                $wage = dbescape($field["value"]);
                 $wage = str_replace("$","",$wage);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
         }
 
@@ -1929,22 +1929,22 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "aid":
-                $aid = mysql_real_escape_string($field["value"]);
+                $aid = dbescape($field["value"]);
                 break;
             case "pid":
-                $pid = mysql_real_escape_string($field["value"]);
+                $pid = dbescape($field["value"]);
                 break;
             case "startweek":
-                $startweek = mysql_real_escape_string($field["value"]);
+                $startweek = dbescape($field["value"]);
                 break;
             case "refresh":
-                $refresh = mysql_real_escape_string($field["value"]);
+                $refresh = dbescape($field["value"]);
                 break;
             case "enrollment":
-                $enrollment = mysql_real_escape_string($field["value"]);
+                $enrollment = dbescape($field["value"]);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
                 break;
         }
@@ -3518,29 +3518,29 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "eid":
-                $eid = mysql_real_escape_string($field["value"]);
+                $eid = dbescape($field["value"]);
                 break;
             case "aid":
-                $aid = mysql_real_escape_string($field["value"]);
+                $aid = dbescape($field["value"]);
                 break;
             case "chid":
-                $chid = mysql_real_escape_string($field["value"]);
+                $chid = dbescape($field["value"]);
                 break;
             case "pid":
-                $pid = mysql_real_escape_string($field["value"]);
+                $pid = dbescape($field["value"]);
                 break;
             case "callback":
-                $callback = mysql_real_escape_string($field["value"]);
+                $callback = dbescape($field["value"]);
                 break;
             case "exempt":
-                $exempt = mysql_real_escape_string($field["value"]);
+                $exempt = dbescape($field["value"]);
                 break;
             case "M":
             case "T":
             case "W":
             case "Th":
             case "F":
-                $days_attending .= empty($days_attending) ? mysql_real_escape_string($field["value"]) : ",".mysql_real_escape_string($field["value"]);
+                $days_attending .= empty($days_attending) ? dbescape($field["value"]) : ",".dbescape($field["value"]);
                 break;
         }
     }
@@ -3654,14 +3654,14 @@ global $CFG, $MYVARS;
     foreach($fields as $field){
         switch ($field["name"]) {
             case "rnid":
-                $rnid = mysql_real_escape_string($field["value"]);
+                $rnid = dbescape($field["value"]);
                 break;
             case "title":
-                $title = mysql_real_escape_string($field["value"]);
+                $title = dbescape($field["value"]);
                 $tag = strtolower(preg_replace("/[^a-zA-Z0-9\s]/", "_", $title));
                 break;
             case "question_type":
-                $question_type = mysql_real_escape_string($field["value"]);
+                $question_type = dbescape($field["value"]);
                 break;
         }
     }

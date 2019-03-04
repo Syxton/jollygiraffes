@@ -456,7 +456,7 @@ function get_admin_page($type=false,$id=false){
     $returnme .= '<div id="dialog-confirm" title="Confirm" style="display:none;">
 	                   <p><span class="ui-icon ui-icon-alert" style="margin-right: auto;margin-left: auto;"></span><label></label></p>
                     </div>';
-    $returnme .= '<span id="activepidname" class="top-center" style="z-index:0;font:34px Arial bold;color:white;">'.$programname.'</span>'.$admin_button;
+    $returnme .= '<span id="activepidname" class="top-center">'.$programname.'</span>'.$admin_button;
     $returnme .= go_home_button('Exit Admin');
 
     $enrollment_selected = $account_selected = $contacts_selected = $tag_selected = $employees_selected = $billing_selected = $children_selected = "";

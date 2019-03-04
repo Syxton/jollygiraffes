@@ -1,9 +1,9 @@
 /** {
-    cursor: url(../images/blank.png),url(../images/blank.png),default;    
+    cursor: url(../images/blank.png),url(../images/blank.png),default;
 }
 
 *:hover,:active {
-    cursor: url(../images/blank.png),url(../images/blank.png),default;    
+    cursor: url(../images/blank.png),url(../images/blank.png),default;
 }
 
 .ui-button {
@@ -20,7 +20,7 @@
 *::selection {
     background:rgba(0, 0, 0, 0);
 }
-    
+
 body, html {
   height: 99%;
   font-family:Arial,Helvetica,sans-serif;
@@ -35,31 +35,31 @@ body, html {
     text-align:center;
     background-size: contain;
     background-repeat: no-repeat;
-    background-position: center; 
+    background-position: center;
 }
 
 button span {
-    white-space: nowrap;    
+    white-space: nowrap;
 }
 
 h1 {
     color: white;
     margin: 0;
     font-size: 150%;
-    font-weight: bold;    
+    font-weight: bold;
 }
 
 h2 {
     color: white;
     margin: 0;
     font-size: 120%;
-    font-weight: bold;    
+    font-weight: bold;
 }
 
 h3 {
     color: white;
     margin: 0;
-    font-size: 120%; 
+    font-size: 120%;
 }
 
 .heading {
@@ -69,19 +69,28 @@ h3 {
     text-shadow: black 1px 1px 3px;
 }
 
+#activepidname {
+    z-index: 0;
+    font-size: 34px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0px 0px 8px black;
+}
+
 .admin-menu {
     white-space: nowrap;
 }
 
 .label {
     color: white;
-    font-weight: bold; 
+    font-weight: bold;
 }
 
 .main_level {
     height: 100%;
-    background-color: skyblue;
+    background: skyblue url(../css/background.jpg) repeat-y;
     position: relative;
+    background-size: cover;
 }
 
 .admin_display {
@@ -137,7 +146,7 @@ h3 {
 .list_links {
     font-size: 12px;
     font-weight: normal;
-    display: inline;   
+    display: inline;
 }
 
 .list_box {
@@ -185,16 +194,16 @@ h3 {
 }
 
 .infobox {
-    border-top: 2px solid black; 
-    height: 46.5%;   
+    border-top: 2px solid black;
+    height: 46.5%;
 }
 
 .attending {
-    background-color: #FAF3CC !important;    
+    background-color: #FAF3CC !important;
 }
 
 .unexpected {
-    background-color: #F8907C !important;    
+    background-color: #F8907C !important;
 }
 
 .notify {
@@ -202,15 +211,15 @@ h3 {
     font-size: 14px;
     color: black;
     font-weight: bold;
-    background: yellow;   
+    background: yellow;
 }
 
 .caution {
-    background-color: #D15354 !important;    
+    background-color: #D15354 !important;
 }
 
 .caution:hover {
-    background-color: #D67273 !important;    
+    background-color: #D67273 !important;
 }
 
 .container_actions {
@@ -228,12 +237,12 @@ h3 {
     border: 2px solid silver;
     background: 0 #325;
     width: 40%;
-    float:left; 
-    height: 100%;  
+    float:left;
+    height: 100%;
 }
 
 .container_side {
-    min-width: 170px; 
+    min-width: 170px;
     width: 16%;
 }
 
@@ -243,7 +252,7 @@ h3 {
 }
 
 .image_wrapper {
-    display: inline-block; 
+    display: inline-block;
     padding: 10px 2px;
     min-height: 250px;
     min-width: 250px;
@@ -261,7 +270,7 @@ h3 {
     display: inline-block;
     border: 1px groove silver;
     background: darkgray;
-    color: white !important;    
+    color: white !important;
     padding: 4px 8px 5px 6px;
 }
 
@@ -281,7 +290,7 @@ h3 {
 }
 
 .inline-button img {
-    vertical-align: text-bottom;    
+    vertical-align: text-bottom;
 }
 
 .slider-item {
@@ -290,7 +299,7 @@ h3 {
     border: none;
     margin: 2px;
     background-color: whitesmoke;
-    float: left;    
+    float: left;
 }
 
 .child .ui-button-text {
@@ -317,21 +326,21 @@ h3 {
 .document_list_item {
     border: 1px solid silver;
     background-color: whitesmoke;
-    padding: 10px; 
-    margin: 5px;   
+    padding: 10px;
+    margin: 5px;
 }
 
-.button:hover { 
+.button:hover {
     opacity: .8;
 }
 
-.button:active { 
+.button:active {
     background: 0 silver;
 }
 
 .noaction:hover {
    opacity: 1;
-   cursor: auto; 
+   cursor: auto;
 }
 
 .tag {
@@ -349,30 +358,30 @@ h3 {
     white-space: nowrap;
     padding: 4px 6px 0px;
     display: inline-block;
-    height: 20px; 
-    margin: 2px; 
+    height: 20px;
+    margin: 2px;
 }
 
 .keypad_button {
     border: 1px solid silver;
     background-color: whitesmoke;
-    padding: 10px; 
+    padding: 10px;
     margin: 5px;
-    float: left;   
+    float: left;
 }
 
 .keypad_button_big {
     border: 1px solid silver;
     background-color: whitesmoke;
-    padding: 20px; 
+    padding: 20px;
     margin: 5px;
-    float: left;   
+    float: left;
 }
 
 .big_button {
     height: 80%;
     width: 30%;
-    padding:10px; 
+    padding:10px;
     margin: 10px;
     font-weight:bold;
 }
@@ -382,11 +391,11 @@ h3 {
 }
 
 .bb_middle {
-    margin-top:-75px  
+    margin-top:-75px
 }
 
 .selected_button {
-    background: 0 silver;    
+    background: 0 silver;
 }
 
 .upload-button {
@@ -403,12 +412,12 @@ h3 {
 }
 
 .blank_pic {
-    background-image: url('../images/blank.jpg');    
+    background-image: url('../images/blank.jpg');
 }
 
 .checked_pic {
    background-image: url('../images/checkmark.jpg') !important;
-   border:none;    
+   border:none;
 }
 
 .loadingscreen {
@@ -422,20 +431,20 @@ h3 {
     width: 100%;
     position: absolute;
     left: 0; top: 0;
-    z-index: 99999; 
+    z-index: 99999;
 }
 
 /*Absolute positions*/
 .top-left {
-    position: absolute; top: 0; left: 0; z-index: 100; 
+    position: absolute; top: 0; left: 0; z-index: 100;
 }
 
 .top-center {
-    position: absolute; top: 0; width: 100%; text-align:center; z-index: 1; 
+    position: absolute; top: 0; width: 100%; text-align:center; z-index: 1;
 }
 
 .top-right {
-    position: absolute; top: 0; right: 0; z-index: 100; 
+    position: absolute; top: 0; right: 0; z-index: 100;
 }
 
 .middle-left {
@@ -443,7 +452,7 @@ h3 {
 }
 
 .middle-center {
-    position: absolute; top: 50%; width: 100%; text-align:center; z-index: 1; 
+    position: absolute; top: 50%; width: 100%; text-align:center; z-index: 1;
 }
 
 .middle-right {
@@ -451,19 +460,19 @@ h3 {
 }
 
 .bottom-left {
-    position: absolute; bottom: 0; left: 0; z-index: 100; 
+    position: absolute; bottom: 0; left: 0; z-index: 100;
 }
 
 .bottom-center {
-    position: absolute; bottom: 0; width: 100%; text-align:center; z-index: 1; 
+    position: absolute; bottom: 0; width: 100%; text-align:center; z-index: 1;
 }
 
 .bottom-right {
-    position: absolute; bottom: 0; right: 0; z-index: 100; 
+    position: absolute; bottom: 0; right: 0; z-index: 100;
 }
 
 .center {
-    text-align:center; 
+    text-align:center;
 }
 
 .visible { display: inherit; }
@@ -500,7 +509,7 @@ div.day-number		{ background:#999; padding:5px; color:#fff; font-weight:bold; fl
 td.calendar-day, td.calendar-day-np { font-size: 9px; word-wrap: break-word;vertical-align:top; padding:5px; border-bottom:1px solid #999; border-right:1px solid #999; height: 80px;}
 
 .ui-autocomplete-input { margin: 0; padding: 0.48em 0 0.47em 0.45em; }
-.image_button .ui-button-text { padding: inherit !important; } 
+.image_button .ui-button-text { padding: inherit !important; }
 #sortable { list-style-type: none; margin: 0; padding: 0; }
 #sortable li { margin: 0 3px 3px 3px; padding: 0.4em; font-size: 10px; padding-left: 1.5em; height: 18px; }
 #sortable li span { position: absolute; margin-left: -1.3em; }

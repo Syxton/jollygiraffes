@@ -1602,14 +1602,14 @@ global $CFG, $MYVARS;
                 type: \'POST\',
                 url: \'ajax/ajax.php\',
                 data: { action: \'deactivate_program\', pid: \''.$pid.'\' },
-                success: function(data) { $(\'#dialog-confirm\').dialog(\'close\'); $(\'#display_level\').html(data); refresh_all(); $(\'.only_when_active\').hide(); }
+                success: function(data) { $(\'#display_level\').html(data); refresh_all(); $(\'.only_when_active\').hide(); }
                 });}, function(){})">'.get_icon('no').'</button>';
         }else{
             $returnme .= '<button title="Activate Program" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to make this the active program?\', \'Yes\', \'No\', function(){ $.ajax({
                 type: \'POST\',
                 url: \'ajax/ajax.php\',
                 data: { action: \'activate_program\', pid: \''.$pid.'\' },
-                success: function(data) { $(\'#dialog-confirm\').dialog(\'close\'); $(\'#display_level\').html(data); refresh_all(); $(\'.only_when_active\').show(); }
+                success: function(data) { $(\'#display_level\').html(data); refresh_all(); $(\'.only_when_active\').show(); }
                 });}, function(){})">'.get_icon('checkmark').'</button>';
         }
 
@@ -1618,7 +1618,7 @@ global $CFG, $MYVARS;
                 type: \'POST\',
                 url: \'ajax/ajax.php\',
                 data: { action: \'delete_program\', pid: \''.$pid.'\' },
-                success: function(data) { $(\'#dialog-confirm\').dialog(\'close\'); $(\'#display_level\').html(data); refresh_all(); $(\'.only_when_active\').show(); }
+                success: function(data) { $(\'#display_level\').html(data); refresh_all(); $(\'.only_when_active\').show(); }
                 });}, function(){})">'.get_icon('x').'</button>';
 
         //NEW YEAR BUTTON
@@ -1626,7 +1626,7 @@ global $CFG, $MYVARS;
                 type: \'POST\',
                 url: \'ajax/ajax.php\',
                 data: { action: \'copy_program\', pid: \''.$pid.'\' },
-                success: function(data) { $(\'#dialog-confirm\').dialog(\'close\'); $(\'#display_level\').html(data); refresh_all(); $(\'.only_when_active\').show(); }
+                success: function(data) { $(\'#display_level\').html(data); refresh_all(); $(\'.only_when_active\').show(); }
                 });}, function(){})">'.get_icon('refresh').'</button>';
 
     }elseif($aid){ //Account actions

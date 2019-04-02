@@ -1,223 +1,180 @@
-/**
-* jQuery.UI.iPad plugin
-* Copyright (c) 2010 Stephen von Takach
-* licensed under MIT.
-* Date: 27/8/2010
-*
-* Project Home: 
-* http://code.google.com/p/jquery-ui-for-ipad-and-iphone/
-*/
+/*!
+ * jQuery UI Touch Punch 0.2.3
+ *
+ * Copyright 2011–2014, Dave Furfero
+ * Dual licensed under the MIT or GPL Version 2 licenses.
+ *
+ * Depends:
+ *  jquery.ui.widget.js
+ *  jquery.ui.mouse.js
+ */
+(function ($) {
 
+  // Detect touch support
+  $.support.touch = 'ontouchend' in document;
 
-$(function() {
-	//
-	// Extend jQuery feature detection
-	//
-	$.extend($.support, {
-		touch: "ontouchend" in document
-	});
-	
-	//
-	// Hook up touch events
-	//
-	if ($.support.touch) {
-		document.addEventListener("touchstart", iPadTouchHandler, false);
-		document.addEventListener("touchmove", iPadTouchHandler, false);
-		document.addEventListener("touchend", iPadTouchHandler, false);
-		document.addEventListener("touchcancel", iPadTouchHandler, false);
-	}
-});
+  // Ignore browsers without touch support
+  if (!$.support.touch) {
+    return;
+  }
 
+  var mouseProto = $.ui.mouse.prototype,
+      _mouseInit = mouseProto._mouseInit,
+      _mouseDestroy = mouseProto._mouseDestroy,
+      touchHandled;
 
-var lastTap = null;			// Holds last tapped element (so we can compare for double tap)
-var tapValid = false;			// Are we still in the .6 second window where a double tap can occur
-var tapTimeout = null;			// The timeout reference
+  /**
+   * Simulate a mouse event based on a corresponding touch event
+   * @param {Object} event A touch event
+   * @param {String} simulatedType The corresponding mouse event
+   */
+  function simulateMouseEvent (event, simulatedType) {
 
-function cancelTap() {
-	tapValid = false;
-}
+    // Ignore multi-touch events
+    if (event.originalEvent.touches.length > 1) {
+      return;
+    }
 
+    event.preventDefault();
 
-var rightClickPending = false;	// Is a right click still feasible
-var rightClickEvent = null;		// the original event
-var holdTimeout = null;			// timeout reference
-var cancelMouseUp = false;		// prevents a click from occuring as we want the context menu
+    var touch = event.originalEvent.changedTouches[0],
+        simulatedEvent = document.createEvent('MouseEvents');
 
+    // Initialize the simulated mouse event using the touch event's coordinates
+    simulatedEvent.initMouseEvent(
+      simulatedType,    // type
+      true,             // bubbles
+      true,             // cancelable
+      window,           // view
+      1,                // detail
+      touch.screenX,    // screenX
+      touch.screenY,    // screenY
+      touch.clientX,    // clientX
+      touch.clientY,    // clientY
+      false,            // ctrlKey
+      false,            // altKey
+      false,            // shiftKey
+      false,            // metaKey
+      0,                // button
+      null              // relatedTarget
+    );
 
-function cancelHold() {
-	if (rightClickPending) {
-		window.clearTimeout(holdTimeout);
-		rightClickPending = false;
-		rightClickEvent = null;
-	}
-}
+    // Dispatch the simulated event to the target element
+    event.target.dispatchEvent(simulatedEvent);
+  }
 
-function startHold(event) {
-	if (rightClickPending)
-		return;
+  /**
+   * Handle the jQuery UI widget's touchstart events
+   * @param {Object} event The widget element's touchstart event
+   */
+  mouseProto._touchStart = function (event) {
 
-	rightClickPending = true; // We could be performing a right click
-	rightClickEvent = (event.changedTouches)[0];
-	holdTimeout = window.setTimeout("doRightClick();", 800);
-}
+    var self = this;
 
+    // Ignore the event if another widget is already being handled
+    if (touchHandled || !self._mouseCapture(event.originalEvent.changedTouches[0])) {
+      return;
+    }
 
-function doRightClick() {
-	rightClickPending = false;
+    // Set the flag to prevent other widgets from inheriting the touch event
+    touchHandled = true;
 
-	//
-	// We need to mouse up (as we were down)
-	//
-	var first = rightClickEvent,
-		simulatedEvent = document.createEvent("MouseEvent");
-	simulatedEvent.initMouseEvent("mouseup", true, true, window, 1, first.screenX, first.screenY, first.clientX, first.clientY,
-			false, false, false, false, 0, null);
-	first.target.dispatchEvent(simulatedEvent);
+    // Track movement to determine if interaction was a click
+    self._touchMoved = false;
 
-	//
-	// emulate a right click
-	//
-	simulatedEvent = document.createEvent("MouseEvent");
-	simulatedEvent.initMouseEvent("mousedown", true, true, window, 1, first.screenX, first.screenY, first.clientX, first.clientY,
-			false, false, false, false, 2, null);
-	first.target.dispatchEvent(simulatedEvent);
+    // Simulate the mouseover event
+    simulateMouseEvent(event, 'mouseover');
 
-	//
-	// Show a context menu
-	//
-	simulatedEvent = document.createEvent("MouseEvent");
-	simulatedEvent.initMouseEvent("contextmenu", true, true, window, 1, first.screenX + 50, first.screenY + 5, first.clientX + 50, first.clientY + 5,
-                                  false, false, false, false, 2, null);
-	first.target.dispatchEvent(simulatedEvent);
+    // Simulate the mousemove event
+    simulateMouseEvent(event, 'mousemove');
 
+    // Simulate the mousedown event
+    simulateMouseEvent(event, 'mousedown');
+  };
 
-	//
-	// Note:: I don't mouse up the right click here however feel free to add if required
-	//
+  /**
+   * Handle the jQuery UI widget's touchmove events
+   * @param {Object} event The document's touchmove event
+   */
+  mouseProto._touchMove = function (event) {
 
+    // Ignore event if not handled
+    if (!touchHandled) {
+      return;
+    }
 
-	cancelMouseUp = true;
-	rightClickEvent = null; // Release memory
-}
+    // Interaction was not a click
+    this._touchMoved = true;
 
+    // Simulate the mousemove event
+    simulateMouseEvent(event, 'mousemove');
+  };
 
-//
-// mouse over event then mouse down
-//
-function iPadTouchStart(event) {
-	var touches = event.changedTouches,
-		first = touches[0],
-		type = "mouseover",
-		simulatedEvent = document.createEvent("MouseEvent");
-	//
-	// Mouse over first - I have live events attached on mouse over
-	//
-	simulatedEvent.initMouseEvent(type, true, true, window, 1, first.screenX, first.screenY, first.clientX, first.clientY,
-                            false, false, false, false, 0, null);
-	first.target.dispatchEvent(simulatedEvent);
+  /**
+   * Handle the jQuery UI widget's touchend events
+   * @param {Object} event The document's touchend event
+   */
+  mouseProto._touchEnd = function (event) {
 
-	type = "mousedown";
-	simulatedEvent = document.createEvent("MouseEvent");
+    // Ignore event if not handled
+    if (!touchHandled) {
+      return;
+    }
 
-	simulatedEvent.initMouseEvent(type, true, true, window, 1, first.screenX, first.screenY, first.clientX, first.clientY,
-                            false, false, false, false, 0, null);
-	first.target.dispatchEvent(simulatedEvent);
+    // Simulate the mouseup event
+    simulateMouseEvent(event, 'mouseup');
 
+    // Simulate the mouseout event
+    simulateMouseEvent(event, 'mouseout');
 
-	if (!tapValid) {
-		lastTap = first.target;
-		tapValid = true;
-		tapTimeout = window.setTimeout("cancelTap();", 600);
-		startHold(event);
-	}
-	else {
-		window.clearTimeout(tapTimeout);
+    // If the touch interaction did not move, it should trigger a click
+    if (!this._touchMoved) {
 
-		//
-		// If a double tap is still a possibility and the elements are the same
-		//	Then perform a double click
-		//
-		if (first.target == lastTap) {
-			lastTap = null;
-			tapValid = false;
+      // Simulate the click event
+      simulateMouseEvent(event, 'click');
+    }
 
-			type = "click";
-			simulatedEvent = document.createEvent("MouseEvent");
+    // Unset the flag to allow other widgets to inherit the touch event
+    touchHandled = false;
+  };
 
-			simulatedEvent.initMouseEvent(type, true, true, window, 1, first.screenX, first.screenY, first.clientX, first.clientY,
-                         	false, false, false, false, 0/*left*/, null);
-			first.target.dispatchEvent(simulatedEvent);
+  /**
+   * A duck punch of the $.ui.mouse _mouseInit method to support touch events.
+   * This method extends the widget with bound touch event handlers that
+   * translate touch events to mouse events and pass them to the widget's
+   * original mouse event handling methods.
+   */
+  mouseProto._mouseInit = function () {
 
-			type = "dblclick";
-			simulatedEvent = document.createEvent("MouseEvent");
+    var self = this;
 
-			simulatedEvent.initMouseEvent(type, true, true, window, 1, first.screenX, first.screenY, first.clientX, first.clientY,
-                         	false, false, false, false, 0/*left*/, null);
-			first.target.dispatchEvent(simulatedEvent);
-		}
-		else {
-			lastTap = first.target;
-			tapValid = true;
-			tapTimeout = window.setTimeout("cancelTap();", 600);
-			startHold(event);
-		}
-	}
-}
+    // Delegate the touch handlers to the widget's element
+    self.element.bind({
+      touchstart: $.proxy(self, '_touchStart'),
+      touchmove: $.proxy(self, '_touchMove'),
+      touchend: $.proxy(self, '_touchEnd')
+    });
 
-function iPadTouchHandler(event) {
-	var type = "",
-		button = 0; /*left*/
+    // Call the original $.ui.mouse init method
+    _mouseInit.call(self);
+  };
 
-	if (event.touches.length > 1)
-		return;
+  /**
+   * Remove the touch event handlers
+   */
+  mouseProto._mouseDestroy = function () {
 
-	switch (event.type) {
-		case "touchstart":
-			if ($(event.changedTouches[0].target).is("select")) {
-				return;
-			}
-			iPadTouchStart(event); /*We need to trigger two events here to support one touch drag and drop*/
-			event.preventDefault();
-			return false;
-			break;
+    var self = this;
 
-		case "touchmove":
-			cancelHold();
-			type = "mousemove";
-			event.preventDefault();
-			break;
+    // Delegate the touch handlers to the widget's element
+    self.element.unbind({
+      touchstart: $.proxy(self, '_touchStart'),
+      touchmove: $.proxy(self, '_touchMove'),
+      touchend: $.proxy(self, '_touchEnd')
+    });
 
-		case "touchend":
-			if (cancelMouseUp) {
-				cancelMouseUp = false;
-				event.preventDefault();
-				return false;
-			}
-			cancelHold();
-			type = "mouseup";
-			break;
+    // Call the original $.ui.mouse destroy method
+    _mouseDestroy.call(self);
+  };
 
-		default:
-			return;
-	}
-
-	var touches = event.changedTouches,
-		first = touches[0],
-		simulatedEvent = document.createEvent("MouseEvent");
-
-	simulatedEvent.initMouseEvent(type, true, true, window, 1, first.screenX, first.screenY, first.clientX, first.clientY,
-                            false, false, false, false, button, null);
-
-	first.target.dispatchEvent(simulatedEvent);
-
-	if (type == "mouseup" && tapValid && first.target == lastTap) {	// This actually emulates the ipads default behaviour (which we prevented)
-		simulatedEvent = document.createEvent("MouseEvent");		// This check avoids click being emulated on a double tap
-
-		simulatedEvent.initMouseEvent("click", true, true, window, 1, first.screenX, first.screenY, first.clientX, first.clientY,
-                            false, false, false, false, button, null);
-
-		first.target.dispatchEvent(simulatedEvent);
-	}
-}
-
-
+})(jQuery);

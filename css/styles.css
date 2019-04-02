@@ -21,6 +21,8 @@
     background:rgba(0, 0, 0, 0);
 }
 
+* {touch-action: none;}
+
 body, html {
   height: 99%;
   font-family:Arial,Helvetica,sans-serif;
@@ -86,6 +88,10 @@ h3 {
     font-weight: bold;
 }
 
+.scroll-pane .list_buttons {
+    zoom: 90%;
+}
+
 .main_level {
     height: 100%;
     background: skyblue url(../css/background.jpg) repeat-y;
@@ -127,6 +133,9 @@ h3 {
     padding: 10px;
     font-weight: bold;
     font-size: 130%;
+}
+
+.child + .list_title {
     vertical-align: top;
 }
 
@@ -155,26 +164,29 @@ h3 {
     height:auto;
     margin:5px;
     padding-top: 2px;
-    width:98%;
 }
 
 .list_box_item_left {
     display:inline-block;
     vertical-align: middle;
-    width:84%;
+    width:80%;
     white-space:nowrap;
 }
 
 .list_box_item_right {
     display:inline-block;
-    width:16%;
-    right: 60px;
+    width:20%;
+    right: 34px;
     position: relative;
     white-space:nowrap;
     text-align:right;
     background:none;
     font-size:80%;
     vertical-align: middle;
+}
+
+.list_box_item_full {
+    white-space:nowrap;
 }
 
 .emergency {
@@ -239,6 +251,7 @@ h3 {
     width: 40%;
     float:left;
     height: 100%;
+    box-sizing: border-box;
 }
 
 .container_side {
@@ -475,13 +488,17 @@ h3 {
     text-align:center;
 }
 
+.inactiveaccount {
+    display: none;
+}
 .visible { display: inherit; }
 .hidden { display: none; }
 .cube { width: 10px; height: 10px; display: inline-block; margin: 1px; border: 1px solid silver;}
 .report-cubes-container { display:inline-block;text-align:left;width:80px; }
-.scroll-content {position:absolute;top:0;left:0;padding-right:20px;width:100%;}
+.scroll-content {position:absolute;top:0;left:0;width:100%;padding-left: 46px; box-sizing: border-box;}
+.scroll-content .scroll-pane > .scroll-content { padding: 0px; }
 .scroll-pane{position:relative;}
-.slider-wrap{position:absolute;right:0;top:0;background-color:lightgrey;width:46px;z-index: 0;}
+.slider-wrap{position:absolute;left:0;top:0;background-color:lightgrey;width:46px;z-index: 0;}
 .slider-vertical{position:relative;height:100%;background-color:lightgrey;border:none;background:none;}
 .ui-slider-handle{ background: 0 white !important; background-color:darkgray;height:10px;margin:0 auto;display:block;position:absolute;}
 .ui-slider-handle:hover{ background: 0 silver; }

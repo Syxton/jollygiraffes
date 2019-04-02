@@ -1671,14 +1671,14 @@ global $CFG, $MYVARS;
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
                             data: { action: \'delete_account\', aid: \''.$aid.'\' },
-                            success: function(data) { $(\'#dialog-confirm\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }
+                            success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
                         });}, function(){})">'.get_icon('x').'</button>';
         }else{
             $returnme .= '<button title="Reactivate Account" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to reactivate this account?\', \'Yes\', \'No\', function(){ $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
                             data: { action: \'activate_account\', aid: \''.$aid.'\' },
-                            success: function(data) { $(\'#dialog-confirm\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }
+                            success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
                         });}, function(){})">'.get_icon('checkmark').'</button>';
         }
 
@@ -1977,7 +1977,7 @@ global $CFG, $MYVARS;
             $payment_button = get_form("add_edit_payment",array("pid" => $pid,"aid" => $account["aid"],"callback" => "billing", "callbackinfo" => $aid),$identifier);
             $payment_button .= '<button style="font-size: 9px;" type="button" onclick="CreateDialog(\'add_edit_payment_'.$identifier.'\',300,400)">Add Payment/Fee</button>';
             $print_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoice&pid='.$pid.'&aid='.$account["aid"].'" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 0px 7px 2px 4px;">'.get_icon('magnifier').' Print Invoice</span></a>';
-            $returnme .= '<div class="document_list_item ui-corner-all" style="margin-right:50px;"><strong>Account: ' . $account["name"] . '</strong><div style="padding: 6px;">'.$print_button." ".$payment_button.'</div>';
+            $returnme .= '<div class="document_list_item ui-corner-all"><strong>Account: ' . $account["name"] . '</strong><div style="padding: 6px;">'.$print_button." ".$payment_button.'</div>';
 
             //Fees
             $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='".$account["aid"]."' AND payment < 0 ORDER BY timelog,payid";
@@ -2178,9 +2178,9 @@ global $CFG, $MYVARS;
                 $edit_button = ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_child_'.$identifier.'\',300,400)"><span class="inline-button ui-corner-all">'.get_icon('wrench').' Edit</span></a>';
 
                 $notifications = get_notifications($pid,$child["chid"],false,true) ? 'style="background: darkred;"' : '';
-                $returnme .= '<div class="ui-corner-all list_box" '.$notifications.'>'.get_children_button($child["chid"],"","top: 5px;float:none;height:50px;width:50px;",false,true,false).'<div class="list_title" style="width:98%;">'. $checked_in .' '.$child["first"].' '.$child["last"];
+                $returnme .= '<div class="ui-corner-all list_box" '.$notifications.'><div class="list_box_item_full">'.get_children_button($child["chid"],"","top: 5px;float:none;height:50px;width:50px;",false,true,false).'<div class="list_title" style="width:98%;">'. $checked_in .' '.$child["first"].' '.$child["last"];
                 $returnme .= $recover ? '</div>' : '<br /><span class="list_links">'.$moreinfo.$edit_button.$enroll_button.'</span></div>';
-                $returnme .= '</div><div style="clear:both;"></div>';
+                $returnme .= '</div></div>';
             }
             $returnme .= '</div><div style="clear:both;"></div>';
         }
@@ -2257,9 +2257,9 @@ global $CFG, $MYVARS;
                 $edit_button = ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_child_'.$identifier.'\',300,400)"><span class="inline-button ui-corner-all">'.get_icon('wrench').' Edit</span></a>';
 
                 $notifications = get_notifications($activepid,$child["chid"],$aid,true) ? 'style="background: darkred;"' : '';
-                $returnme .= '<div class="ui-corner-all list_box" '.$notifications.'>'.get_children_button($child["chid"],"","top: 5px;float:none;height:50px;width:50px;",false,true,false).'<div class="list_title" style="width:98%;">'. $checked_in .' '.$child["first"].' '.$child["last"];
+                $returnme .= '<div class="ui-corner-all list_box" '.$notifications.'><div class="list_box_item_full">'.get_children_button($child["chid"],"","top: 5px;float:none;height:50px;width:50px;",false,true,false).'<div class="list_title" style="width:98%;">'. $checked_in .' '.$child["first"].' '.$child["last"];
                 $returnme .= $recover ? '<br /><span class="list_links">'.$delete_button.'</span></div>' : '<br /><span class="list_links">'.$moreinfo.$edit_button.$enroll_button.$delete_button.'</span></div>';
-                $returnme .= '</div><div style="clear:both;"></div>';
+                $returnme .= '</div></div>';
             }
             $returnme .= '</div><div style="clear:both;"></div>';
         }
@@ -2857,10 +2857,10 @@ global $CFG,$MYVARS;
     $nextmonth = ($month+1) == 13 ? 1 : $month+1; $nextyear = ($month+1) == 13 ? $year+1 : $year;
     //View All button
     $returnme .= '
-            <div class="document_list_item ui-corner-all" style="text-align:center;margin-right: 50px;">
+            <div class="document_list_item ui-corner-all" style="text-align:center">
                 <a href="ajax/reports.php?month1='.$month.'&year1='.$year.'&report=activity&type='.$type.'&id='.$id.'" class="nyroModal"><span class="inline-button ui-corner-all">'.get_icon('magnifier').' View All '.date('F',mktime(0, 0, 0, $month,1,$year)).'</span></a>
             </div>';
-    $returnme .= '<div class="document_list_item ui-corner-all" style="text-align:center;margin-right: 50px;"><table class="fill_width" cellpadding="0" cellspacing="0"><tr><td style="text-align: left;"><a href="javascript: void(0);" onclick="
+    $returnme .= '<div class="document_list_item ui-corner-all" style="text-align:center;"><table class="fill_width" cellpadding="0" cellspacing="0"><tr><td style="text-align: left;"><a href="javascript: void(0);" onclick="
     $.ajax({
         type: \'POST\',
         url: \'ajax/ajax.php\',
@@ -2907,7 +2907,7 @@ global $MYVARS;
             $selected_class = $chid && $chid == $child["chid"] ? "selected_button" : "" ;
             $checked_in = $recover ? '' : (is_checked_in($child["chid"]) ? get_icon('status_online') : get_icon('status_offline'));
             $notifications = get_notifications(get_pid(),$child["chid"],false,true) ? 'style="background: darkred;"' : '';
-            $returnme .= '<div class="ui-corner-all list_box" '.$notifications.'><div style="display:inline-block;width:98%;white-space:nowrap;"><button class="list_buttons '.$selected_class.'" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
+            $returnme .= '<div class="ui-corner-all list_box" '.$notifications.'><div class="list_box_item_full"><button class="list_buttons '.$selected_class.'" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
                         $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
@@ -2926,7 +2926,7 @@ global $MYVARS;
                       ">Select</button><span class="list_title">'.$checked_in.' '.$child["last"].", ".$child["first"].'</span></div></div>';
         }
     }else{
-        $returnme .= '<div class="ui-corner-all list_box"><div style="display:inline-block;width:60%;white-space:nowrap;"><span class="list_title">None Enrolled</span></div></div>';
+        $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_full"><span class="list_title">None Enrolled</span></div></div>';
     }
 
     $returnme .= '</div>';
@@ -2947,7 +2947,7 @@ global $MYVARS;
     //$selected_class = $pid && !$aid ? "selected_button" : "" ;
     $program = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
     $returnme = '<div class="container_list scroll-pane ui-corner-all">';
-    $returnme .= '<div class="ui-corner-all list_box"><div style="white-space:nowrap;"><button class="list_buttons" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
+    $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_full"><button class="list_buttons" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
                         $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
@@ -3014,7 +3014,7 @@ global $MYVARS;
         while($contact = fetch_row($contacts)){
             $cid = empty($cid) ? $contact["cid"] : $cid;
             $selected_class = $cid && $cid == $contact["cid"] ? "selected_button" : "" ;
-            $returnme .= '<div class="ui-corner-all list_box"><div style="display:inline-block;width:60%;white-space:nowrap;"><button class="list_buttons '.$selected_class.'" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
+            $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_full"><button class="list_buttons '.$selected_class.'" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
                         $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
@@ -3030,10 +3030,10 @@ global $MYVARS;
                             }
                         });
 
-                      ">Select</button><span class="list_title">'.$contact["last"].", ".$contact["first"].'</span></div><div style="padding-top: 5px;display:inline-block;width:40%;right: 60px;position: relative;white-space:nowrap;text-align:right;background:none;font-size:80%"></div></div>';
+                      ">Select</button><span class="list_title">'.$contact["last"].", ".$contact["first"].'</span></div></div>';
         }
     }else{
-        $returnme .= '<div class="ui-corner-all list_box"><div style="display:inline-block;width:60%;white-space:nowrap;"><span class="list_title">None Active</span></div></div>';
+        $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_full"><span class="list_title">None Active</span></div></div>';
     }
 
     $returnme .= '</div>';
@@ -3051,12 +3051,12 @@ function get_admin_employees_form($return = false, $employeeid= false, $recover 
 global $MYVARS;
     $employeeid = $employeeid ? $employeeid : (empty($MYVARS->GET["employeeid"]) ? false : $MYVARS->GET["employeeid"]);
     $recover = $recover ? $recover : (empty($MYVARS->GET["recover"]) ? false : $MYVARS->GET["recover"]);
-    $returnme = '<div class="container_list scroll-pane ui-corner-all"><div class="ui-corner-all list_box" style="text-align:center;"><div class="list_box_item_left">';
+    $returnme = '<div class="container_list scroll-pane ui-corner-all"><div class="ui-corner-all list_box"><div class="list_box_item_left">';
 
     if(!$recover){
         $returnme .= get_form('add_edit_employee') . '<button class="list_buttons" style="float:none;margin:4px;" type="button" onclick="CreateDialog(\'add_edit_employee\',230,315)">Add New Employee</button>';
         if(get_db_row("SELECT employeeid FROM employee WHERE deleted=1")){
-            $returnme .= ' <button style="margin:4px;" onclick="$.ajax({
+            $returnme .= ' <button class="list_buttons" onclick="$.ajax({
                   type: \'POST\',
                   url: \'ajax/ajax.php\',
                   data: { action: \'get_admin_employees_form\', employeeid: \'\', recover: \'true\' },
@@ -3127,7 +3127,7 @@ global $MYVARS;
     foreach($tagtypes as $tagrow){
         $tagtype = empty($tagtype) ? $tagrow : $tagtype;
         $selected_class = $tagtype && $tagtype == $tagrow ? "selected_button" : "" ;
-        $returnme .= '<div class="ui-corner-all list_box"><div style="display:inline-block;width:60%;white-space:nowrap;"><button class="list_buttons '.$selected_class.'" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
+        $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_full"><button class="list_buttons '.$selected_class.'" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
                     $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
@@ -3142,7 +3142,7 @@ global $MYVARS;
                                 });
                             }
                         });
-                  ">Select</button><span class="list_title">'.ucfirst($tagrow).'</span></div><div style="padding-top: 5px;display:inline-block;width:40%;right: 60px;position: relative;white-space:nowrap;text-align:right;background:none;font-size:80%"></div></div>';
+                  ">Select</button><span class="list_title">'.ucfirst($tagrow).'</span></div></div>';
     }
 
     $returnme .= '</div>';
@@ -3222,10 +3222,10 @@ function get_admin_enrollment_form($return = false, $pid = false){
 global $MYVARS;
     $activepid = get_pid();
     $pid = $pid ? $pid : (empty($MYVARS->GET["pid"]) ? $activepid : $MYVARS->GET["pid"]);
-    $returnme = '<div class="container_list scroll-pane ui-corner-all"><div class="ui-corner-all list_box" style="text-align:center;">';
+    $returnme = '<div class="container_list scroll-pane ui-corner-all"><div class="ui-corner-all list_box">';
     $identifier = time()."add_program";
     $returnme .= get_form("add_edit_program",array("callback" => "programs"),$identifier);
-    $returnme .= '<button type="button" onclick="CreateDialog(\'add_edit_program_'.$identifier.'\',450,500)">Create Program</button>';
+    $returnme .= '<div class="list_box_item_full" style="text-align:center"><button type="button" class="list_buttons" onclick="CreateDialog(\'add_edit_program_'.$identifier.'\',450,500)">Create Program</button></div>';
 
     $returnme .= '</div>';
 
@@ -3271,12 +3271,14 @@ global $MYVARS;
     $aid = $aid ? $aid : (empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"]);
     $recover = $recover ? $recover : (empty($MYVARS->GET["recover"]) ? false : $MYVARS->GET["recover"]);
     $pid = get_pid();
-    $returnme = '<div class="container_list scroll-pane ui-corner-all"><div class="ui-corner-all list_box" style="text-align:center;"><div class="list_box_item_left">';
+    $returnme = '<div class="container_list scroll-pane ui-corner-all">
+                    <div class="ui-corner-all list_box">';
 
     if(!$recover){
-        $returnme .= get_form('add_edit_account') . '<button class="list_buttons" style="float:none;margin:4px;" type="button" onclick="CreateDialog(\'add_edit_account\',200,315)">Add New Account</button>';
+        $returnme .= '<div class="list_box_item_left">' . get_form('add_edit_account') .
+                            '<button class="list_buttons" style="float:none;margin:4px;" type="button" onclick="CreateDialog(\'add_edit_account\',200,315)">Add New Account</button>';
         if(get_db_row("SELECT chid FROM children WHERE deleted=1") || get_db_row("SELECT cid FROM contacts WHERE deleted=1") || get_db_row("SELECT aid FROM accounts WHERE deleted=1")){
-            $returnme .= ' <button style="margin:4px;" onclick="$.ajax({
+            $returnme .= ' <button class="list_buttons" onclick="$.ajax({
                   type: \'POST\',
                   url: \'ajax/ajax.php\',
                   data: { action: \'get_admin_accounts_form\', aid: \'\', recover: \'true\' },
@@ -3284,25 +3286,26 @@ global $MYVARS;
                   });">See Deleted</button>';
         }
 
-    }else{
-        $returnme .= '<button style="margin:4px;"  onclick="$.ajax({
-                  type: \'POST\',
-                  url: \'ajax/ajax.php\',
-                  data: { action: \'get_admin_accounts_form\', aid: \'\'},
-                  success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                  });">See Active</button>';
-    }
-    $returnme .= '</div>
-                    <div class="list_box_item_right">
+        $returnme .=  '</div>
+                        <div class="list_box_item_right">
                             <div style="width:100px;text-align:center;background:none;line-height: 17px;vertical-align:top;color:white;text-shadow: black 1px 1px 3px;">
-                                Only Active Accounts <input type="checkbox" onclick="if($(this).prop(\'checked\')){ $(\'.inactiveaccount\').hide(); }else{ $(\'.inactiveaccount\').show(); } $(\'.scroll-pane\').sbscroller(\'refresh\');" />
+                                Show Active <input type="checkbox" checked onclick="if($(this).prop(\'checked\')){ $(\'.inactiveaccount\').hide(); }else{ $(\'.inactiveaccount\').show(); } $(\'.scroll-pane\').sbscroller(\'refresh\');" />
                             </div>
                             <div style="width:100px;text-align:center;background:none;display:inline-block;color:white;text-shadow: black 1px 1px 3px;">Active Children:
                                 '.get_db_count("SELECT * FROM enrollments WHERE pid='$pid' AND deleted='0'").'
                             </div>
-                        </div>
-                    </div>';
-    $returnme .= '';
+                        </div>';
+    } else {
+        $returnme .= '<div class="list_box_item_left">
+                        <button style="margin:4px;"  onclick="$.ajax({
+                          type: \'POST\',
+                          url: \'ajax/ajax.php\',
+                          data: { action: \'get_admin_accounts_form\', aid: \'\'},
+                          success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
+                        });">See Active</button>
+                      </div>';
+    }
+    $returnme .= '</div>';
 
     $deleted = $recover ? "1" : "0";
     if($deleted){
@@ -3317,8 +3320,9 @@ global $MYVARS;
             $kid_count = get_db_count("SELECT * FROM children WHERE aid='".$account["aid"]."' AND deleted='$deleted'");
             $active = get_db_count("SELECT * FROM enrollments WHERE chid IN (SELECT chid FROM children WHERE aid='".$account["aid"]."') AND pid='$pid' AND deleted='$deleted'") ? "activeaccount" : "inactiveaccount";
             $deleted_param = $recover ? ',recover: \'true\'':'';
-            $notifications = get_notifications($pid,false,$account["aid"],true) ? 'style="background: darkred;"' : '';
-            $returnme .= '<div class="ui-corner-all list_box '.$active.'" '.$notifications.'><div class="list_box_item_left"><button class="list_buttons '.$selected_class.'" style="float:none;margin: 4px;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
+            $notifications = get_notifications($pid,false,$account["aid"],true) ? 'background: darkred;' : '';
+            $override = $recover ? "display:block;": "";
+            $returnme .= '<div class="ui-corner-all list_box '.$active.'" style="'.$notifications.$override.'"><div class="list_box_item_left"><button class="list_buttons '.$selected_class.'" style="float:none;margin: 4px;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
                         $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',

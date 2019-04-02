@@ -2,6 +2,7 @@ $(window).resize(function() {
   fill_height_width();
   $(".scroll-pane").sbscroller("refresh");
   $(".textfill").textfill();
+  smart_scrollbars();
 });
 
 var scriptTimer = {
@@ -19,12 +20,17 @@ var scriptTimer = {
 	}
 }
 
+function smart_scrollbars() {
+    $('.scroll-content:only-child').css("padding-left","0");
+    $('.scroll-content > slider-wrap').css("padding-left","46px");
+}
+
 function refresh_all(){
 //scriptTimer.startTimer();
     // Make jQuery UI buttons of all buttons and submits and .button that are not alreayd "buttonized"
     $("input:submit, button, .button").not('.ui-button').button();
 //scriptTimer.stopTimer(); alert(scriptTimer.scriptRunTime);
-    
+
     $(".button").click(function() { return false; });
     $(".toggleswitch").toggleSwitch(); // Make toggle switches
     $('.flexsection').click(function() {
@@ -69,6 +75,7 @@ function refresh_all(){
         fill_height_width_once();
         $(".scroll-pane").not(":has(.scroll-content)").sbscroller();
         $(".scroll-pane").sbscroller("refresh");
+        smart_scrollbars();
     },
     100);
 
@@ -340,6 +347,7 @@ function ucwords(str,force){
 }
 
 refresh_all();
+smart_scrollbars();
 
 $(document).bind("ajaxSend", function(){
     $(".loadingscreen").show();

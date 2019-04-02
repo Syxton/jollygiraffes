@@ -28,24 +28,24 @@ global $CFG;
             $consider_full = empty($vars["program"]["consider_full"]) ? "5" : $vars["program"]["consider_full"];
             $bill_by = empty($vars["program"]["bill_by"]) ? "enrollment" : $vars["program"]["bill_by"];
             $discount_rule = empty($vars["program"]["discount_rule"]) ? "0" : $vars["program"]["discount_rule"];
-            
+
             $title = empty($vars["pid"]) ? "Add Program" : "Edit Program";
             $days[0] = new stdClass(); $days[1] = new stdClass(); $days[2] = new stdClass(); $days[3] = new stdClass(); $days[4] = new stdClass();
             $bill_by_array[0] = new stdClass(); $bill_by_array[1] = new stdClass();
             $bill_by_array[0]->value = "enrollment"; $bill_by_array[0]->display = "Enrollment";
-            $bill_by_array[1]->value = "attendance"; $bill_by_array[1]->display = "Attendance";  
+            $bill_by_array[1]->value = "attendance"; $bill_by_array[1]->display = "Attendance";
             $days[0]->value = "1"; $days[1]->value = "2"; $days[2]->value = "3"; $days[3]->value = "4"; $days[4]->value = "5";
             $fields = "";
             $pid = empty($vars["pid"]) ? "0" : $vars["pid"];
             $fields .= empty($vars["pid"]) ? "" : '<input type="hidden" name="pid" class="fields pid" value="'.$vars["pid"].'" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="programs" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
-            
+
             $form = '<div id="add_edit_program'.$identifier.'" title="'.$title.'" style="display:none;">
                 		<form name="add_edit_program_form'.$identifier.'">
                             '.$fields.'
                             <table style="width:100%;">
                                 <tr><td><label for="name">Name</label></td><td><input style="width:100%;" class="fields" type="input" name="name" id="name" value="'.$name.'" /></td></tr>
-                                <tr><td><label for="business_hours">Normal Hours</label></td><td><span style="display:inline-block;width:55px;">From:</span><input class="time fields" name="timeopen" id="timeopen" type="text" value="'.$timeopen.'" /><br /><span style="display:inline-block;width:55px;">To:</span><input class="time fields" name="timeclosed" id="timeclosed" type="text" value="'.$timeclosed.'" /></td></tr>                                
+                                <tr><td><label for="business_hours">Normal Hours</label></td><td><span style="display:inline-block;width:55px;">From:</span><input class="time fields" name="timeopen" id="timeopen" type="text" value="'.$timeopen.'" /><br /><span style="display:inline-block;width:55px;">To:</span><input class="time fields" name="timeclosed" id="timeclosed" type="text" value="'.$timeclosed.'" /></td></tr>
                                 <tr><td><label for="consider_full">Full Week (days)</label></td><td>'.make_select_from_array("consider_full",$days,"value","value","fields",$consider_full).'</td></tr>
                                 <tr><td><label for="bill_by">Bill By</label></td><td>'.make_select_from_array("bill_by",$bill_by_array,"value","display","fields",$bill_by).'</td></tr>
                                 <tr><td><label for="perday">Price Per Day</label></td><td>$<input style="width:125px;" class="fields" type="input" name="perday" id="perday" value="'.$perday.'" /></td></tr>
@@ -68,10 +68,10 @@ global $CFG;
                           </form>
                     </div>
                     <script type="text/javascript">
-                        $(document).ready(function(){ 
-                            $(\'.time\').timepicker({ \'forceRoundTime\': true });                      
-                        });                    
-                    </script>                    
+                        $(document).ready(function(){
+                            $(\'.time\').timepicker({ \'forceRoundTime\': true });
+                        });
+                    </script>
                     ';
             break;
         case "billing_overrides":
@@ -83,13 +83,13 @@ global $CFG;
             $consider_full = empty($vars["override"]["consider_full"]) ? "5" : $vars["override"]["consider_full"];
             $bill_by = empty($vars["override"]["bill_by"]) ? "none" : $vars["override"]["bill_by"];
             $discount_rule = empty($vars["override"]["discount_rule"]) ? "0" : $vars["override"]["discount_rule"];
-            
+
             $title = "Billing Override";
             $days[0] = new stdClass(); $days[1] = new stdClass(); $days[2] = new stdClass(); $days[3] = new stdClass(); $days[4] = new stdClass();
             $bill_by_array[0] = new stdClass(); $bill_by_array[1] = new stdClass(); $bill_by_array[2] = new stdClass();
             $bill_by_array[0]->value = "none"; $bill_by_array[0]->display = "None";
             $bill_by_array[1]->value = "enrollment"; $bill_by_array[1]->display = "Enrollment";
-            $bill_by_array[2]->value = "attendance"; $bill_by_array[2]->display = "Attendance";  
+            $bill_by_array[2]->value = "attendance"; $bill_by_array[2]->display = "Attendance";
             $days[0]->value = "1"; $days[1]->value = "2"; $days[2]->value = "3"; $days[3]->value = "4"; $days[4]->value = "5";
             $fields = "";
             $pid = empty($vars["pid"]) ? "0" : $vars["pid"];
@@ -100,7 +100,7 @@ global $CFG;
             $fields .= empty($vars["oid"]) ? "" : '<input type="hidden" name="oid" class="fields oid" value="'.$vars["oid"].'" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="billing" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
             $fields .= '<input type="hidden" name="callbackinfo" class="fields callbackinfo" value="'.$aid.'" />';
-            
+
             $form = '<div id="billing_overrides'.$identifier.'" title="'.$title.'" style="display:none;">
                 		<form name="billing_overrides'.$identifier.'">
                             '.$fields.'
@@ -133,14 +133,14 @@ global $CFG;
             $timelog = empty($payment["timelog"]) ? date('m/d/Y',display_time(get_timestamp())) : date('m/d/Y',display_time($payment["timelog"]));
             $note = empty($payment["note"]) ? "" : $payment["note"];
             $title = empty($payment["payid"]) ? "Make Payment or Fee" : "Edit Payment or Fee";
-            
+
             $fields = "";
             $fields .= empty($payment["payid"]) ? "" : '<input type="hidden" name="payid" class="fields payid" value="'.$payment["payid"].'" />';
             $fields .= empty($vars["pid"]) ? "" : '<input type="hidden" name="pid" class="fields pid" value="'.$vars["pid"].'" />';
             $fields .= empty($vars["pid"]) ? "" : '<input type="hidden" name="aid" class="fields aid" value="'.$vars["aid"].'" />';
             $fields .= empty($vars["callbackinfo"]) ? "" : '<input type="hidden" name="callbackinfo" class="fields callbackinfo" value="'.$vars["callbackinfo"].'" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="billing" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
-            
+
             $form = '<div id="add_edit_payment'.$identifier.'" title="'.$title.'" style="display:none;">
                 		<form name="add_edit_payment_form'.$identifier.'">
                             '.$fields.'
@@ -168,11 +168,11 @@ global $CFG;
             $timelog = date('m/d/Y',get_timestamp());
             $note = "";
             $title = "Donations/Expenses";
-            
+
             $fields = "";
             $fields .= empty($vars["pid"]) ? "" : '<input type="hidden" name="pid" class="fields pid" value="'.$vars["pid"].'" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="billing" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
-            
+
             $program_expense_form = '';
             if($expenses = get_db_result("SELECT * FROM billing_payments WHERE pid='".$vars["pid"]."' AND aid=0 ORDER BY timelog DESC")){
                     $program_expense_form = '<table style="width:100%;padding-right:5px;">';
@@ -206,7 +206,7 @@ global $CFG;
             }else{
                $program_expense_form = "<div style='text-align:center;'><strong>No donations / expenses recorded yet.</strong></div>";
             }
-            
+
             $form = '<div id="add_edit_expense'.$identifier.'" title="'.$title.'" style="display:none;">
                 		<div style="height: 375px;margin-bottom: 10px;">
                             <strong>Program Donation/Expense History</strong><br />
@@ -247,25 +247,25 @@ global $CFG;
                           success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_expense'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
                           });">Save Donation/Expense</button>
                           </form>
-                    </div>';        
+                    </div>';
             break;
         case "add_edit_account":
             $name = empty($vars["account"]["name"]) ? "" : $vars["account"]["name"];
             $password = empty($vars["account"]["password"]) ? "" : $vars["account"]["password"];
             $status = empty($vars["account"]["meal_status"]) ? "paid" : $vars["account"]["meal_status"];
             $title = empty($vars["account"]["aid"]) ? "Add Account" : "Edit Account";
-            
+
             $meal_status[0] = new stdClass(); $meal_status[1] = new stdClass(); $meal_status[2] = new stdClass();
             $meal_status[0]->value = "paid"; $meal_status[0]->display = "Paid";
             $meal_status[1]->value = "reduced"; $meal_status[1]->display = "Reduced";
             $meal_status[2]->value = "free"; $meal_status[2]->display = "Free";
-                        
+
             $fields = "";
             $fields .= empty($vars["account"]["aid"]) ? "" : '<input type="hidden" name="aid" class="fields aid" value="'.$vars["account"]["aid"].'" />';
             $fields .= empty($vars["recover_param"]) ? "" : '<input type="hidden" name="recover" class="fields recover" value="'.$vars["recover_param"].'" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="accounts" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
             $meal_status_field = empty($vars["account"]["admin"]) ? '<tr><td><label for="meal_status">Meal Status</label></td><td>'.make_select_from_array("meal_status",$meal_status,"value","display","fields",$status).'</td></tr>' : '<input type="hidden" name="meal_status" class="fields meal_status" value="none" />';
-            
+
             $form = '<div id="add_edit_account'.$identifier.'" title="'.$title.'" style="display:none;">
                 		<form name="add_edit_account_form'.$identifier.'">
                             '.$fields.'
@@ -293,7 +293,7 @@ global $CFG;
             $password = empty($vars["employee"]["password"]) ? "" : $vars["employee"]["password"];
             $wage = empty($vars["employee"]["employeeid"]) ? "$0.00" : (get_wage($vars["employee"]["employeeid"],get_timestamp()) ? "$".get_wage($vars["employee"]["employeeid"],get_timestamp()) : "$0.00");
             $title = empty($vars["employee"]["employeeid"]) ? "Add Employee" : "Edit Employee";
-                        
+
             $fields = "";
             $fields .= empty($vars["employee"]["employeeid"]) ? "" : '<input type="hidden" name="employeeid" class="fields employeeid" value="'.$vars["employee"]["employeeid"].'" />';
             $fields .= empty($vars["recover_param"]) ? "" : '<input type="hidden" name="recover" class="fields recover" value="'.$vars["recover_param"].'" />';
@@ -327,7 +327,7 @@ global $CFG;
             $fields .= empty($vars["employee"]["employeeid"]) ? "" : '<input type="hidden" name="employeeid" class="fields employeeid" value="'.$vars["employee"]["employeeid"].'" />';
             $fields .= empty($vars["recover_param"]) ? "" : '<input type="hidden" name="recover" class="fields recover" value="'.$vars["recover_param"].'" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="employees" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
-            
+
             $timecard_history = '';
             if($timecards = get_db_result("SELECT * FROM employee_timecard WHERE employeeid='$employeeid' ORDER BY fromdate DESC")){
                     $timecard_history = '<tr>
@@ -363,7 +363,7 @@ global $CFG;
                                         </tr>';
                 }
             }
-            
+
             $form = '<div id="edit_employee_timecards'.$identifier.'" title="Pay Stubs" style="display:none;">
         		<form name="edit_employee_timecards_form'.$identifier.'">
                     '.$fields.'
@@ -382,7 +382,7 @@ global $CFG;
                   });">Save</button>
                   </form>
                 </div>';
-                    
+
         break;
         case "edit_employee_wage_history":
             $employeeid = $vars["employee"]["employeeid"];
@@ -390,7 +390,7 @@ global $CFG;
             $fields .= empty($vars["employee"]["employeeid"]) ? "" : '<input type="hidden" name="employeeid" class="fields employeeid" value="'.$vars["employee"]["employeeid"].'" />';
             $fields .= empty($vars["recover_param"]) ? "" : '<input type="hidden" name="recover" class="fields recover" value="'.$vars["recover_param"].'" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="employees" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
-            
+
             $salary_history = '';
             if($salary_entry = get_db_result("SELECT * FROM employee_wage WHERE employeeid='$employeeid' ORDER BY dategiven DESC")){
                 while($salary = fetch_row($salary_entry)){
@@ -435,7 +435,7 @@ global $CFG;
                                         </tr>';
                 }
             }
-            
+
             $form = '<div id="edit_employee_wage_history'.$identifier.'" title="Wage History" style="display:none;">
                 		<form name="edit_employee_wage_history_form'.$identifier.'">
                             '.$fields.'
@@ -459,23 +459,25 @@ global $CFG;
             $first = empty($vars["child"]) ? "" : $vars["child"]["first"];
             $last = empty($vars["child"]) ? "" : $vars["child"]["last"];
             $birthdate = empty($vars["child"]) ? "" : date('m/d/Y',$vars["child"]["birthdate"]);
-            $male = empty($vars["child"]) ? "" : ($vars["child"]["sex"] == "Male" ? "selected" : ""); 
+            $male = empty($vars["child"]) ? "" : ($vars["child"]["sex"] == "Male" ? "selected" : "");
             $female = empty($vars["child"]) ? "" : ($vars["child"]["sex"] == "Female" ? "selected" : "");
-            $grade0 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "0" ? "selected" : ""); 
-            $grade1 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "1" ? "selected" : ""); 
-            $grade2 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "2" ? "selected" : ""); 
+            $grade0 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "0" ? "selected" : "");
+            $grade1 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "1" ? "selected" : "");
+            $grade2 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "2" ? "selected" : "");
             $grade3 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "3" ? "selected" : "");
-            $grade4 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "4" ? "selected" : ""); 
-            $grade5 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "5" ? "selected" : ""); 
+            $grade4 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "4" ? "selected" : "");
+            $grade5 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "5" ? "selected" : "");
             $grade6 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "6" ? "selected" : "");
+            $grade7 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "7" ? "selected" : "");
+            $grade8 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "8" ? "selected" : "");
             $thispid = empty($vars["pid"]) ? get_pid() : $vars["pid"];
-            
+
             $fields = "";
             $fields .= empty($vars["aid"]) ? "" : '<input type="hidden" name="aid" class="fields aid" value="'.$vars["aid"].'" />';
             $fields .= empty($vars["pid"]) ? "" : '<input type="hidden" name="pid" class="fields pid" value="'.$vars["pid"].'" />';
             $fields .= empty($vars["child"]["chid"]) ? "" : '<input type="hidden" name="chid" class="fields chid" value="'.$vars["child"]["chid"].'" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="accounts" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
-            
+
             $title = empty($vars["chid"]) ? "Add Child" : "Edit Child";
 
             $form = '<div id="add_edit_child'.$identifier.'" title="'.$title.'" style="display:none;">
@@ -486,7 +488,7 @@ global $CFG;
                                         <tr><td><label for="last">Last</label></td><td><input class="fields autocapitalizefirst" type="input" name="last" id="last" value="'.$last.'" /></td></tr>
                                         <tr><td><label for="sex">Sex</label></td><td><select class="fields" name="sex"><option value="Male" '.$male.'>Male</option><option value="Female" '.$female.'>Female</option></select></td></tr>
                                         <tr><td><label for="birthdate">Birthdate</label></td><td><input class="fields" type="input" name="birthdate" id="birthdate" value="'.$birthdate.'" /></td></tr>
-                                        <tr><td><label for="grade">Grade</label></td><td><select class="fields" name="grade"><option value="0" '.$grade0.'>Kindergarten</option><option value="1" '.$grade1.'>1st</option><option value="2" '.$grade2.'>2nd</option><option value="3" '.$grade3.'>3rd</option><option value="4" '.$grade4.'>4th</option><option value="5" '.$grade5.'>5th</option><option value="6" '.$grade6.'>6th</option></select></td></tr>
+                                        <tr><td><label for="grade">Grade</label></td><td><select class="fields" name="grade"><option value="7" '.$grade7.'>Infant</option><option value="8" '.$grade8.'>Pre-K</option><option value="0" '.$grade0.'>Kindergarten</option><option value="1" '.$grade1.'>1st</option><option value="2" '.$grade2.'>2nd</option><option value="3" '.$grade3.'>3rd</option><option value="4" '.$grade4.'>4th</option><option value="5" '.$grade5.'>5th</option><option value="6" '.$grade6.'>6th</option></select></td></tr>
                                     </table>
                                 <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
                                   type: \'POST\',
@@ -516,7 +518,7 @@ global $CFG;
             $hours = empty($vars["contact"]) ? "" : $vars["contact"]["hours"];
             $emergency = empty($vars["contact"]) ? "" : ($vars["contact"]["emergency"] == "1" ? "selected" : "");
             $title = empty($vars["contact"]) ? "Add Contact" : "Edit Contact";
-            
+
             $fields = "";
             $fields .= empty($vars["contact"]) ? (empty($vars["aid"]) ? "" : '<input type="hidden" name="aid" class="fields aid" value="'.$vars["aid"].'" />') : '<input type="hidden" name="aid" class="fields aid" value="'.$vars["contact"]["aid"].'" />';
             $fields .= empty($vars["contact"]) ? "" : '<input type="hidden" name="cid" class="fields cid" value="'.$vars["contact"]["cid"].'" />';
@@ -583,7 +585,7 @@ global $CFG;
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="get_admin_children_form" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
             $fields .= empty($vars["param1"]) ? "" : '<input type="hidden" name="param1" class="fields param1" value="'.$vars["param1"].'" />';
             $fields .= empty($vars["param1value"]) ? "" : '<input type="hidden" name="param1value" class="fields param1value" value="'.$vars["param1value"].'" />';
-            
+
             $display = empty($vars["display"]) ? "admin_display" : $vars["display"];
             $title = empty($vars["did"]) ? "Attach Document" : "Update Document";
             if(!empty($vars["did"])){
@@ -591,7 +593,7 @@ global $CFG;
             }
             $selected = empty($doc) ? false : $doc["tag"];
             $description = empty($doc) ? "" : $doc["description"];
-            
+
             $form = '<div id="attach_doc'.$identifier.'" title="'.$title.'" style="display:none;">
                     		<form class="uploadera'.$identifier.'" name="attach_doc_form'.$identifier.'">
                                 '.$fields.'
@@ -628,17 +630,17 @@ global $CFG;
             if(!empty($vars["nid"])){
                 $note = get_db_row("SELECT * FROM notes WHERE nid='".$vars["nid"]."'");
             }
-            
+
             $notify_array[0] = new stdClass(); $notify_array[1] = new stdClass();
             $notify_array[0]->value = "1";$notify_array[0]->display = "Yes";$notify_array[1]->value = "0";$notify_array[1]->display = "No";
-            
+
             $selected = empty($note) ? false : $note["tag"];
             $notify = empty($note) ? "0" : $note["notify"];
             $persistent = $notify == "2" ? "1" : "0";
             $notify = $notify == "2" ? "1" : $notify;
-            
+
             $note = empty($note) ? "" : $note["note"];
-            
+
             $form = '<div id="attach_note'.$identifier.'" title="'.$title.'" style="display:none;">
                     		<form name="attach_note_form'.$identifier.'">
                                 '.$fields.'
@@ -677,19 +679,19 @@ global $CFG;
             $title = empty($vars["aid"]) ? "Program Bulletin" : "Account Bulletin";
 
             if(!empty($vars["aid"])){
-                $note = get_db_row("SELECT * FROM notes WHERE tag='bulletin' AND pid='0' AND aid='".$vars["aid"]."'");    
+                $note = get_db_row("SELECT * FROM notes WHERE tag='bulletin' AND pid='0' AND aid='".$vars["aid"]."'");
             }else{
                 $note = get_db_row("SELECT * FROM notes WHERE tag='bulletin' AND pid='".$vars["pid"]."' AND aid='0'");
             }
-            
+
             $notify_array[0] = new stdClass(); $notify_array[1] = new stdClass();
             $notify_array[0]->value = "1";$notify_array[0]->display = "Yes";$notify_array[1]->value = "0";$notify_array[1]->display = "No";
-            
+
             $notify = empty($note) ? "0" : $note["notify"];
             $notify = $notify == "2" ? "1" : $notify;
-            
+
             $note = empty($note) ? "" : $note["note"];
-            
+
             $form = '<div id="bulletin'.$identifier.'" title="'.$title.'" style="display:none;">
                     		<form name="bulletin_form'.$identifier.'">
                                 '.$fields.'
@@ -723,10 +725,10 @@ global $CFG;
             if(!empty($vars["nid"])){
                 $note = get_db_row("SELECT * FROM notes WHERE nid='".$vars["nid"]."'");
             }
-            
+
             $fields .= empty($note["tag"]) ? "" : '<input type="hidden" name="tag" class="fields tag" value="'.$note["tag"].'" />';
             $note = empty($note) ? "" : $note["note"];
-            
+
             $form = '<div id="update_activity'.$identifier.'" title="'.$title.'" style="display:none;">
                     		<form name="update_activity_form'.$identifier.'">
                                 '.$fields.'
@@ -741,14 +743,14 @@ global $CFG;
                                     $(button).button(\'option\', \'disabled\', false);
                                   },
                                   data: { action: \'add_edit_activity\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                                  success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#update_activity'.$identifier.'\').dialog(\'close\'); 
+                                  success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#update_activity'.$identifier.'\').dialog(\'close\');
                                                $.ajax({
                                                 type: \'POST\',
                                                 url: \'ajax/ajax.php\',
                                                 data: { action: \'get_activity_list\',chid:\''.$vars["chid"].'\',month:\''.$vars["month"].'\',year:\''.$vars["year"].'\' },
                                                 success: function(data) {
                                                         $(\'#subselect_div\').hide(\'fade\');
-                                                        $(\'#subselect_div\').html(data); 
+                                                        $(\'#subselect_div\').html(data);
                                                         $(\'#subselect_div\').show(\'fade\');
                                                         refresh_all();
                                                     }
@@ -769,10 +771,10 @@ global $CFG;
             if(!empty($vars["actid"])){
                 $activity = get_db_row("SELECT * FROM employee_activity WHERE actid='".$vars["actid"]."'");
             }
-            
+
             $fields .= empty($note["tag"]) ? "" : '<input type="hidden" name="tag" class="fields tag" value="'.$note["tag"].'" />';
             $note = empty($note) ? "" : $note["note"];
-            
+
             $form = '<div id="update_employee_activity'.$identifier.'" title="'.$title.'" style="display:none;">
                     		<form name="update_employee_activity_form'.$identifier.'">
                                 '.$fields.'
@@ -787,14 +789,14 @@ global $CFG;
                                     $(button).button(\'option\', \'disabled\', false);
                                   },
                                   data: { action: \'add_edit_employee_activity\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                                  success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#update_employee_activity'.$identifier.'\').dialog(\'close\'); 
+                                  success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#update_employee_activity'.$identifier.'\').dialog(\'close\');
                                                $.ajax({
                                                 type: \'POST\',
                                                 url: \'ajax/ajax.php\',
                                                 data: { action: \'get_activity_list\',employeeid:\''.$vars["employeeid"].'\',month:\''.$vars["month"].'\',year:\''.$vars["year"].'\' },
                                                 success: function(data) {
                                                         $(\'#subselect_div\').hide(\'fade\');
-                                                        $(\'#subselect_div\').html(data); 
+                                                        $(\'#subselect_div\').html(data);
                                                         $(\'#subselect_div\').show(\'fade\');
                                                         refresh_all();
                                                     }
@@ -806,7 +808,7 @@ global $CFG;
             break;
         case "add_edit_enrollment":
             $title = empty($vars["pid"]) ? "Enroll Child" : "Edit Enrollment";
-            
+
             $M = $T = $W = $Th = $F = $exempt = "";
             if(!empty($vars["chid"])){
                 $enrollment = get_db_row("SELECT * FROM enrollments WHERE chid='".$vars["chid"]."' AND pid='".$vars["pid"]."'");
@@ -814,10 +816,10 @@ global $CFG;
                 $days_attending = $enrollment["days_attending"];
                 $days_attending = explode(",",$days_attending); $days_possible = array("M","T","W","Th","F");
                 foreach($days_possible as $day){
-                    $$day = array_search($day,$days_attending) !== false ? "checked" : "";    
-                }                
+                    $$day = array_search($day,$days_attending) !== false ? "checked" : "";
+                }
             }
-            
+
             $fields = "";
             $fields .= empty($vars["eid"]) ? "" : '<input type="hidden" name="eid" class="fields eid" value="'.$vars["eid"].'" />';
             $fields .= empty($vars["aid"]) ? "" : '<input type="hidden" name="aid" class="fields aid" value="'.$vars["aid"].'" />';
@@ -828,7 +830,7 @@ global $CFG;
                         type: \'POST\',
                         url: \'ajax/ajax.php\',
                         data: { action: \'get_admin_children_form\', chid: \''.$vars["chid"].'\' },
-                        success: function(data) { 
+                        success: function(data) {
                             $(\'#admin_display\').html(data); refresh_all();
                         }
                     });';
@@ -866,8 +868,8 @@ global $CFG;
                           url: \'ajax/ajax.php\',
                           timeout: 10000,
                           data: { action: \'view_required_notes_form\',pid:\''.$program["pid"].'\',evid: \''.$event["evid"].'\' },
-                          success: function(data) { 
-                            $(\'#required_notes_div'.$identifier.'\').html(data); 
+                          success: function(data) {
+                            $(\'#required_notes_div'.$identifier.'\').html(data);
                             $(\'#sortable\').sortable({
                                 update : function () {
                                     var serial = $(\'#sortable\').sortable(\'toArray\');
@@ -878,15 +880,15 @@ global $CFG;
                                     });
                                 }
                             }); $(\'#sortable\').disableSelection(); }
-                        });">'.$event["title"].'</li>';     
+                        });">'.$event["title"].'</li>';
                 }
                 $events_list .= '</ul>';
             }
-            
+
             $fields = "";
             $fields .= empty($vars["pid"]) ? "" : '<input type="hidden" name="pid" class="fields pid" value="'.$vars["pid"].'" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="programs" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
-            
+
             $form = '<div id="event_editor'.$identifier.'" title="'.$title.'" style="display:none;">
                 		<form name="event_editor_form'.$identifier.'">
                             '.$fields.'
@@ -909,13 +911,13 @@ global $CFG;
             $tagtype = empty($vars["tagtype"]) ? "" : $vars["tagtype"];
             $title = empty($vars["tagrow"]) ? "Add Tag" : "Edit Tag";
             $lock = !empty($tag) && get_db_row("SELECT timelog FROM $tagtype WHERE tag='".$tag."'") ? 'disabled="disabled"' : "";
-            
+
             $fields = "";
             $fields .= empty($tag) ? "" : '<input type="hidden" name="update" class="fields update" value="'.$tag.'" />';
             $fields .= empty($vars["tagtype"]) ? "" : '<input type="hidden" name="tagtype" class="fields tagtype" value="'.$tagtype.'" />';
             $fields .= empty($vars["recover_param"]) ? "" : '<input type="hidden" name="recover" class="fields recover" value="'.$vars["recover_param"].'" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="accounts" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
-            
+
             $form = '<div id="add_edit_tag'.$identifier.'" title="'.$title.'" style="display:none;">
                 		<form name="add_edit_tag_form'.$identifier.'">
                             '.$fields.'
@@ -950,7 +952,7 @@ global $CFG;
             $fields .= '<input type="hidden" name="pid" class="fields pid" value="'.$activepid.'" />';
             $fields .= empty($vars["aid"]) ? "" : '<input type="hidden" name="aid" class="fields aid" value="'.$vars["aid"].'" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="billing" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
-            
+
             $sql = empty($vars["aid"]) ? "" : "AND aid='".$vars["aid"]."'";
 
             $form = '<div id="create_invoices'.$identifier.'" title="Recreate Invoices" style="display:none;">
@@ -974,7 +976,7 @@ global $CFG;
                           </form>
                     </div>';
             break;
-    }     
+    }
     return $form;
 }
 ?>

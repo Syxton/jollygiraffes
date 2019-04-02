@@ -779,17 +779,16 @@ global $CFG, $MYVARS;
     }
 
     $callback = empty($callback) ? false : $callback;
-    if(!empty($tag) && get_db_row("SELECT * FROM $tagtype"."_tags WHERE tag='$tag'")){ echo "false"; exit;}
-    $tag = !empty($tag) ? $tag : (empty($update) ? false : $update);
 
     if(!empty($tag)){
         $tag = strtolower(str_replace(' ','_',$tag));
         $title = empty($title) ? ucwords(str_replace('_',' ',$tag)) : ucwords($title);
         $color = empty($color) ? "silver" : $color;
         $textcolor = empty($textcolor) ? "black" : $textcolor;
-        if(!empty($update)){
+        if (!empty($update)) {
             $SQL = "UPDATE $tagtype"."_tags SET tag='$tag',title='$title',color='$color',textcolor='$textcolor' WHERE tag='$update'";
-        }else{
+        } else {
+            if(get_db_row("SELECT * FROM $tagtype"."_tags WHERE tag='$tag'")){ echo "false"; exit;}
             $SQL = "INSERT INTO $tagtype"."_tags (title,tag,color,textcolor) VALUES('$title','$tag','$color','$textcolor')";
         }
 

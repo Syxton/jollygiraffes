@@ -180,7 +180,7 @@ function get_employee_button($employeeid,$class="",$style="",$action=""){
     $top = strstr($style,"width:") ? "top:" . (substr($style,(strpos($style,"width:")+6),(strpos($style,"px",strpos($style,"width:")) - (strpos($style,"width:")+6)))* (.4))."px;" : "";
     $name = '<span class="slider-item-text" style="'.$top.'">'.$row["first"].'<br />'.$row["last"].'</span>';
     $status = get_employee_status($employeeid);
-    return '<button class="child button slider-item-text '.$class.' emp_'.$row["employeeid"].' slider-item ui-corner-all" style="'.$style.'background-size:100%;" onclick="$(\'#selectedemployee\').val(\''.$row["employeeid"].'\');'.$action.'">
+    return '<button class="child button slider-item-text '.$class.' emp_'.$row["employeeid"].' slider-item ui-corner-all" style="'.$style.'background-size: cover;" onclick="$(\'#selectedemployee\').val(\''.$row["employeeid"].'\');'.$action.'">
                 <span class="ui-corner-all" style="font-size:9px;width: 100%;top: 0;position: absolute;background:rgba(0, 0, 0, 0.35);display: block;">'.$status.'</span>
                 <span class="ui-corner-all" style="width: 100%;bottom: 0;position: absolute;background:rgba(0, 0, 0, 0.35);display: block;">'.$name.'</span>
             </button>';
@@ -420,7 +420,7 @@ function get_children_button($chid,$class="",$style="",$action="",$piconly=false
     $class .= empty($action) ? " noaction" : "";
     $top = strstr($style,"width:") ? "top:" . (substr($style,(strpos($style,"width:")+6),(strpos($style,"px",strpos($style,"width:")) - (strpos($style,"width:")+6)))* (.4))."px;" : "";
     $name = $name ? '<span class="slider-item-text" style="'.$top.'">'.$row["first"].'<br />'.$row["last"].'</span>' : "";
-    return '<button class="child '.$piconly.' '.$class.' chid_'.$row["chid"].' account_'.$row["aid"].' letter_'.$letter.' slider-item ui-corner-all" style="'.$style.'background-size:100%;" onclick="'.$action.'">
+    return '<button class="child '.$piconly.' '.$class.' chid_'.$row["chid"].' account_'.$row["aid"].' letter_'.$letter.' slider-item ui-corner-all" style="'.$style.'background-size: cover;" onclick="'.$action.'">
                 <input type="hidden" class="chid" id="chid_'.$row["chid"].'" name="chid_'.$row["chid"].'" value="'.$row["chid"].'" />
                 <span class="ui-corner-all" style="width: 100%;bottom: 0;position: absolute;background:rgba(0, 0, 0, 0.35);display: block;">'.$name.'</span>
             </button>';

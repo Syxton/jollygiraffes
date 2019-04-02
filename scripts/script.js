@@ -22,7 +22,7 @@ var scriptTimer = {
 
 function smart_scrollbars() {
     $('.scroll-content:only-child').css("padding-left","0");
-    $('.scroll-content > slider-wrap').css("padding-left","46px");
+    $('.slider-wrap').prev('.scroll-content').css("padding-left","46px");
 }
 
 function refresh_all(){

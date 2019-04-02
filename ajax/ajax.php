@@ -1769,14 +1769,14 @@ global $CFG, $MYVARS;
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
                             data: { action: \'delete_employee\', employeeid: \''.$employeeid.'\' },
-                            success: function(data) { $(\'#dialog-confirm\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }
+                            success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
                         });}, function(){})">'.get_icon('x').'</button>';
         }else{
             $returnme .= '<button title="Reactivate Employee" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to reactivate this employee?\', \'Yes\', \'No\', function(){ $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
                             data: { action: \'activate_employee\', employeeid: \''.$employeeid.'\' },
-                            success: function(data) { $(\'#dialog-confirm\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }
+                            success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
                         });}, function(){})">'.get_icon('checkmark').'</button>';
         }
     }elseif($actid){

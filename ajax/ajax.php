@@ -1847,7 +1847,7 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
                         }
                     });}, function(){})">' . get_icon('x') . '</button>';
 
-    } elseif ($cid) {
+    } elseif ($cid) { // Contact Buttons
         $identifier = time() . "contact_$cid";
         $contact    = get_db_row("SELECT * FROM contacts WHERE cid='$cid'");
         $returnme .= '<button title="Go to account" class="image_button" type="button" onclick="$.ajax({
@@ -1864,6 +1864,22 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
             "contact" => $contact
         ), $identifier);
         $returnme .= '<button title="Edit Contact" class="image_button" type="button" onclick="CreateDialog(\'add_edit_contact_' . $identifier . '\',520,400)">' . get_icon('config') . '</button>';
+        //Delete Contact Button
+        $returnme .= '<button title="Delete Contact" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to delete this contact?\', \'Yes\', \'No\', function(){ $.ajax({
+                        type: \'POST\',
+                        url: \'ajax/ajax.php\',
+                        data: { action: \'delete_contact\', cid: \'' . $cid . '\' },
+                        success: function(data) {
+                          $.ajax({
+                              type: \'POST\',
+                              url: \'ajax/ajax.php\',
+                              data: { action: \'get_admin_contacts_form\', cid: \'\' },
+                              success: function(data) {
+                                  $(\'#admin_display\').html(data); refresh_all();
+                              }
+                          });
+                        }
+                    });}, function(){})">' . get_icon('x') . '</button>';
     } elseif ($employeeid) {
         $identifier = time() . "_employeeid_" . $employeeid;
 

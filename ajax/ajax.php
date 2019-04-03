@@ -1734,6 +1734,23 @@ global $CFG, $MYVARS;
         $returnme .= get_form("add_edit_child",array("aid" => $child["aid"],"callback" => "children","child" => $child),$identifier);
         $returnme .= '<button title="Edit Child" class="image_button" type="button" onclick="CreateDialog(\'add_edit_child_'.$identifier.'\',300,400)">'.get_icon('config').'</button>';
 
+        //Delete Child Button
+        $returnme .= '<button title="Delete Child" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to delete this child?\', \'Yes\', \'No\', function(){ $.ajax({
+                        type: \'POST\',
+                        url: \'ajax/ajax.php\',
+                        data: { action: \'delete_child\', chid: \''.$child["chid"].'\' },
+                        success: function(data) {
+                          $.ajax({
+                              type: \'POST\',
+                              url: \'ajax/ajax.php\',
+                              data: { action: \'get_admin_children_form\', chid: \'\' },
+                              success: function(data) {
+                                  $(\'#admin_display\').html(data); refresh_all();
+                              }
+                          });
+                        }
+                    });}, function(){})">'.get_icon('x').'</button>';
+
     }elseif($cid){
         $identifier = time()."contact_$cid";
         $contact = get_db_row("SELECT * FROM contacts WHERE cid='$cid'");
@@ -2342,28 +2359,28 @@ global $CFG, $MYVARS;
 
         $returnme .= '<div style="text-align:center;white-space: nowrap;">
                         <button class="subselect_buttons '.$docs_selected.'" id="documents" onclick="$(\'.subselect_buttons\').toggleClass(\'selected_button\',true); $(\'.subselect_buttons\').not(this).toggleClass(\'selected_button\',false);
-                        $.ajax({
+                          $.ajax({
                           type: \'POST\',
                           url: \'ajax/ajax.php\',
                           data: { action: \'get_documents_list\', chid: \''.$chid.'\' },
                           success: function(data) { $(\'#subselect_div\').html(data); refresh_all(); }
                           });">Documents</button>
-                          <button class="subselect_buttons '.$notes_selected.'" id="notes" onclick="$(\'.subselect_buttons\').toggleClass(\'selected_button\',true); $(\'.subselect_buttons\').not(this).toggleClass(\'selected_button\',false);
-                        $.ajax({
+                        <button class="subselect_buttons '.$notes_selected.'" id="notes" onclick="$(\'.subselect_buttons\').toggleClass(\'selected_button\',true); $(\'.subselect_buttons\').not(this).toggleClass(\'selected_button\',false);
+                          $.ajax({
                           type: \'POST\',
                           url: \'ajax/ajax.php\',
                           data: { action: \'get_notes_list\', chid: \''.$chid.'\' },
                           success: function(data) { $(\'#subselect_div\').html(data); refresh_all(); }
                           });">Notes</button>
-                          <button class="subselect_buttons '.$activity_selected.'" id="activity" onclick="$(\'.subselect_buttons\').toggleClass(\'selected_button\',true); $(\'.subselect_buttons\').not(this).toggleClass(\'selected_button\',false);
-                        $.ajax({
+                        <button class="subselect_buttons '.$activity_selected.'" id="activity" onclick="$(\'.subselect_buttons\').toggleClass(\'selected_button\',true); $(\'.subselect_buttons\').not(this).toggleClass(\'selected_button\',false);
+                          $.ajax({
                           type: \'POST\',
                           url: \'ajax/ajax.php\',
                           data: { action: \'get_activity_list\', chid: \''.$chid.'\' },
                           success: function(data) { $(\'#subselect_div\').html(data); refresh_all(); }
                           });">Activity</button>
-                          <button class="subselect_buttons '.$reports_selected.'" id="reports" onclick="$(\'.subselect_buttons\').toggleClass(\'selected_button\',true); $(\'.subselect_buttons\').not(this).toggleClass(\'selected_button\',false);
-                        $.ajax({
+                        <button class="subselect_buttons '.$reports_selected.'" id="reports" onclick="$(\'.subselect_buttons\').toggleClass(\'selected_button\',true); $(\'.subselect_buttons\').not(this).toggleClass(\'selected_button\',false);
+                          $.ajax({
                           type: \'POST\',
                           url: \'ajax/ajax.php\',
                           data: { action: \'get_reports_list\', chid: \''.$chid.'\' },

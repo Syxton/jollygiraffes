@@ -94,7 +94,6 @@ h3 {
 
 .main_level {
     height: 100%;
-    background: skyblue url(../css/background.jpg) repeat-y;
     position: relative;
     background-size: cover;
 }
@@ -112,7 +111,11 @@ h3 {
 }
 
 .footer-text {
-    text-align: center; padding: 10px; color: white;
+    text-align: center;
+    padding: 10px;
+    color: white;
+    font-size: 4em;
+    text-shadow: black 0px 0px 5px;
 }
 
 .display_level {

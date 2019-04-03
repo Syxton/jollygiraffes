@@ -127,7 +127,7 @@ function is_enrolled($pid,$chid){
 
 function get_home_page(){
 global $CFG;
-    echo '<div class="top-center">
+    echo '<div class="bottom-center">
             <div class="footer-text">'.$CFG->sitename ."<br />". $CFG->streetaddress.'</div>
     </div>';
     echo '<div class="mylogo" style="background-image: url(\''.$CFG->wwwroot.'/images/'.$CFG->logo.'\');"></div>';

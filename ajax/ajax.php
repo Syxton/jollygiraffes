@@ -3315,10 +3315,15 @@ global $MYVARS;
     }
     if($accounts = get_db_result($SQL)){
         while($account = fetch_row($accounts)){
-            $aid = empty($aid) ? $account["aid"] : $aid;
-            $selected_class = $aid && $aid == $account["aid"] ? "selected_button" : "" ;
             $kid_count = get_db_count("SELECT * FROM children WHERE aid='".$account["aid"]."' AND deleted='$deleted'");
             $active = get_db_count("SELECT * FROM enrollments WHERE chid IN (SELECT chid FROM children WHERE aid='".$account["aid"]."') AND pid='$pid' AND deleted='$deleted'") ? "activeaccount" : "inactiveaccount";
+
+            $selected_class = '';
+            if (empty($aid) && $active == 'activeaccount') {
+                $aid = empty($aid) ? $account["aid"] : $aid;
+                $selected_class = $active == 'activeaccount' && !empty($aid) && $aid == $account["aid"] ? "selected_button" : "" ;
+            }
+
             $deleted_param = $recover ? ',recover: \'true\'':'';
             $notifications = get_notifications($pid,false,$account["aid"],true) ? 'background: darkred;' : '';
             $override = $recover ? "display:block;": "";
@@ -3483,6 +3488,7 @@ global $CFG, $MYVARS;
         execute_db_sql("UPDATE enrollments SET deleted=1 WHERE chid IN (SELECT children WHERE aid='$aid')");
         execute_db_sql("UPDATE children SET deleted=1 WHERE aid='$aid'");
         execute_db_sql("UPDATE contacts SET deleted=1 WHERE aid='$aid'");
+        $MYVARS->GET["aid"] = '';
         get_admin_accounts_form();
     }
 }

@@ -146,14 +146,15 @@ global $CFG, $MYVARS;
 
                 //Highlight Expected kids
                 $enrollment = explode(",",get_db_field("days_attending","enrollments","pid='$pid' AND chid='".$row["chid"]."'"));
-                $days = array("S","M","T","W","Th","F","Sa"); $expected = "";
+                $days = array("S","M","T","W","Th","F","Sa");
+                $expected = ""; // Reset expected.
                 foreach($enrollment as $e){
                     if($e == $days[date("w")]){
-                        $expected = "background-color: #687AD8;";
+                        $expected = "expected-today";
                     }
                 }
 
-                $children .= '<div class="child_wrapper ui-corner-all" style="'.$expected.'">';
+                $children .= '<div class="child_wrapper ui-corner-all '.$expected.'">';
                 $children .= get_children_button($row["chid"],"","",$action);
                 $children .= '</div>';
                 $lastinitial = substr($row["last"],0,1); //store last initial

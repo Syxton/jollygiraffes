@@ -396,7 +396,13 @@ h3 {
     width: 30%;
     padding:10px;
     margin: 10px;
+    max-width: 350px;
+    max-height: 150px;
     font-weight:bold;
+}
+
+.expected-today {
+    background-color: #d8a610;
 }
 
 .big_confirm button{

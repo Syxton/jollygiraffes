@@ -408,9 +408,9 @@ h3 {
 .keypad_button_big {
 	border: 1px solid silver;
 	background-color: whitesmoke;
-	padding: 20px;
+	width: 75px;
+    height: 75px;
 	margin: 5px;
-	float: left;
 }
 
 .big_button {
@@ -420,7 +420,7 @@ h3 {
 	margin: 10px;
 	max-width: 350px;
 	max-height: 150px;
-	font-weight: bold;
+	font-weight: bold !important;
 }
 
 .expected-today {
@@ -436,7 +436,7 @@ h3 {
 }
 
 .selected_button {
-	background: 0 silver;
+	background: 0 silver !important;
 }
 
 .upload-button {
@@ -453,7 +453,7 @@ h3 {
 }
 
 .blank_pic {
-	background-image: url('../images/blank.jpg');
+	background-image: url('../images/blank.jpg') !important;
 }
 
 .checked_pic {
@@ -757,6 +757,12 @@ td.calendar-day-np {
 
 .image_button .ui-button-text {
 	padding: inherit !important;
+}
+
+.image_button {
+    padding: 0;
+    height: 55px;
+    width: 55px;
 }
 
 #sortable {

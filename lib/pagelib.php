@@ -163,7 +163,7 @@ function get_home_page() {
               data: { action: \'get_check_in_out_form\', type: \'in\' },
               success: function(data) { $(\'#display_level\').html(data); refresh_all(); }
               });
-            " class="big_button bb_middle textfill">Check In <br /><span style="font-size:10px;">' . checked_out_children(true) . ' available</span>
+            " class="big_button bb_middle textfill"><span style="font-size:10px;">Check In <br />' . checked_out_children(true) . ' available</span>
             </button>';
     }
 
@@ -176,7 +176,7 @@ function get_home_page() {
               data: { action: \'get_check_in_out_form\', type: \'out\' },
               success: function(data) { $(\'#display_level\').html(data); refresh_all(); }
               });
-            " class="big_button bb_middle textfill">Check Out <br /><span style="font-size:10px;">' . checked_in_children(true) . ' available</span>
+            " class="big_button bb_middle textfill"><span style="font-size:10px;">Check Out <br />' . checked_in_children(true) . ' available</span>
             </button>';
     }
 
@@ -200,8 +200,8 @@ function get_employee_button($employeeid, $class = "", $style = "", $action = ""
     $name   = '<span class="slider-item-text" style="' . $top . '">' . $row["first"] . '<br />' . $row["last"] . '</span>';
     $status = get_employee_status($employeeid);
     return '<button class="child button slider-item-text ' . $class . ' emp_' . $row["employeeid"] . ' slider-item ui-corner-all" style="' . $style . 'background-size: cover;" onclick="$(\'#selectedemployee\').val(\'' . $row["employeeid"] . '\');' . $action . '">
-                <span class="ui-corner-all" style="font-size:9px;width: 100%;top: 0;position: absolute;background:rgba(0, 0, 0, 0.35);display: block;">' . $status . '</span>
-                <span class="ui-corner-all" style="width: 100%;bottom: 0;position: absolute;background:rgba(0, 0, 0, 0.35);display: block;">' . $name . '</span>
+                <span class="ui-corner-all" style="font-size:9px;width: 100%;left: 0;top: 0;position: absolute;background:rgba(0, 0, 0, 0.35);display: block;">' . $status . '</span>
+                <span class="ui-corner-all" style="width: 100%;left: 0;bottom: 0;position: absolute;background:rgba(0, 0, 0, 0.35);display: block;">' . $name . '</span>
             </button>';
 }
 
@@ -244,7 +244,7 @@ function get_numpad($aid = "\'\'", $admin = "false", $type = "\'\'", $display = 
             <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">7</span></button>
             <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">8</span></button>
             <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">9</span></button>
-            <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" style="margin-left: 35%;"><span class="keypad">0</span></button><div style="clear:both;"></div>
+            <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">0</span></button><div style="clear:both;"></div>
             <button onclick="$(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', true); $(this).prevAll(\'input:first\').val(\'\')" class="keypad_button_big ui-corner-all" >Clear</button>
             <button disabled class="' . $id . 'keypad_submit keypad_button_big ui-corner-all" style="width:140px;" onclick="var submitbutton = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
               type: \'POST\',
@@ -469,7 +469,7 @@ function get_children_button($chid, $class = "", $style = "", $action = "", $pic
     $name = $name ? '<span class="slider-item-text" style="' . $top . '">' . $row["first"] . '<br />' . $row["last"] . '</span>' : "";
     return '<button class="child ' . $piconly . ' ' . $class . ' chid_' . $row["chid"] . ' account_' . $row["aid"] . ' letter_' . $letter . ' slider-item ui-corner-all" style="' . $style . 'background-size: cover;" onclick="' . $action . '">
                 <input type="hidden" class="chid" id="chid_' . $row["chid"] . '" name="chid_' . $row["chid"] . '" value="' . $row["chid"] . '" />
-                <span class="ui-corner-all" style="width: 100%;bottom: 0;position: absolute;background:rgba(0, 0, 0, 0.35);display: block;">' . $name . '</span>
+                <span class="ui-corner-all" style="width: 100%;left: 0;bottom: 0;position: absolute;background:rgba(0, 0, 0, 0.35);display: block;">' . $name . '</span>
             </button>';
 }
 

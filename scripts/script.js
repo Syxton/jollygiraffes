@@ -34,6 +34,10 @@ function refresh_all() {
     $(".button").click(function() {
         return false;
     });
+
+    $("button").click(function() {
+        this.blur();
+    });
     $(".toggleswitch").toggleSwitch(); // Make toggle switches
     $('.flexsection').click(function() {
         $(this).next().toggle('blind');
@@ -147,10 +151,8 @@ function refresh_tags_editor() {
                 .attr("title", "Show All Items")
                 .insertAfter($input)
                 .button({
-                    icons: {
-                        primary: "ui-icon-triangle-1-s"
-                    },
-                    text: false
+                    icon: "ui-icon-triangle-1-s",
+                    showLabel: false
                 })
                 .removeClass("ui-corner-all")
                 .addClass("tags_select ui-corner-right ui-button-icon")

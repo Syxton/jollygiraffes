@@ -3298,7 +3298,7 @@ function get_admin_employees_form($return = false, $employeeid = false, $recover
                   url: \'ajax/ajax.php\',
                   data: { action: \'get_admin_employees_form\', employeeid: \'\'},
                   success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                  });">See Active</button>';
+              });">See Active</button>';
     }
     $returnme .= '</div><div class="list_box_item_right"></div></div>';
     $returnme .= '';
@@ -3528,10 +3528,10 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
         $returnme .= '</div>
                         <div class="list_box_item_right">
                             <div style="width:100px;text-align:center;background:none;line-height: 17px;vertical-align:top;color:white;text-shadow: black 1px 1px 3px;">
-                                Show Active <input type="checkbox" checked onclick="if($(this).prop(\'checked\')){ $(\'.inactiveaccount\').hide(); }else{ $(\'.inactiveaccount\').show(); } $(\'.scroll-pane\').sbscroller(\'refresh\'); smart_scrollbars();" />
+                                Show Enrolled <input type="checkbox" checked onclick="if($(this).prop(\'checked\')){ $(\'.inactiveaccount\').hide(); }else{ $(\'.inactiveaccount\').show(); } $(\'.scroll-pane\').sbscroller(\'refresh\'); smart_scrollbars();" />
                             </div>
-                            <div style="width:100px;text-align:center;background:none;display:inline-block;color:white;text-shadow: black 1px 1px 3px;">Active Children:
-                                ' . get_db_count("SELECT * FROM enrollments WHERE pid='$pid' AND deleted='0'") . '
+                            <div style="width:100px;text-align:center;background:none;display:inline-block;color:white;text-shadow: black 1px 1px 3px;">Enrolled:
+                                ' . get_db_count("SELECT * FROM enrollments WHERE pid='$pid' AND deleted='0' AND chid IN (SELECT chid FROM children WHERE deleted='0')") . '
                             </div>
                         </div>';
     } else {

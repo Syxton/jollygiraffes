@@ -336,7 +336,7 @@ global $CFG, $MYVARS;
         }
     }
 
-    $lastid = !empty($refreshall) ? get_db_field("MAX(id)","billing_perchild") : '0';
+    $lastid = !empty($refreshall) ? get_db_field("MAX(id)","billing_perchild","id>0") : '0';
     if($accounts = get_db_result($SQL)){
         while($account = fetch_row($accounts)){
             $SQL = "SELECT * FROM children WHERE aid='".$account["aid"]."' AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid') AND chid IN (SELECT chid FROM activity WHERE pid='$pid' AND tag='in') ORDER BY last,first";

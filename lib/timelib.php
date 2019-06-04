@@ -13,8 +13,8 @@ $TIMELIB = true;
 function get_timestamp($timezone = "UTC"){
 global $CFG;
     date_default_timezone_set($timezone);
-    $time = time();   
-    date_default_timezone_set("UTC"); 
+    $time = time();
+    date_default_timezone_set("UTC");
     return $time;
 }
 
@@ -32,9 +32,9 @@ function display_time($time){
 function get_date($string,$timestamp,$timezone = "UTC"){
 global $CFG;
     date_default_timezone_set($timezone);
-    $time = date($string,$timestamp); 
-    date_default_timezone_set("UTC");   
-    return $time;    
+    $time = date($string,$timestamp);
+    date_default_timezone_set("UTC");
+    return $time;
 }
 
 function get_offset($timezone = false){
@@ -49,7 +49,7 @@ global $CFG;
 
 function get_today($timezone = "UTC"){
 global $CFG;
-    $time = strtotime("today $timezone");    
+    $time = strtotime("today $timezone");
     return $time;
 }
 
@@ -61,7 +61,7 @@ global $CFG;
 	if($difference == 0){ return "now"; }
 	$ago = $difference >= 0 ? "ago" : "";
 	$difference = abs($difference);
-	
+
 	if($difference > 31449600){
         $years = floor($difference / 31449600) > 1 ? floor($difference/31449600) . " years" : floor($difference/31449600) . " year";
         $weeks = "";
@@ -106,9 +106,9 @@ global $CFG;
 	if ($difference == 60){
 		$minutes = "1 min";
 	}else{ $seconds = floor($difference) > 1 ? $difference . " secs" : $difference . " sec"; }
-	
+
 	if($difference == 0){ $seconds = ""; }
-	
+
 	if(isset($years)){ return "$years $weeks $ago";
 	}elseif(isset($weeks)){ return "$weeks $days $ago";
 	}elseif(isset($days)){ return "$days $hours $ago";
@@ -118,7 +118,7 @@ global $CFG;
 
 function get_date_graphic($timestamp = false, $newday = true, $alter = false){
 global $CFG;
-	$alterfont = $alter ? "font-size:.75em;" : "";  
+	$alterfont = $alter ? "font-size:.75em;" : "";
 	$timestamp = !empty($timestamp) ? $timestamp : display_time(get_timestamp());
 	if($newday){
         return '
@@ -156,10 +156,10 @@ function convert_time($time){
 
 /* draws a calendar */
 function draw_calendar($month,$year,$vars=false){
-  
+
   /* draw table */
   $calendar = '<table cellpadding="0" cellspacing="0" class="calendar fill_width">';
-  
+
   /* table headings */
   $headings = array('Monday','Tuesday','Wednesday','Thursday','Friday');
   $calendar.= '<tr class="calendar-row"><td class="calendar-day-head" style="width:50px;">Sunday</td><td class="calendar-day-head">'.implode('</td><td class="calendar-day-head">',$headings).'</td><td class="calendar-day-head" style="width:50px;">Saturday</td></tr>';
@@ -230,10 +230,10 @@ function draw_calendar($month,$year,$vars=false){
             if($child = get_db_row("SELECT * FROM enrollments WHERE pid='$pid' AND chid='".$vars["chid"]."'")){
                 $days_attending = explode(",",$child["days_attending"]);
                 $days_array = array("1" => "M", "2" => "T", "3" => "W", "4" => "Th", "5" => "F", "6" => "S", "7" => "Su");
-                $attending = in_array($days_array[date("N",strtotime("$month/$list_day/$year"))],$days_attending) ? "attending" : "";  
-            }    
+                $attending = in_array($days_array[date("N",strtotime("$month/$list_day/$year"))],$days_attending) ? "attending" : "";
+            }
         }
-         
+
         if($result = get_db_result($SQL)){
             $content .= '<div style="height:20px;"></div>';
             while($row = fetch_row($result)){
@@ -243,32 +243,32 @@ function draw_calendar($month,$year,$vars=false){
                 $cid = !empty($row["cid"]) ? $row["cid"] : "";
                 $nid = !empty($row["nid"]) ? $row["nid"] : "";
                 $attending = $attending == "" ? "unexpected" : $attending;
-                              
+
                $content .= '
-                    <div class="tag ui-corner-all" style="font-size:9px;white-space:nowrap;text-align:center;display:block;color:'.$row["textcolor"].';background-color:'.$row["color"].'">'.$row["title"].' '.date('g:i a',display_time($row["timelog"])).'</div>
+                    <div class="tag ui-corner-all" style="font-size:9px;text-align:center;display:block;color:'.$row["textcolor"].';background-color:'.$row["color"].'">'.$row["title"].' '.date('g:i a',display_time($row["timelog"])).'</div>
                     <div class="" style="margin-right:auto;margin-left:auto;text-align:center">
                         <a style="padding:2px;" class="nyroModal inline-button ui-corner-all" href="ajax/reports.php?report=activity&type='.$type.'&id='.$row[$type].'&actid='.$actid.'">
                             '.get_icon('magnifier').'
                         </a>';
-                        
+
                 if($type == "chid"){
                     $identifier = $vars["type"]."_".$row[$id];
                     $content .= get_form($vars["form"],array("month" => $month, "year" => $year, "aid" => $row["aid"],"chid" => $chid,"actid" => $actid,"cid" => $cid,"nid" => $nid,"callback" => "children"),$identifier);
 
-                    $delete_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this \'+$(\'a#a-'.$actid.'\').attr(\'data\')+\' activity?\', \'Yes\', \'No\', 
-                    function(){ 
+                    $delete_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this \'+$(\'a#a-'.$actid.'\').attr(\'data\')+\' activity?\', \'Yes\', \'No\',
+                    function(){
                         $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
                             data: { action: \'delete_'.$vars["type"].'\',aid:\''.$aid.'\',chid:\''.$chid.'\',actid:\''.$actid.'\',cid:\''.$cid.'\',nid:\''.$nid.'\',tab:\''.$vars["type"].'\' },
-                            success: function(data) { 
+                            success: function(data) {
                                 $.ajax({
                                     type: \'POST\',
                                     url: \'ajax/ajax.php\',
                                     data: { action: \'get_activity_list\',aid:\''.$aid.'\',chid:\''.$chid.'\',actid:\''.$actid.'\',cid:\''.$cid.'\',nid:\''.$nid.'\',month:\''.$month.'\',year:\''.$year.'\' },
-                                    success: function(data) { 
+                                    success: function(data) {
                                             $(\'#subselect_div\').hide(\'fade\');
-                                            $(\'#subselect_div\').html(data); 
+                                            $(\'#subselect_div\').html(data);
                                             $(\'#subselect_div\').show(\'fade\');
                                             refresh_all();
                                         }
@@ -276,32 +276,32 @@ function draw_calendar($month,$year,$vars=false){
                             }
                         });
                     },function(){});';
-                
+
                     $content .= '
                         <a style="padding:2px;" class="inline-button ui-corner-all" href="javascript: CreateDialog(\''.$vars["form"].'_'.$identifier.'\',300,400)">
                             '.get_icon('table_edit').'
-                        </a> 
+                        </a>
                         <a style="padding:2px;" class="inline-button ui-corner-all" id="a-'.$actid.'" data="'.$row["title"].'" href="javascript: '.$delete_action.'">
                             '.get_icon('bin_closed').'
-                        </a>';    
+                        </a>';
                 }elseif($type == "employeeid"){
                     $identifier = $vars["type"]."_".$row[$id];
                     $content .= get_form("update_employee_activity",array("month" => $month, "year" => $year, "employeeid" => $row["employeeid"],"actid" => $actid,"nid" => $nid,"callback" => "employee"),$identifier);
 
-                    $delete_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this \'+$(\'a#a-'.$actid.'\').attr(\'data\')+\' activity?\', \'Yes\', \'No\', 
-                    function(){ 
+                    $delete_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this \'+$(\'a#a-'.$actid.'\').attr(\'data\')+\' activity?\', \'Yes\', \'No\',
+                    function(){
                         $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
                             data: { action: \'delete_employee_activity\',employeeid:\''.$vars["employeeid"].'\',actid:\''.$actid.'\',nid:\''.$nid.'\',tab:\''.$vars["type"].'\' },
-                            success: function(data) { 
+                            success: function(data) {
                                 $.ajax({
                                     type: \'POST\',
                                     url: \'ajax/ajax.php\',
                                     data: { action: \'get_activity_list\',employeeid:\''.$vars["employeeid"].'\',actid:\''.$actid.'\',nid:\''.$nid.'\',month:\''.$month.'\',year:\''.$year.'\' },
-                                    success: function(data) { 
+                                    success: function(data) {
                                             $(\'#subselect_div\').hide(\'fade\');
-                                            $(\'#subselect_div\').html(data); 
+                                            $(\'#subselect_div\').html(data);
                                             $(\'#subselect_div\').show(\'fade\');
                                             refresh_all();
                                         }
@@ -309,25 +309,25 @@ function draw_calendar($month,$year,$vars=false){
                             }
                         });
                     },function(){});';
-                
+
                     $content .= '
                         <a style="padding:2px;" class="inline-button ui-corner-all" href="javascript: CreateDialog(\'update_employee_activity_'.$identifier.'\',300,400)">
                             '.get_icon('table_edit').'
-                        </a> 
+                        </a>
                         <a style="padding:2px;" class="inline-button ui-corner-all" id="a-'.$actid.'" data="'.$row["title"].'" href="javascript: '.$delete_action.'">
                             '.get_icon('bin_closed').'
-                        </a>';    
+                        </a>';
                 }
-                        
-                $content .= '    
-                    </div><br />'; 
-   
+
+                $content .= '
+                    </div><br />';
+
             }
-        }        
-    }   
+        }
+    }
     $calendar.= '<td class="calendar-day '.$attending.'">';
     /* add in the day number */
-    $calendar.= '<div class="day-number">'.$list_day.'</div>';      
+    $calendar.= '<div class="day-number">'.$list_day.'</div>';
     $calendar.= $content;
     $calendar.= '</td>';
     if($running_day == 6):

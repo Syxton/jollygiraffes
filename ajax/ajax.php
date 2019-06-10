@@ -210,7 +210,7 @@ function check_in_out_form() {
     $returnme .= get_numpad($aid, $admin, $type);
     $note_headers = get_required_notes_header($type);
     $returnme .= '<div style="margin:0px 10px;height:70px;width:60%;float:left;white-space:nowrap;"><span style="display:inline-block;width:145px;"></span>' . $note_headers . '</div>';
-    $returnme .= '<div class="fill_width" style="margin:0px 10px;height:70px;width:23%;text-align:center;white-space:nowrap;"><div style="font-weight:bold;color:white;margin-top:20px;font-size:200%;">Who is checking them ' . $type . '?</div></div>';
+    $returnme .= '<div class="fill_width" style="margin:0px 10px;height:70px;width:23%;text-align:center;white-space:nowrap;"><div style="font-weight:bold;color:white;margin-top:20px;font-size:200%;text-shadow: black 0px 0px 10px;">Who is checking them ' . $type . '?</div></div>';
     $returnme .= '<div class="container_main scroll-pane ui-corner-all fill_height_middle" style="float:left;width:60%">';
     $notes    = get_required_notes_forms($type);
     $contacts = get_contacts_selector($chids, $admin);
@@ -228,7 +228,7 @@ function check_in_out_form() {
     $questions_closed = $qnum ? '}else{ CreateAlert(\'dialog-confirm\',\'You must answer every question.\', \'Ok\', function(){}); }' : "";
 
     $returnme .= '<div class="container_main scroll-pane ui-corner-all fill_height_middle">' . $contacts . '</div>';
-    $returnme .= '<div class="bottom center ui-corner-all"><button class="submit_buttons big_button textfill" onclick="if($(\'.ui-selected\').length){ if($(\'.ui-selected #cid_other\').length && $(\'#other_numpad\').length){ if($(\'.ui-selected #cid_other\').val().length > 0){ ' . $questions_open . ' numpad(\'other_numpad\'); ' . $questions_closed . ' }else{ CreateAlert(\'dialog-confirm\',\'You must type a name for this person.\', \'Ok\', function(){}); } }else{ ' . $questions_open . ' numpad(\'numpad\'); ' . $questions_closed . ' } }else{ CreateAlert(\'dialog-confirm\',\'You must select a contact.\', \'Ok\', function(){}); }" >Check ' . ucfirst($type) . '</button></div>';
+    $returnme .= '<div class="bottom center ui-corner-all"><button class="submit_buttons big_button textfill" onclick="if($(\'.ui-selected\').length){ if($(\'.ui-selected #cid_other\').length && $(\'#other_numpad\').length){ if($(\'.ui-selected #cid_other\').val().length > 0){ ' . $questions_open . ' numpad(\'other_numpad\'); ' . $questions_closed . ' }else{ CreateAlert(\'dialog-confirm\',\'You must type a name for this person.\', \'Ok\', function(){}); } }else{ ' . $questions_open . ' numpad(\'numpad\'); ' . $questions_closed . ' } }else{ CreateAlert(\'dialog-confirm\',\'You must select a contact.\', \'Ok\', function(){}); }" ><span style="font-size:10px;">Check ' . ucfirst($type) . '</span></button></div>';
 
     echo $returnme;
 }
@@ -271,10 +271,10 @@ function check_in_out($chids, $cid, $type) {
                 if ($method == "enrollment") { //flat rate based on days they are expected to attend
                     $combined_balance = $float_balance + $float_current;
                     //$current_balance  = "<span style='color:blue;font-weight:bold;font-size:24px;text-shadow:none;'>This weeks charge will be $" . $current_week . ' </span><br />'; //Plus current week
-                    $remaining_balance .= "<span style='color:darkslategrey;font-weight:bold;font-size:24px;text-shadow:none;'>Your account has a balance of $" . number_format($combined_balance, 2) . " due.</span>";
+                    $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>Your account has a balance of $" . number_format($combined_balance, 2) . " due.</span>";
                 } else { //rate based on actual attendance
-                    $current_balance = "<span style='color:blue;font-weight:bold;font-size:24px;text-shadow:none;'>So far this week you owe $" . $current_week . ' </span><br />'; //Plus current week
-                    $remaining_balance .= $balance > 0 ? $current_balance . "<span style='color:darkslategrey;font-weight:bold;font-size:24px;text-shadow:none;'>You have an <strong>additional</strong> balance of $" . $balance . " due.</span>" : $current_balance;
+                    $current_balance = "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>So far this week you owe $" . $current_week . ' </span><br />'; //Plus current week
+                    $remaining_balance .= $balance > 0 ? $current_balance . "<span style='color:white;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>You have an <strong>additional</strong> balance of $" . $balance . " due.</span>" : $current_balance;
                 }
             }
         }

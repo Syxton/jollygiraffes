@@ -71,7 +71,7 @@ global $CFG;
                                 $days .= date("m/d/Y",display_time($activity["timelog"])) == $sameday ? "" : ($days == "" ? date("D",display_time($activity["timelog"])) : " ".date("D",display_time($activity["timelog"])));
                                 $sameday = date("m/d/Y",display_time($activity["timelog"]));
                             }
-                            $bill = empty($bill) && $program["minimum"] > "0" ? $program["minimum"] : $bill;
+                            $bill = $program["minimum"] > "0" && ($bill < $program["minimum"]) ? $program["minimum"] : $bill;
                             $attendance .= $attendance > 0 ? ($attendance == 1 ? " day ($days)" : " days ($days)") : " days";
 
                             if(!$perchild){
@@ -202,11 +202,12 @@ function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$l
             $bill = $bill - $program["multiple_discount"];
         }
 
-        if($exempt == "1"){
+        if ($exempt == "1") {
             $bill = 0;
             $receipt = empty($attendance) ? get_name(array("type"=>"chid","id"=>$chid))." - Did Not Attend [Exempt]: $".number_format($bill,2): get_name(array("type"=>"chid","id"=>$chid))." - [Exempt] Attended $attendance: $".number_format($bill,2);
-        }else{
-            $receipt = empty($attendance) ? get_name(array("type"=>"chid","id"=>$chid))." - Did Not Attend [Minimum Rate]: $".number_format($bill,2): get_name(array("type"=>"chid","id"=>$chid))." - [Part-time Rate] $discount Attended $attendance: $".number_format($bill,2);
+        } else {
+            $minimum = $bill == $program["minimum"] ? "Minimum " : "";
+            $receipt = empty($attendance) ? get_name(array("type"=>"chid","id"=>$chid))." - Did Not Attend [Minimum Rate]: $".number_format($bill,2): get_name(array("type"=>"chid","id"=>$chid))." - [".$minimum."Part-time Rate] $discount Attended $attendance: $".number_format($bill,2);
         }
 
         if($billonly){ return $bill; }
@@ -266,7 +267,7 @@ global $CFG;
             $sameday = date("m/d/Y",display_time($activity["timelog"]));
         }
 
-        $bill = empty($bill) && $program["minimum"] > "0" ? $program["minimum"] : $bill;
+        $bill = $program["minimum"] > "0" && ($bill < $program["minimum"]) ? $program["minimum"] : $bill;
         $attendance .= $attendance > 0 ? ($attendance == 1 ? " day ($days)" : " days ($days)") : " days";
 
         if($refresh){ execute_db_sql("DELETE FROM billing_perchild WHERE pid='$pid' AND chid='$chid' AND fromdate = '$invoiceweek'"); }

@@ -266,7 +266,7 @@ function check_in_out($chids, $cid, $type) {
 
         if (!$exempt) {
             if ($float_balance + $float_current <= 0) { //They have paid more than they previously owed
-                $remaining_balance .= "<span style='color:darkslategrey;font-weight:bold;font-size:24px;text-shadow:none;'>You are currently paid up. Thanks!</span>";
+                $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>You are currently paid up. Thanks!</span>";
             } else {
                 if ($method == "enrollment") { //flat rate based on days they are expected to attend
                     $combined_balance = $float_balance + $float_current;

@@ -97,39 +97,43 @@ function make_select_from_array($name, $values, $valuename, $displayname, $class
 }
 
 function checked_in_children($count = false) {
-    $SQL = "SELECT * FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid IN (SELECT pid FROM programs WHERE active=1)) AND deleted=0";
+    $pid = get_pid();
+    $SQL = "SELECT * FROM children WHERE deleted=0 AND chid IN (SELECT chid FROM enrollments WHERE deleted=0 AND pid='$pid')";
     $i   = 0;
     if ($result = get_db_result($SQL)) {
         while ($row = fetch_row($result)) {
-            if (!$count && is_checked_in($row["chid"])) {
-                return true;
-            } elseif ($count && is_checked_in($row["chid"])) {
-                $i++;
+            if (is_checked_in($row["chid"])) {
+                if ($count) {
+                    $i++;
+                } else {
+                    return true; // Immediately return true if any active child is checked out.
+                }
             }
         }
         if ($count) {
             return $i;
         }
-        return false;
     }
     return false;
 }
 
 function checked_out_children($count = false) {
-    $SQL = "SELECT * FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid IN (SELECT pid FROM programs WHERE active=1)) AND deleted=0";
+    $pid = get_pid();
+    $SQL = "SELECT * FROM children WHERE deleted=0 AND chid IN (SELECT chid FROM enrollments WHERE deleted=0 AND pid='$pid')";
     $i   = 0;
     if ($result = get_db_result($SQL)) {
         while ($row = fetch_row($result)) {
-            if (!$count && !is_checked_in($row["chid"])) {
-                return true;
-            } elseif ($count && !is_checked_in($row["chid"])) {
-                $i++;
+            if (!is_checked_in($row["chid"])) {
+                if ($count) {
+                    $i++;
+                } else {
+                    return true; // Immediately return true if any active child is checked in.
+                }
             }
         }
         if ($count) {
             return $i;
         }
-        return false;
     }
     return false;
 }

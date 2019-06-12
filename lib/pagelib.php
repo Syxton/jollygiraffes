@@ -150,16 +150,14 @@ function is_enrolled($pid, $chid) {
 
 function get_home_page() {
     global $CFG;
-    echo '<div class="bottom-center">
-            <div class="footer-text">' . $CFG->sitename . "<br />" . $CFG->streetaddress . '</div>
-    </div>';
+
     echo '<div class="mylogo" style="background-image: url(\'' . $CFG->wwwroot . '/images/' . $CFG->logo . '\');"></div>';
     $checkout_button = checked_in_children();
     $checkin_button  = checked_out_children();
-    echo '<div class="middle-center" style="height: 40%;margin-top:80px;">';
+    echo '<div class="middle-center" style="top: initial;height: 30%;">';
 
     if ($checkin_button) {
-        echo '<button onclick="
+        echo '<button style="margin:0 auto" onclick="
             $(\'.employee_button\').hide();
             $.ajax({
               type: \'POST\',
@@ -171,8 +169,12 @@ function get_home_page() {
             </button>';
     }
 
+    if ($checkin_button && $checkout_button) {
+        echo '<span style="width: 5%;display: inline-block;"></span>';
+    }
+
     if ($checkout_button) {
-        echo '<button onclick="
+        echo '<button style="margin:0 auto" onclick="
             $(\'.employee_button\').hide();
             $.ajax({
               type: \'POST\',
@@ -189,6 +191,10 @@ function get_home_page() {
     }
 
     echo '</div>';
+
+    echo '<div class="bottom-center" style="width: auto;">
+            <div class="footer-text">' . $CFG->sitename . "<br />" . $CFG->streetaddress . '</div>
+          </div>';
 }
 
 function get_admin_button() {

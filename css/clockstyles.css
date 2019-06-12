@@ -4,19 +4,20 @@
 
 
 #clock{
-	width:370px;
-	margin:60px auto 60px;
+	width: 35%;
+    max-width: 350px;
+	margin: auto;
 	position:relative;
 }
 
 #clock:after{
 	content:'';
 	position:absolute;
-	width:400px;
+	width: 10%;
 	height:20px;
 	border-radius:100%;
 	left:50%;
-	margin-left:-200px;
+	margin-left: auto;
 	bottom:2px;
 	z-index:-1;
 }

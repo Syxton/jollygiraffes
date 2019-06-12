@@ -17,15 +17,13 @@ include ('header.html');
 //Main Layout
 echo get_admin_button().get_employee_timeclock_button().'
       <div id="display_level" class="display_level ui-corner-all">
-          <div style="text-align: center;">
             <div id="clock" class="light">
-              <div class="display">
-                  <div class="weekdays"></div>
-                  <div class="ampm"></div>
-                  <div class="digits"></div>
-              </div>
-          </div>
-      </div>';
+                  <div class="display">
+                      <div class="weekdays"></div>
+                      <div class="ampm"></div>
+                      <div class="digits"></div>
+                  </div>
+            </div>';
         get_home_page();
 echo '</div>';
 

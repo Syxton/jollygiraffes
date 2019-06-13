@@ -332,7 +332,7 @@
 
 #clock .ampm{
 	position:absolute;
-	bottom:20px;
+	bottom:15px;
 	right:20px;
 	font-size:12px;
 }

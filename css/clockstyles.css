@@ -4,8 +4,7 @@
 
 
 #clock{
-	width: 35%;
-    max-width: 350px;
+	width: 350px;
 	margin: auto;
 	position:relative;
     zoom: .8;
@@ -61,7 +60,7 @@
 
 #clock.light .display{
 	background-color:#dddddd;
-	box-shadow:0 1px 1px rgba(0,0,0,0.08) inset, 0 1px 1px #fafafa;
+	border: inset 4px rgba(0,0,0,.1);
 }
 
 

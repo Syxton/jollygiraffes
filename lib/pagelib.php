@@ -151,7 +151,9 @@ function is_enrolled($pid, $chid) {
 function get_home_page() {
     global $CFG;
 
-    echo '<div class="mylogo" style="background-image: url(\'' . $CFG->wwwroot . '/images/' . $CFG->logo . '\');"></div>';
+    echo '<div style="height:5%;"></div>
+          <div class="mylogo" style="background-image: url(\'' . $CFG->wwwroot . '/images/' . $CFG->logo . '\');"></div>
+          <div style="height:5%;"></div>';
     $checkout_button = checked_in_children();
     $checkin_button  = checked_out_children();
     echo '<div class="middle-center" style="top: initial;height: 30%;">';

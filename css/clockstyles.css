@@ -8,6 +8,7 @@
     max-width: 350px;
 	margin: auto;
 	position:relative;
+    zoom: .8;
 }
 
 #clock:after{

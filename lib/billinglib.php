@@ -28,7 +28,8 @@ global $CFG;
         $program["bill_by"] = $override["bill_by"]; //override program settings
         $program["perday"] = $override["perday"]; //override program settings
         $program["fulltime"] = $override["fulltime"]; //override program settings
-        $program["minimum"] = $override["minimum"]; //override program settings
+        $program["minimumactive"] = $override["minimumactive"]; //override program settings
+        $program["minimuminactive"] = $override["minimuminactive"]; //override program settings
         $program["vacation"] = $override["vacation"]; //override program settings
         $program["multiple_discount"] = $override["multiple_discount"]; //override program settings
         $program["consider_full"] = $override["consider_full"]; //override program settings
@@ -71,14 +72,14 @@ global $CFG;
                                 $days .= date("m/d/Y",display_time($activity["timelog"])) == $sameday ? "" : ($days == "" ? date("D",display_time($activity["timelog"])) : " ".date("D",display_time($activity["timelog"])));
                                 $sameday = date("m/d/Y",display_time($activity["timelog"]));
                             }
-                            $bill = $program["minimum"] > "0" && ($bill < $program["minimum"]) ? $program["minimum"] : $bill;
+                            $bill = $program["minimumactive"] > "0" && ($bill < $program["minimumactive"]) ? $program["minimumactive"] : $bill;
                             $attendance .= $attendance > 0 ? ($attendance == 1 ? " day ($days)" : " days ($days)") : " days";
 
                             if(!$perchild){
                                 $perchildbill = save_child_invoice($program,$chid,$invoiceweek,$endofweek,$enrollment,$lastid,$bill,$attendance,"unknown",true);
                             }
                         }else{ //Did not attend, see if there is a minimum.
-                            $bill = $program["minimum"] > "0" ? $program["minimum"] : "0";
+                            $bill = $program["minimuminactive"] > "0" ? $program["minimuminactive"] : "0";
 
                             if(!$perchild){
                                 $perchildbill = save_child_invoice($program,$chid,$invoiceweek,$endofweek,$enrollment,$lastid,$bill,"","unknown",true);
@@ -206,7 +207,12 @@ function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$l
             $bill = 0;
             $receipt = empty($attendance) ? get_name(array("type"=>"chid","id"=>$chid))." - Did Not Attend [Exempt]: $".number_format($bill,2): get_name(array("type"=>"chid","id"=>$chid))." - [Exempt] Attended $attendance: $".number_format($bill,2);
         } else {
-            $minimum = $bill == $program["minimum"] ? "Minimum " : "";
+            if (empty($attendance)) {
+                $minimum = $bill == $program["minimuminactive"] ? "Minimum " : "";
+            } else {
+                $minimum = $bill == $program["minimumactive"] ? "Minimum " : "";
+            }
+
             $receipt = empty($attendance) ? get_name(array("type"=>"chid","id"=>$chid))." - Did Not Attend [Minimum Rate]: $".number_format($bill,2): get_name(array("type"=>"chid","id"=>$chid))." - [".$minimum."Part-time Rate] $discount Attended $attendance: $".number_format($bill,2);
         }
 
@@ -237,7 +243,8 @@ global $CFG;
         $program["bill_by"] = $override["bill_by"]; //override program settings
         $program["perday"] = $override["perday"]; //override program settings
         $program["fulltime"] = $override["fulltime"]; //override program settings
-        $program["minimum"] = $override["minimum"]; //override program settings
+        $program["minimumactive"] = $override["minimumactive"]; //override program settings
+        $program["minimuminactive"] = $override["minimuminactive"]; //override program settings
         $program["vacation"] = $override["vacation"]; //override program settings
         $program["multiple_discount"] = $override["multiple_discount"]; //override program settings
         $program["consider_full"] = $override["consider_full"]; //override program settings
@@ -267,7 +274,11 @@ global $CFG;
             $sameday = date("m/d/Y",display_time($activity["timelog"]));
         }
 
-        $bill = $program["minimum"] > "0" && ($bill < $program["minimum"]) ? $program["minimum"] : $bill;
+        if ($attendance > 0) {
+            $bill = $program["minimumactive"] > "0" && ($bill < $program["minimumactive"]) ? $program["minimumactive"] : $bill;
+        } else {
+            $bill = $program["minimuminactive"] > "0" && ($bill < $program["minimuminactive"]) ? $program["minimuminactive"] : $bill;
+        }
         $attendance .= $attendance > 0 ? ($attendance == 1 ? " day ($days)" : " days ($days)") : " days";
 
         if($refresh){ execute_db_sql("DELETE FROM billing_perchild WHERE pid='$pid' AND chid='$chid' AND fromdate = '$invoiceweek'"); }
@@ -277,8 +288,8 @@ global $CFG;
         }elseif($refresh){
             save_child_invoice($program,$chid,$invoiceweek,$endofweek,$bill_by,$lastid,$bill,$attendance,$exempt);
         }
-    }else{ //Did not attend, see if there is a minimum.
-        $bill = $program["minimum"] > "0" ? $program["minimum"] : "0";
+    }else{ //Did not attend, see if there is a minimuminactive rate.
+        $bill = $program["minimuminactive"] > "0" ? $program["minimuminactive"] : "0";
         if($refresh){ execute_db_sql("DELETE FROM billing_perchild WHERE pid='$pid' AND chid='$chid' AND fromdate = '$invoiceweek'"); }
 
         if(!$perchild){

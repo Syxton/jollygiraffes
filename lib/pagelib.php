@@ -1069,6 +1069,24 @@ function check_and_run_upgrades() {
         execute_db_sql("UPDATE version SET version='$thisversion'");
     }
 
+    $thisversion = 20190624;
+    if ($version < $thisversion) { //# = new version number.  If this is the first...start at 1
+        $SQL1 = "ALTER TABLE `programs` CHANGE `minimum` `minimumactive` VARCHAR(10) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '0'";
+        $SQL2 = "ALTER TABLE `programs`  ADD `minimuminactive` VARCHAR(10) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '0' AFTER `minimumactive`,  ADD INDEX (`minimumactive`)";
+        $SQL3 = "ALTER TABLE `programs` DROP INDEX `minimum`, ADD INDEX `minimumactive` (`minimumactive`) USING BTREE";
+
+        $SQL4 = "ALTER TABLE `billing_override` CHANGE `minimum` `minimumactive` VARCHAR(10) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '0'";
+        $SQL5 = "ALTER TABLE `billing_override`  ADD `minimuminactive` VARCHAR(10) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '0' AFTER `minimumactive`";
+
+        execute_db_sql($SQL1);
+        execute_db_sql($SQL2);
+        execute_db_sql($SQL3);
+        execute_db_sql($SQL4);
+        execute_db_sql($SQL5);
+
+        execute_db_sql("UPDATE version SET version='$thisversion'");
+    }
+
     //    $thisversion = YYYYMMDD;
     //    if($version < $thisversion){ //# = new version number.  If this is the first...start at 1
     //        $SQL = "";

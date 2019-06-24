@@ -22,7 +22,8 @@ global $CFG;
             $timeclosed = empty($vars["program"]["timeclosed"]) ? "" : $vars["program"]["timeclosed"];
             $perday = empty($vars["program"]["perday"]) ? "0" : $vars["program"]["perday"];
             $fulltime = empty($vars["program"]["fulltime"]) ? "0" : $vars["program"]["fulltime"];
-            $minimum = empty($vars["program"]["minimum"]) ? "0" : $vars["program"]["minimum"];
+            $minimumactive = empty($vars["program"]["minimumactive"]) ? "0" : $vars["program"]["minimumactive"];
+            $minimuminactive = empty($vars["program"]["minimuminactive"]) ? "0" : $vars["program"]["minimuminactive"];
             $vacation = empty($vars["program"]["vacation"]) ? "0" : $vars["program"]["vacation"];
             $multiple_discount = empty($vars["program"]["multiple_discount"]) ? "0" : $vars["program"]["multiple_discount"];
             $consider_full = empty($vars["program"]["consider_full"]) ? "5" : $vars["program"]["consider_full"];
@@ -50,7 +51,8 @@ global $CFG;
                                 <tr><td><label for="bill_by">Bill By</label></td><td>'.make_select_from_array("bill_by",$bill_by_array,"value","display","fields",$bill_by).'</td></tr>
                                 <tr><td><label for="perday">Price Per Day</label></td><td>$<input style="width:125px;" class="fields" type="input" name="perday" id="perday" value="'.$perday.'" /></td></tr>
                                 <tr><td><label for="fulltime">Full Week Price</label></td><td>$<input style="width:125px;" class="fields" type="input" name="fulltime" id="fulltime" value="'.$fulltime.'" /></td></tr>
-                                <tr><td><label for="minimum">Part-time Min</label></td><td>$<input style="width:125px;" class="fields" type="input" name="minimum" id="minimum" value="'.$minimum.'" /></td></tr>
+                                <tr><td><label for="minimumactive">Minimum (Active)</label></td><td>$<input style="width:125px;" class="fields" type="input" name="minimumactive" id="minimumactive" value="'.$minimumactive.'" /></td></tr>
+                                <tr><td><label for="minimuminactive">Minimum (Inactive)</label></td><td>$<input style="width:125px;" class="fields" type="input" name="minimuminactive" id="minimuminactive" value="'.$minimuminactive.'" /></td></tr>
                                 <tr><td><label for="vacation">Vacation Price</label></td><td>$<input style="width:125px;" class="fields" type="input" name="vacation" id="vacation" value="'.$vacation.'" /></td></tr>
                                 <tr><td><label for="multiple_discount">Multiple Discount</label></td><td>$<input style="width:125px;" class="fields" type="input" name="multiple_discount" id="multiple_discount" value="'.$multiple_discount.'" /></td></tr>
                                 <tr><td><label for="discount_rule">Discount Qualifier</label></td><td>$<input style="width:125px;" class="fields" type="input" name="discount_rule" id="discount_rule" value="'.$discount_rule.'" /></td></tr>
@@ -77,7 +79,8 @@ global $CFG;
         case "billing_overrides":
             $perday = empty($vars["override"]["perday"]) ? "0" : $vars["override"]["perday"];
             $fulltime = empty($vars["override"]["fulltime"]) ? "0" : $vars["override"]["fulltime"];
-            $minimum = empty($vars["override"]["minimum"]) ? "0" : $vars["override"]["minimum"];
+            $minimumactive = empty($vars["override"]["minimumactive"]) ? "0" : $vars["override"]["minimumactive"];
+            $minimuminactive = empty($vars["override"]["minimuminactive"]) ? "0" : $vars["override"]["minimuminactive"];
             $vacation = empty($vars["override"]["vacation"]) ? "0" : $vars["override"]["vacation"];
             $multiple_discount = empty($vars["override"]["multiple_discount"]) ? "0" : $vars["override"]["multiple_discount"];
             $consider_full = empty($vars["override"]["consider_full"]) ? "5" : $vars["override"]["consider_full"];
@@ -109,7 +112,8 @@ global $CFG;
                                 <tr><td><label for="consider_full">Full Week (days)</label></td><td>'.make_select_from_array("consider_full",$days,"value","value","fields",$consider_full).'</td></tr>
                                 <tr><td><label for="perday">Price Per Day</label></td><td>$<input style="width:125px;" class="fields" type="input" name="perday" id="perday" value="'.$perday.'" /></td></tr>
                                 <tr><td><label for="fulltime">Full Week Price</label></td><td>$<input style="width:125px;" class="fields" type="input" name="fulltime" id="fulltime" value="'.$fulltime.'" /></td></tr>
-                                <tr><td><label for="minimum">Part-time Min</label></td><td>$<input style="width:125px;" class="fields" type="input" name="minimum" id="minimum" value="'.$minimum.'" /></td></tr>
+                                <tr><td><label for="minimumactive">Minimum (Active)</label></td><td>$<input style="width:125px;" class="fields" type="input" name="minimumactive" id="minimumactive" value="'.$minimumactive.'" /></td></tr>
+                                <tr><td><label for="minimuminactive">Minimum (Inactive)</label></td><td>$<input style="width:125px;" class="fields" type="input" name="minimuminactive" id="minimuminactive" value="'.$minimuminactive.'" /></td></tr>
                                 <tr><td><label for="vacation">Vacation Price</label></td><td>$<input style="width:125px;" class="fields" type="input" name="vacation" id="vacation" value="'.$vacation.'" /></td></tr>
                                 <tr><td><label for="multiple_discount">Multiple Discount</label></td><td>$<input style="width:125px;" class="fields" type="input" name="multiple_discount" id="multiple_discount" value="'.$multiple_discount.'" /></td></tr>
                                 <tr><td><label for="discount_rule">Discount Qualifier</label></td><td>$<input style="width:125px;" class="fields" type="input" name="discount_rule" id="discount_rule" value="'.$discount_rule.'" /></td></tr>

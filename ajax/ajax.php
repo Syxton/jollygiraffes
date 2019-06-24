@@ -600,8 +600,11 @@ function add_edit_program() {
             case "fulltime":
                 $fulltime = str_replace("$", "", dbescape($field["value"]));
                 break;
-            case "minimum":
-                $minimum = str_replace("$", "", dbescape($field["value"]));
+            case "minimumactive":
+                $minimumactive = str_replace("$", "", dbescape($field["value"]));
+                break;
+            case "minimuminactive":
+                $minimuminactive = str_replace("$", "", dbescape($field["value"]));
                 break;
             case "multiple_discount":
                 $multiple_discount = str_replace("$", "", dbescape($field["value"]));
@@ -632,9 +635,9 @@ function add_edit_program() {
 
     if (!empty($name) && !empty($timeopen) && !empty($timeclosed) && is_numeric($perday) && is_numeric($fulltime)) {
         if ($pid) {
-            $SQL = "UPDATE programs SET name='$name',timeopen='$timeopen',timeclosed='$timeclosed',perday='$perday',fulltime='$fulltime',minimum='$minimum',vacation='$vacation',multiple_discount='$multiple_discount',consider_full='$consider_full',bill_by='$bill_by',discount_rule='$discount_rule' WHERE pid='$pid'";
+            $SQL = "UPDATE programs SET name='$name',timeopen='$timeopen',timeclosed='$timeclosed',perday='$perday',fulltime='$fulltime',minimumactive='$minimumactive',minimuminactive='$minimuminactive',vacation='$vacation',multiple_discount='$multiple_discount',consider_full='$consider_full',bill_by='$bill_by',discount_rule='$discount_rule' WHERE pid='$pid'";
         } else {
-            $SQL = "INSERT INTO programs (name,timeopen,timeclosed,perday,fulltime,minimum,vacation,multiple_discount,consider_full,bill_by,discount_rule) VALUES('$name','$timeopen','$timeclosed','$perday','$fulltime','$minimum','$vacation','$multiple_discount','$consider_full','$bill_by','$discount_rule')";
+            $SQL = "INSERT INTO programs (name,timeopen,timeclosed,perday,fulltime,minimumactive,minimuminactive,vacation,multiple_discount,consider_full,bill_by,discount_rule) VALUES('$name','$timeopen','$timeclosed','$perday','$fulltime','$minimumactive','$minimuminactive','$vacation','$multiple_discount','$consider_full','$bill_by','$discount_rule')";
         }
 
         if (execute_db_sql($SQL)) { //Saved successfully
@@ -714,8 +717,11 @@ function billing_overrides() {
             case "fulltime":
                 $fulltime = str_replace("$", "", dbescape($field["value"]));
                 break;
-            case "minimum":
-                $minimum = str_replace("$", "", dbescape($field["value"]));
+            case "minimumactive":
+                $minimumactive = str_replace("$", "", dbescape($field["value"]));
+                break;
+            case "minimuminactive":
+                $minimuminactive = str_replace("$", "", dbescape($field["value"]));
                 break;
             case "multiple_discount":
                 $multiple_discount = str_replace("$", "", dbescape($field["value"]));
@@ -761,10 +767,10 @@ function billing_overrides() {
             if ($bill_by == "none") {
                 $SQL = "DELETE FROM billing_override WHERE oid='$oid'";
             } else {
-                $SQL = "UPDATE billing_override SET perday='$perday',fulltime='$fulltime',minimum='$minimum',vacation='$vacation',multiple_discount='$multiple_discount',consider_full='$consider_full',bill_by='$bill_by',discount_rule='$discount_rule' WHERE oid='$oid'";
+                $SQL = "UPDATE billing_override SET perday='$perday',fulltime='$fulltime',minimumactive='$minimumactive',minimuminactive='$minimuminactive',vacation='$vacation',multiple_discount='$multiple_discount',consider_full='$consider_full',bill_by='$bill_by',discount_rule='$discount_rule' WHERE oid='$oid'";
             }
         } else {
-            $SQL = "INSERT INTO billing_override (pid,aid,perday,fulltime,minimum,vacation,multiple_discount,consider_full,bill_by,discount_rule) VALUES('$pid','$aid','$perday','$fulltime','$minimum','$vacation','$multiple_discount','$consider_full','$bill_by','$discount_rule')";
+            $SQL = "INSERT INTO billing_override (pid,aid,perday,fulltime,minimumactive,minimuminactive,vacation,multiple_discount,consider_full,bill_by,discount_rule) VALUES('$pid','$aid','$perday','$fulltime','$minimumactive','$minimuminactive','$vacation','$multiple_discount','$consider_full','$bill_by','$discount_rule')";
         }
 
         if (execute_db_sql($SQL)) { //Saved successfully
@@ -3634,7 +3640,7 @@ function copy_program() {
     $pid = empty($MYVARS->GET["pid"]) ? false : $MYVARS->GET["pid"];
     if ($pid) {
         //create new program
-        $program = get_db_row("SELECT name,timeopen,timeclosed,deleted,active,perday,fulltime,minimum,vacation,multiple_discount,consider_full,bill_by,discount_rule FROM programs WHERE pid='$pid'");
+        $program = get_db_row("SELECT name,timeopen,timeclosed,deleted,active,perday,fulltime,minimumactive,minimuminactive,vacation,multiple_discount,consider_full,bill_by,discount_rule FROM programs WHERE pid='$pid'");
         $newpid  = copy_db_row($program, "programs", 'name=' . $program["name"] . ' COPY');
 
         //copy enrollments

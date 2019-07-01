@@ -2174,17 +2174,25 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = false
                           });},function(){});">Delete</button>';
 
                     $paytext = $payment["payment"] >= 0 ? "Payment of " : "Fee of ";
+                    $note = empty($payment["note"]) ? "" : '<tr><td><em>Note: ' . $payment["note"] . '</em></td></tr>';
                     $returnme .= '<div>
-                                    <table style="width:100%;color: inherit;font: inherit;"><tr>
-                                    <td style="width:50px;">' . $edit_payment_button . '</td>
-                                    <td style="width:320px;">' . $paytext . ' $' . number_format(abs($payment["payment"]), 2) . ' was added on ' . date('m/d/Y', display_time($payment["timelog"])) . '</td>
-                                    <td style="width:50%"><em>' . $payment["note"] . '</em></td>
-                                    <td style="100px">' . $delete_payment . '</td>
-                                    </tr></table>
-                                     </div>';
+                                     <table style="width:100%;color: inherit;font: inherit;">
+                                         <tr>
+                                             <td style="width: 40px;">' . $edit_payment_button . '</td>
+                                             <td>
+                                                 <table style="width: 100%;font-size: 11px;background-color: rgba(255,255,255,.4);border: 1px solid silver;">
+                                                     <tr>
+                                                         <td style="font-weight: bold;">' . $paytext . ' $' . number_format(abs($payment["payment"]), 2) . ' was added on ' . date('m/d/Y', display_time($payment["timelog"])) . '</td>
+                                                     </tr>
+                                                     '.$note.'
+                                                 </table>
+                                             </td>
+                                             <td style="width: 50px;">' . $delete_payment . '</td>
+                                         </tr>
+                                     </table>
+                                   </div>';
                 }
-                $returnme .= '</div>
-                                  </div>';
+                $returnme .= '</div></div>';
             }
 
             $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 ORDER BY timelog,payid";
@@ -2219,17 +2227,25 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = false
                           });},function(){});">Delete</button>';
 
                     $paytext = $payment["payment"] >= 0 ? "Payment of " : "Fee of ";
+                    $note = empty($payment["note"]) ? "" : '<tr><td><em>Note: ' . $payment["note"] . '</em></td></tr>';
                     $returnme .= '<div>
-                                    <table style="width:100%;color: inherit;font: inherit;"><tr>
-                                    <td style="width:50px;">' . $edit_payment_button . '</td>
-                                    <td style="width:320px;">' . $paytext . ' $' . number_format($payment["payment"], 2) . ' was added on ' . date('m/d/Y', display_time($payment["timelog"])) . '</td>
-                                    <td style="width:50%"><em>' . $payment["note"] . '</em></td>
-                                    <td style="100px">' . $delete_payment . '</td>
-                                    </tr></table>
-                                     </div>';
-                }
-                $returnme .= '</div>
+                                    <table style="width:100%;color: inherit;font: inherit;">
+                                        <tr>
+                                            <td style="width: 40px;">' . $edit_payment_button . '</td>
+                                            <td>
+                                                <table style="width: 100%;font-size: 11px;background-color: rgba(255,255,255,.4);border: 1px solid silver;">
+                                                    <tr>
+                                                        <td style="font-weight: bold;">' . $paytext . ' $' . number_format($payment["payment"], 2) . ' was added on ' . date('m/d/Y', display_time($payment["timelog"])) . '</td>
+                                                    </tr>
+                                                    '.$note.'
+                                                </table>
+                                            </td>
+                                            <td style="width: 50px;">' . $delete_payment . '</td>
+                                        </tr>
+                                    </table>
                                   </div>';
+                }
+                $returnme .= '</div></div>';
             }
             $SQL = "SELECT * FROM billing WHERE pid='$pid' AND aid='" . $account["aid"] . "' ORDER BY fromdate";
 
@@ -2262,8 +2278,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = false
                         }
                     }
 
-                    $returnme .= '</div>
-                                  </div>';
+                    $returnme .= '</div></div>';
                 }
                 $total_allowed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "'");
                 $total_allowed += $totalfee;

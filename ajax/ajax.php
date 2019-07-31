@@ -3628,7 +3628,7 @@ function get_contacts_selector($chids, $admin = false) {
         $children .= $children == "" ? "chid='" . $chid["value"] . "'" : " OR chid='" . $chid["value"] . "'";
     }
 
-    $SQL = "SELECT * FROM contacts WHERE aid IN (SELECT aid FROM children WHERE $children AND deleted=0) AND deleted=0 ORDER by emergency,last,first";
+    $SQL = "SELECT * FROM contacts WHERE aid IN (SELECT aid FROM children WHERE $children AND deleted=0) AND deleted=0 ORDER by primary_address DESC,last,first";
     $returnme .= '<ol class="selectable" id="selectable" style="width:100%">';
     if (!empty($admin)) {
         $returnme .= '<li class="ui-widget-content ui-selected"><span class="contact" style="display:inline-block;width:30px;"><input class="cid" id="cid_admin" name="cid_admin" type="hidden" value="admin" /></span>Admin</li>';

@@ -437,8 +437,8 @@ function validate() {
 
     if (empty($type) && $admin && get_db_row("SELECT aid FROM accounts WHERE admin=1 AND password='$password'")) { //admin login
         $returnme = get_admin_page();
-    } elseif (((!$admin && $type != "employee") || ($admin && empty($aid))) && get_db_row("SELECT aid FROM accounts WHERE (aid='$aid' AND deleted=0 AND password='$password') OR (admin=1 AND password='$password')")) { //student check in / out
-        if (strstr($MYVARS->GET["cid"][0]["name"], "_other")) { //Make contact
+    } elseif (((!$admin && $type != "employee") || ($admin && empty($aid)) || ($admin && !empty($aid) && strstr($MYVARS->GET["cid"][0]["name"], "_other"))) && get_db_row("SELECT aid FROM accounts WHERE (aid='$aid' AND deleted=0 AND password='$password') OR (admin=1 AND password='$password')")) { //student check in / out
+        if (strstr($MYVARS->GET["cid"][0]["name"], "_other")) { // Make "other" contact
             if (strstr($cid, " ")) { //has space so assume first and last name
                 $name  = explode(" ", $cid);
                 $first = $name[0];
@@ -448,10 +448,12 @@ function validate() {
                 $last  = "";
             }
 
-            $SQL = "INSERT INTO contacts (aid,first,last,relation,home_address,phone1,phone2,phone3,phone4,employer,employer_address,hours,emergency) VALUES('$aid','$first','$last','','','','','','','','','','')";
-            if (!$cid = execute_db_sql($SQL)) { //Fails
-                echo "false";
-                exit();
+            if (!$cid = get_db_field("cid", "contacts", "aid='$aid' AND first='$first' AND last='$last'")) {
+                $SQL = "INSERT INTO contacts (aid,first,last,relation,home_address,phone1,phone2,phone3,phone4,employer,employer_address,hours,emergency) VALUES('$aid','$first','$last','','','','','','','','','',0)";
+                if (!$cid = execute_db_sql($SQL)) { //Fails
+                    echo "false";
+                    exit();
+                }
             }
         }
         $returnme = check_in_out($chids, $cid, $type);

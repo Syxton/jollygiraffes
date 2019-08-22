@@ -2131,7 +2131,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = false
 
     if ($accounts = get_db_result($SQL)) {
         while ($account = fetch_row($accounts)) {
-            $totalpaid      = $totalowed = $totalfee = 0;
+            $total_paid     = $total_billed = $total_fee = 0;
             $identifier     = time() . "accountpayment_" . $account["aid"];
             $payment_button = get_form("add_edit_payment", array(
                 "pid" => $pid,
@@ -2146,10 +2146,10 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = false
             //Fees
             $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 ORDER BY timelog,payid";
             if ($payments = get_db_result($SQL)) {
-                $totalfee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0"));
-                $totalfee = empty($totalfee) ? "0.00" : $totalfee;
+                $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0"));
+                $total_fee = empty($total_fee) ? "0.00" : $total_fee;
                 $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkRed;padding: 5px;color: white;">
-                                    <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td>Fees $' . number_format($totalfee, 2) . '</td></tr></table></a></div>
+                                    <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td>Fees $' . number_format($total_fee, 2) . '</td></tr></table></a></div>
                                     <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                 while ($payment = fetch_row($payments)) {
                     $identifier          = time() . "accountpaymentpayid_" . $payment["payid"];
@@ -2282,11 +2282,21 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = false
 
                     $returnme .= '</div></div>';
                 }
-                $total_allowed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "'");
-                $total_allowed += $totalfee;
-                $total_allowed = empty($total_allowed) ? "0.00" : $total_allowed;
-                $balance       = $total_allowed - $total_paid;
-                $returnme .= "<div style='text-align:right;color:darkred;'><strong>Owed:</strong> $" . number_format($total_allowed, 2) . "</div><div style='text-align:right;color:blue;'><strong>Paid:</strong> $" . number_format($total_paid, 2) . "</div><hr align='right' style='width:100px;'/><div style='text-align:right'><strong>Balance:</strong> $" . number_format($balance, 2) . "</div>";
+
+                $total_billed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "'");
+                $total_billed += $total_fee;
+                $total_billed = empty($total_billed) ? "0.00" : $total_billed;
+
+                // Add current week charges.
+                if ($current_week = current_week_balance($pid, $account["aid"], true)) {
+                    $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white;">
+                                    <div><a style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width:50%">Current Week</td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($current_week, 2) . '</td></tr></table></a></div>
+                                  </div>';
+                    $total_billed += (float) $current_week;
+                }
+
+                $balance       = $total_billed - $total_paid;
+                $returnme .= "<div style='text-align:right;color:darkred;'><strong>Owed:</strong> $" . number_format($total_billed, 2) . "</div><div style='text-align:right;color:blue;'><strong>Paid:</strong> $" . number_format($total_paid, 2) . "</div><hr align='right' style='width:100px;'/><div style='text-align:right'><strong>Balance:</strong> $" . number_format($balance, 2) . "</div>";
             } else {
                 $returnme .= "<div style='text-align:center'>No Invoices</div>";
             }
@@ -3198,7 +3208,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
     //$selected_class = $pid && !$aid ? "selected_button" : "" ;
     $program  = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
     $returnme = '<div class="container_list scroll-pane ui-corner-all">';
-    $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_full"><button class="list_buttons" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
+    $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_full"><button class="list_buttons" style="float:none;margin: 4px;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
                         $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
@@ -3221,7 +3231,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
             $kid_count      = get_db_count("SELECT * FROM children WHERE aid='" . $account["aid"] . "' AND deleted='0'");
             $selected_class = $aid && $aid == $account["aid"] || ($pid && !$aid && $i == 0) ? "selected_button" : "";
             $aid            = $selected_class == "selected_button" ? $account["aid"] : $aid;
-            $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_left"><button class="list_buttons ' . $selected_class . '" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
+            $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_left"><button class="list_buttons ' . $selected_class . '" style="float:none;margin: 4px;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
                         $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
@@ -3237,7 +3247,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
                             }
                         });
 
-                      ">Select</button><span class="list_title">' . $account["name"] . '</span></div><div class="list_box_item_right"><div style="width:100px;text-align:center;background:none;display:inline-block;color:lightGrey;text-shadow: black 1px 1px 3px;">Children: ' . $kid_count . '<br /><span style="color:white;text-decoration:none;">Balance: $' . account_balance($pid, $account["aid"]) . '</span></div></div></div>';
+                      ">Select</button><span class="list_title">' . $account["name"] . '</span></div><div class="list_box_item_right"><div style="width:100px;text-align:center;background:none;display:inline-block;color:lightGrey;text-shadow: black 1px 1px 3px;">Children: ' . $kid_count . '<br /><span style="color:white;text-decoration:none;">Balance: $' . account_balance($pid, $account["aid"], true) . '</span></div></div></div>';
             $i++;
         }
     }
@@ -3610,7 +3620,7 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
                                                                                               url: \'ajax/ajax.php\',
                                                                                               data: { action: \'get_admin_billing_form\', aid:\'' . $account["aid"] . '\' ,pid: \'' . $pid . '\' },
                                                                                               success: function(data) { $(\'#admin_display\').hide(\'fade\',null,null,function(){ $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); });  }
-                                                                                              });$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not($(\'#admin_menu_billing\')).toggleClass(\'selected_button\',false);">Balance: $' . account_balance($pid, $account["aid"]) . '</a></div></div></div>';
+                                                                                          });$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not($(\'#admin_menu_billing\')).toggleClass(\'selected_button\',false);">Balance: $' . account_balance($pid, $account["aid"], true) . '</a></div></div></div>';
         }
     }
     $returnme .= '</div>';

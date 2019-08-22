@@ -10,12 +10,19 @@
 if(!isset($LIBHEADER)) include('header.php');
 $BILLINGLIB = true;
 
-function account_balance($pid,$aid){
+function account_balance($pid,$aid,$running_balance = false){
     $total_paid = get_db_field("SUM(payment)","billing_payments","pid='$pid' AND aid='$aid'");
     $total_paid = empty($total_paid) ? "0.00" : $total_paid;
-    $total_allowed = get_db_field("SUM(owed)","billing","pid='$pid' AND aid='$aid'");
-    $total_allowed = empty($total_allowed) ? "0.00" : $total_allowed;
-    return number_format($total_allowed - $total_paid,2);
+    $total_owed = get_db_field("SUM(owed)","billing","pid='$pid' AND aid='$aid'");
+    $total_owed = empty($total_owed) ? "0.00" : $total_owed;
+
+    if ($running_balance) {
+        $running_balance = current_week_balance($pid, $aid);
+        $running_balance = empty($running_balance) ? "0.00" : $running_balance;
+
+        $total_owed += $running_balance;
+    }
+    return number_format($total_owed - $total_paid,2);
 }
 
 function current_week_balance($pid,$aid,$enrollment = true){
@@ -40,7 +47,7 @@ global $CFG;
     $lastid = '0';
     if($accounts = get_db_result($SQL)){
         while($account = fetch_row($accounts)){
-            $SQL = "SELECT * FROM children WHERE aid='".$account["aid"]."' AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid') AND chid IN (SELECT chid FROM activity WHERE pid='$pid' AND tag='in') ORDER BY last,first";
+            $SQL = "SELECT * FROM children WHERE aid='".$account["aid"]."' AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid' AND exempt=0) AND chid IN (SELECT chid FROM activity WHERE pid='$pid' AND tag='in') ORDER BY last,first";
             if($children = get_db_result($SQL)){
                 while($child = fetch_row($children)){
                     //Child has signed in so he may be billed

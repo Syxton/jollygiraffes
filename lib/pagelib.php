@@ -1087,6 +1087,65 @@ function check_and_run_upgrades() {
         execute_db_sql("UPDATE version SET version='$thisversion'");
     }
 
+    $thisversion = 2019082300;
+    if ($version < $thisversion) { //# = new version number.  If this is the first...start at 1
+        $SQL1 = "ALTER TABLE `programs` ADD `payahead` TINYINT(1) NOT NULL DEFAULT '0' AFTER `discount_rule`,  ADD INDEX (`payahead`) ";
+        execute_db_sql($SQL1);
+        execute_db_sql("UPDATE version SET version='$thisversion'");
+    }
+
+    $thisversion = 2019082301;
+    if ($version < $thisversion) { //# = new version number.  If this is the first...start at 1
+        $SQL1 = "ALTER TABLE `billing_override` ADD `payahead` TINYINT(1) NULL DEFAULT NULL AFTER `discount_rule`,  ADD INDEX (`payahead`) ";
+        execute_db_sql($SQL1);
+
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY bill_by VARCHAR(20) NULL DEFAULT NULL";
+        execute_db_sql($SQL2);
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY perday VARCHAR(10) NULL DEFAULT NULL";
+        execute_db_sql($SQL2);
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY fulltime VARCHAR(10) NULL DEFAULT NULL";
+        execute_db_sql($SQL2);
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY minimumactive VARCHAR(10) NULL DEFAULT NULL";
+        execute_db_sql($SQL2);
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY minimuminactive VARCHAR(10) NULL DEFAULT NULL";
+        execute_db_sql($SQL2);
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY vacation VARCHAR(10) NULL DEFAULT NULL";
+        execute_db_sql($SQL2);
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY multiple_discount VARCHAR(10) NULL DEFAULT NULL";
+        execute_db_sql($SQL2);
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY consider_full TINYINT(1) NULL DEFAULT NULL";
+        execute_db_sql($SQL2);
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY discount_rule TINYINT(1) NULL DEFAULT NULL";
+        execute_db_sql($SQL2);
+
+        execute_db_sql("UPDATE version SET version='$thisversion'");
+    }
+
+    $thisversion = 2019082302;
+    if ($version < $thisversion) { //# = new version number.  If this is the first...start at 1
+        $SQL2 = "UPDATE `billing_override` SET payahead=NULL WHERE payahead=0";
+        execute_db_sql($SQL2);
+        $SQL2 = "UPDATE `billing_override` SET bill_by=NULL WHERE bill_by=0";
+        execute_db_sql($SQL2);
+        $SQL2 = "UPDATE `billing_override` SET perday=NULL WHERE perday=0";
+        execute_db_sql($SQL2);
+        $SQL2 = "UPDATE `billing_override` SET fulltime=NULL WHERE fulltime=0";
+        execute_db_sql($SQL2);
+        $SQL2 = "UPDATE `billing_override` SET minimumactive=NULL WHERE minimumactive=0";
+        execute_db_sql($SQL2);
+        $SQL2 = "UPDATE `billing_override` SET minimuminactive=NULL WHERE minimuminactive=0";
+        execute_db_sql($SQL2);
+        $SQL2 = "UPDATE `billing_override` SET vacation=NULL WHERE vacation=0";
+        execute_db_sql($SQL2);
+        $SQL2 = "UPDATE `billing_override` SET multiple_discount=NULL WHERE multiple_discount=0";
+        execute_db_sql($SQL2);
+        $SQL2 = "UPDATE `billing_override` SET consider_full=NULL WHERE consider_full=0";
+        execute_db_sql($SQL2);
+        $SQL2 = "UPDATE `billing_override` SET discount_rule=NULL WHERE discount_rule=0";
+        execute_db_sql($SQL2);
+
+        execute_db_sql("UPDATE version SET version='$thisversion'");
+    }
     //    $thisversion = YYYYMMDD;
     //    if($version < $thisversion){ //# = new version number.  If this is the first...start at 1
     //        $SQL = "";

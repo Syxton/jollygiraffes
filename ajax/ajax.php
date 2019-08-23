@@ -3,8 +3,8 @@
  * ajax.php - Main backend ajax script.  Usually sends off to feature libraries.
  * -------------------------------------------------------------------------
  * Author: Matthew Davidson
- * Date: 4/8/2014
- * Revision: 3.0.1
+ * Date: 08/23/2019
+ * Revision: 3.1.1
  ***************************************************************************/
 
 include('header.php');
@@ -261,20 +261,60 @@ function check_in_out($chids, $cid, $type) {
         $current_week  = current_week_balance($pid, $aid); //Current weeks total
         $method        = get_enrollment_method($pid, $aid);
         $exempt        = get_db_field("exempt", "enrollments", "chid='" . $chids[0]["value"] . "' AND pid='$pid'");
+        $payahead      = get_db_field("payahead", "programs", "pid='$pid'");
         $float_balance = (float) $balance;
         $float_current = (float) $current_week;
+        $combined_balance = $float_balance + $float_current;
 
         if (!$exempt) {
-            if ($float_balance + $float_current <= 0) { //They have paid more than they previously owed
-                $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>You are currently paid up. Thanks!</span>";
-            } else {
-                if ($method == "enrollment") { //flat rate based on days they are expected to attend
-                    $combined_balance = $float_balance + $float_current;
-                    //$current_balance  = "<span style='color:blue;font-weight:bold;font-size:24px;text-shadow:none;'>This weeks charge will be $" . $current_week . ' </span><br />'; //Plus current week
-                    $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>Your account has a balance of $" . number_format($combined_balance, 2) . " due.</span>";
-                } else { //rate based on actual attendance
-                    $current_balance = "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>So far this week you owe $" . $current_week . ' </span><br />'; //Plus current week
-                    $remaining_balance .= $balance > 0 ? $current_balance . "<span style='color:white;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>You have an <strong>additional</strong> balance of $" . $balance . " due.</span>" : $current_balance;
+            if ($method == "enrollment") { // Flat rate based on days they are expected to attend
+                if ($combined_balance <= 0) { // They have paid more than they previously owed
+                    if ($payahead) {
+                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
+                                              "You are currently paid up. Thanks!" .
+                                              "<br />Payment of $" . number_format($float_current, 2) . " is due ahead of next weeks services." .
+                                              "</span>";
+                    } else {
+                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
+                                              "You are currently paid up. Thanks!" .
+                                              "</span>";
+                    }
+                } else {
+                    if ($payahead) {
+                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
+                                              "Your account is overdue $" . number_format($combined_balance, 2) . "." .
+                                              "<br />An additional payment of $" . number_format($float_current, 2) . " is due ahead of next weeks services." .
+                                              "</span>";
+                    } else {
+                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
+                                              "Your account has a balance of $" . number_format($combined_balance, 2) . " due." .
+                                              "</span>";
+                    }
+                }
+            } else { // Rate based on actual attendance
+                if ($combined_balance <= 0) {
+                    if ($payahead) {
+                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
+                                              "You are currently paid up. Thanks!" .
+                                              "<br />An estimated $" . number_format($float_current, 2) . " is expected for next week." .
+                                              "</span>";
+                    } else {
+                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
+                                              "You are currently paid up. Thanks!" .
+                                              "</span>";
+                    }
+                } else {
+                    if ($payahead) {
+                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
+                                              "Your account is overdue $" . number_format($combined_balance, 2) . "." .
+                                              "<br />An estimated $" . number_format($float_current, 2) . " is expected for next week." .
+                                              "</span>";
+                    } else {
+                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
+                                              "Your account has a balance of $" . number_format($combined_balance, 2) . "." .
+                                              "<br />So far this week you owe $" . number_format($float_current, 2) . "." .
+                                              "</span>";
+                    }
                 }
             }
         }
@@ -587,47 +627,24 @@ function add_edit_program() {
 
     foreach ($fields as $field) {
         switch ($field["name"]) {
+            case "pid":
             case "name":
-                $name = dbescape($field["value"]);
-                break;
             case "timeopen":
-                $timeopen = dbescape($field["value"]);
-                break;
             case "timeclosed":
-                $timeclosed = dbescape($field["value"]);
+            case "consider_full":
+            case "bill_by":
+            case "payahead":
+            case "callback":
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "perday":
-                $perday = str_replace("$", "", dbescape($field["value"]));
-                break;
             case "fulltime":
-                $fulltime = str_replace("$", "", dbescape($field["value"]));
-                break;
             case "minimumactive":
-                $minimumactive = str_replace("$", "", dbescape($field["value"]));
-                break;
             case "minimuminactive":
-                $minimuminactive = str_replace("$", "", dbescape($field["value"]));
-                break;
             case "multiple_discount":
-                $multiple_discount = str_replace("$", "", dbescape($field["value"]));
-                break;
             case "vacation":
-                $vacation = str_replace("$", "", dbescape($field["value"]));
-                break;
-            case "pid":
-                $pid = dbescape($field["value"]);
-                break;
-            case "consider_full":
-                $consider_full = dbescape($field["value"]);
-                break;
-            case "bill_by":
-                $bill_by = dbescape($field["value"]);
-                break;
             case "discount_rule":
-                $discount_rule = str_replace("$", "", dbescape($field["value"]));
-                break;
-            case "callback":
-                $callback = dbescape($field["value"]);
+                ${$field["name"]} = str_replace("$", "", dbescape($field["value"]));
                 break;
         }
     }
@@ -637,16 +654,14 @@ function add_edit_program() {
 
     if (!empty($name) && !empty($timeopen) && !empty($timeclosed) && is_numeric($perday) && is_numeric($fulltime)) {
         if ($pid) {
-            $SQL = "UPDATE programs SET name='$name',timeopen='$timeopen',timeclosed='$timeclosed',perday='$perday',fulltime='$fulltime',minimumactive='$minimumactive',minimuminactive='$minimuminactive',vacation='$vacation',multiple_discount='$multiple_discount',consider_full='$consider_full',bill_by='$bill_by',discount_rule='$discount_rule' WHERE pid='$pid'";
+            $SQL = "UPDATE programs SET name='$name',timeopen='$timeopen',timeclosed='$timeclosed',perday='$perday',fulltime='$fulltime',minimumactive='$minimumactive',minimuminactive='$minimuminactive',vacation='$vacation',multiple_discount='$multiple_discount',consider_full='$consider_full',bill_by='$bill_by',discount_rule='$discount_rule',payahead='$payahead' WHERE pid='$pid'";
         } else {
-            $SQL = "INSERT INTO programs (name,timeopen,timeclosed,perday,fulltime,minimumactive,minimuminactive,vacation,multiple_discount,consider_full,bill_by,discount_rule) VALUES('$name','$timeopen','$timeclosed','$perday','$fulltime','$minimumactive','$minimuminactive','$vacation','$multiple_discount','$consider_full','$bill_by','$discount_rule')";
+            $SQL = "INSERT INTO programs (name,timeopen,timeclosed,perday,fulltime,minimumactive,minimuminactive,vacation,multiple_discount,consider_full,bill_by,discount_rule,payahead) VALUES('$name','$timeopen','$timeclosed','$perday','$fulltime','$minimumactive','$minimuminactive','$vacation','$multiple_discount','$consider_full','$bill_by','$discount_rule','$payahead')";
         }
 
         if (execute_db_sql($SQL)) { //Saved successfully
             switch ($callback) {
                 case "programs":
-                    get_admin_enrollment_form(false, $pid);
-                    break;
                 default:
                     get_admin_enrollment_form(false, $pid);
                     break;
@@ -666,19 +681,15 @@ function add_edit_expense() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "amount":
-                $amount = str_replace("$", "", dbescape($field["value"]));
+                ${$field["name"]} = str_replace("$", "", dbescape($field["value"]));
                 break;
             case "timelog":
-                $timelog = strtotime(dbescape($field["value"]));
+                ${$field["name"]} = strtotime(dbescape($field["value"]));
                 break;
             case "note":
-                $note = dbescape($field["value"]);
-                break;
             case "pid":
-                $pid = dbescape($field["value"]);
-                break;
             case "callback":
-                $callback = dbescape($field["value"]);
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
         }
     }
@@ -710,50 +721,39 @@ function add_edit_expense() {
 function billing_overrides() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
-
+    $overridemade = false;
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "perday":
-                $perday = str_replace("$", "", dbescape($field["value"]));
-                break;
             case "fulltime":
-                $fulltime = str_replace("$", "", dbescape($field["value"]));
-                break;
             case "minimumactive":
-                $minimumactive = str_replace("$", "", dbescape($field["value"]));
-                break;
             case "minimuminactive":
-                $minimuminactive = str_replace("$", "", dbescape($field["value"]));
-                break;
             case "multiple_discount":
-                $multiple_discount = str_replace("$", "", dbescape($field["value"]));
-                break;
             case "vacation":
-                $vacation = str_replace("$", "", dbescape($field["value"]));
-                break;
-            case "pid":
-                $pid = dbescape($field["value"]);
-                break;
-            case "aid":
-                $aid = dbescape($field["value"]);
-                break;
-            case "oid":
-                $oid = dbescape($field["value"]);
+            case "discount_rule":
+                if ($field["value"] == "") {
+                    ${$field["name"]} = "NULL";
+                } else {
+                    ${$field["name"]} = "'".str_replace("$", "", dbescape($field["value"]))."'";
+                    $overridemade = true;
+                }
                 break;
             case "consider_full":
-                $consider_full = dbescape($field["value"]);
-                break;
             case "bill_by":
-                $bill_by = dbescape($field["value"]);
+            case "payahead":
+                if ($field["value"] == "none") {
+                    ${$field["name"]} = "NULL";
+                } else {
+                    ${$field["name"]} = "'".dbescape($field["value"])."'";
+                    $overridemade = true;
+                }
                 break;
-            case "discount_rule":
-                $discount_rule = str_replace("$", "", dbescape($field["value"]));
-                break;
+            case "pid":
+            case "aid":
+            case "oid":
             case "callback":
-                $callback = dbescape($field["value"]);
-                break;
             case "callbackinfo":
-                $callbackinfo = dbescape($field["value"]);
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
         }
     }
@@ -764,28 +764,23 @@ function billing_overrides() {
     $aid          = empty($aid) ? false : $aid;
     $oid          = empty($oid) ? false : $oid;
 
-    if (is_numeric($perday) && is_numeric($fulltime)) {
-        if ($oid) {
-            if ($bill_by == "none") {
-                $SQL = "DELETE FROM billing_override WHERE oid='$oid'";
-            } else {
-                $SQL = "UPDATE billing_override SET perday='$perday',fulltime='$fulltime',minimumactive='$minimumactive',minimuminactive='$minimuminactive',vacation='$vacation',multiple_discount='$multiple_discount',consider_full='$consider_full',bill_by='$bill_by',discount_rule='$discount_rule' WHERE oid='$oid'";
-            }
-        } else {
-            $SQL = "INSERT INTO billing_override (pid,aid,perday,fulltime,minimumactive,minimuminactive,vacation,multiple_discount,consider_full,bill_by,discount_rule) VALUES('$pid','$aid','$perday','$fulltime','$minimumactive','$minimuminactive','$vacation','$multiple_discount','$consider_full','$bill_by','$discount_rule')";
-        }
 
-        if (execute_db_sql($SQL)) { //Saved successfully
-            switch ($callback) {
-                case "billing":
-                    get_admin_billing_form(false, $pid, $callbackinfo);
-                    break;
-                default:
-                    get_admin_billing_form(false, $pid, $callbackinfo);
-                    break;
-            }
+    if ($oid) {
+        if (!$overridemade) {
+            $SQL = "DELETE FROM billing_override WHERE oid='$oid'";
         } else {
-            echo "false";
+            $SQL = "UPDATE billing_override SET perday=$perday,fulltime=$fulltime,minimumactive=$minimumactive,minimuminactive=$minimuminactive,vacation=$vacation,multiple_discount=$multiple_discount,consider_full=$consider_full,bill_by=$bill_by,discount_rule=$discount_rule,payahead=$payahead WHERE oid='$oid'";
+        }
+    } elseif ($overridemade) {
+        $SQL = "INSERT INTO billing_override (pid,aid,perday,fulltime,minimumactive,minimuminactive,vacation,multiple_discount,consider_full,bill_by,discount_rule,payahead) VALUES($pid,$aid,$perday,$fulltime,$minimumactive,$minimuminactive,$vacation,$multiple_discount,$consider_full,$bill_by,$discount_rule,$payahead)";
+    }
+
+    if (execute_db_sql($SQL)) { //Saved successfully
+        switch ($callback) {
+            case "billing":
+            default:
+                get_admin_billing_form(false, $pid, $callbackinfo);
+                break;
         }
     } else {
         echo "false";
@@ -799,25 +794,13 @@ function add_edit_tag() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "tagtype":
-                $tagtype = dbescape($field["value"]);
-                break;
             case "update":
-                $update = dbescape($field["value"]);
-                break;
             case "tag":
-                $tag = dbescape($field["value"]);
-                break;
             case "title":
-                $title = dbescape($field["value"]);
-                break;
             case "color":
-                $color = dbescape($field["value"]);
-                break;
             case "textcolor":
-                $textcolor = dbescape($field["value"]);
-                break;
             case "callback":
-                $callback = dbescape($field["value"]);
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
         }
     }
@@ -863,28 +846,18 @@ function add_edit_payment() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "note":
-                $note = dbescape($field["value"]);
+            case "aid":
+            case "payid":
+            case "pid":
+            case "callback":
+            case "callbackinfo":
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "payment":
-                $payment = str_replace("$", "", dbescape($field["value"]));
-                break;
-            case "payid":
-                $payid = dbescape($field["value"]);
-                break;
-            case "aid":
-                $aid = dbescape($field["value"]);
+                ${$field["name"]} = str_replace("$", "", dbescape($field["value"]));
                 break;
             case "timelog":
-                $timelog = strtotime(dbescape($field["value"]));
-                break;
-            case "pid":
-                $pid = dbescape($field["value"]);
-                break;
-            case "callback":
-                $callback = dbescape($field["value"]);
-                break;
-            case "callbackinfo":
-                $callbackinfo = dbescape($field["value"]);
+                ${$field["name"]} = strtotime(dbescape($field["value"]));
                 break;
         }
     }
@@ -927,24 +900,13 @@ function add_edit_account() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "password":
-                $password = dbescape($field["value"]);
-                break;
             case "name":
-                $name = dbescape($field["value"]);
-                break;
             case "aid":
-                $aid = dbescape($field["value"]);
-                break;
             case "meal_status":
-                $meal_status = dbescape($field["value"]);
-                break;
             case "recover":
-                $recover = dbescape($field["value"]);
-                break;
             case "callback":
-                $callback = dbescape($field["value"]);
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
-
         }
     }
 
@@ -983,28 +945,17 @@ function add_edit_employee() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "password":
-                $password = dbescape($field["value"]);
-                break;
             case "first":
-                $first = dbescape($field["value"]);
-                break;
             case "last":
-                $last = dbescape($field["value"]);
-                break;
             case "employeeid":
-                $employeeid = dbescape($field["value"]);
+            case "recover":
+            case "callback":
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "wage":
-                $wage = dbescape($field["value"]);
-                $wage = str_replace("$", "", $wage);
+                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = str_replace("$", "", $wage);
                 break;
-            case "recover":
-                $recover = dbescape($field["value"]);
-                break;
-            case "callback":
-                $callback = dbescape($field["value"]);
-                break;
-
         }
     }
 
@@ -1059,31 +1010,17 @@ function add_edit_child() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "chid":
-                $chid = dbescape($field["value"]);
-                break;
             case "aid":
-                $aid = dbescape($field["value"]);
-                break;
             case "pid":
-                $pid = dbescape($field["value"]);
-                break;
-            case "callback":
-                $callback = dbescape($field["value"]);
-                break;
             case "first":
-                $first = dbescape($field["value"]);
-                break;
             case "last":
-                $last = dbescape($field["value"]);
-                break;
             case "sex":
-                $sex = dbescape($field["value"]);
-                break;
             case "grade":
-                $grade = dbescape($field["value"]);
+            case "callback":
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "birthdate":
-                $birthdate = strtotime(dbescape($field["value"]));
+                ${$field["name"]} = strtotime(dbescape($field["value"]));
                 break;
         }
     }
@@ -1135,52 +1072,22 @@ function add_edit_contact() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "cid":
-                $cid = dbescape($field["value"]);
-                break;
             case "aid":
-                $aid = dbescape($field["value"]);
-                break;
             case "first":
-                $first = dbescape($field["value"]);
-                break;
             case "last":
-                $last = dbescape($field["value"]);
-                break;
             case "relation":
-                $relation = dbescape($field["value"]);
-                break;
             case "primary_address":
-                $primary_address = dbescape($field["value"]);
-                break;
             case "home_address":
-                $home_address = dbescape($field["value"]);
-                break;
             case "phone1":
-                $phone1 = dbescape($field["value"]);
-                break;
             case "phone2":
-                $phone2 = dbescape($field["value"]);
-                break;
             case "phone3":
-                $phone3 = dbescape($field["value"]);
-                break;
             case "phone4":
-                $phone4 = dbescape($field["value"]);
-                break;
             case "employer":
-                $employer = dbescape($field["value"]);
-                break;
             case "employer_address":
-                $employer_address = dbescape($field["value"]);
-                break;
             case "hours":
-                $hours = dbescape($field["value"]);
-                break;
             case "emergency":
-                $emergency = dbescape($field["value"]);
-                break;
             case "callback":
-                $callback = dbescape($field["value"]);
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
         }
     }
@@ -1224,35 +1131,19 @@ function add_edit_note() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "note":
-                $note = dbescape($field["value"]);
-                break;
             case "notify":
-                $notify = dbescape($field["value"]);
-                break;
             case "persistent":
-                $persistent = dbescape($field["value"]);
+            case "nid":
+            case "chid":
+            case "cid":
+            case "aid":
+            case "actid":
+            case "callback":
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "tag":
-                $tag = dbescape($field["value"]);
-                $tag = make_or_get_tag($tag, "notes");
-                break;
-            case "nid":
-                $nid = dbescape($field["value"]);
-                break;
-            case "chid":
-                $chid = dbescape($field["value"]);
-                break;
-            case "cid":
-                $cid = dbescape($field["value"]);
-                break;
-            case "aid":
-                $aid = dbescape($field["value"]);
-                break;
-            case "actid":
-                $actid = dbescape($field["value"]);
-                break;
-            case "callback":
-                $callback = dbescape($field["value"]);
+                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = make_or_get_tag($tag, "notes");
                 break;
         }
     }
@@ -1319,19 +1210,11 @@ function add_edit_bulletin() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "note":
-                $note = dbescape($field["value"]);
-                break;
             case "notify":
-                $notify = dbescape($field["value"]);
-                break;
             case "aid":
-                $aid = dbescape($field["value"]);
-                break;
             case "pid":
-                $pid = dbescape($field["value"]);
-                break;
             case "callback":
-                $callback = dbescape($field["value"]);
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
         }
     }
@@ -1379,29 +1262,17 @@ function add_edit_activity() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "note":
-                $note = dbescape($field["value"]);
+            case "nid":
+            case "chid":
+            case "cid":
+            case "aid":
+            case "actid":
+            case "callback":
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "tag":
-                $tag = dbescape($field["value"]);
-                $tag = make_or_get_tag($tag, "events");
-                break;
-            case "nid":
-                $nid = dbescape($field["value"]);
-                break;
-            case "chid":
-                $chid = dbescape($field["value"]);
-                break;
-            case "cid":
-                $cid = dbescape($field["value"]);
-                break;
-            case "aid":
-                $aid = dbescape($field["value"]);
-                break;
-            case "actid":
-                $actid = dbescape($field["value"]);
-                break;
-            case "callback":
-                $callback = dbescape($field["value"]);
+                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = make_or_get_tag($tag, "events");
                 break;
         }
     }
@@ -1460,21 +1331,17 @@ function add_edit_employee_activity() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "newtime":
-                $newtime = dbescape($field["value"]);
-                $newtime = seconds_from_midnight($newtime);
+                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = seconds_from_midnight($newtime);
                 break;
             case "oldtime":
-                $oldtime = dbescape($field["value"]);
-                $oldtime = strtotime('midnight', $oldtime);
+                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = strtotime('midnight', $oldtime);
                 break;
             case "nid":
-                $nid = dbescape($field["value"]);
-                break;
             case "actid":
-                $actid = dbescape($field["value"]);
-                break;
             case "callback":
-                $callback = dbescape($field["value"]);
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
         }
     }
@@ -1513,16 +1380,10 @@ function save_employee_timecard() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "employeeid":
-                $employeeid = dbescape($field["value"]);
-                break;
             case "id":
-                $id = dbescape($field["value"]);
-                break;
             case "hours":
-                $hours = dbescape($field["value"]);
-                break;
             case "callback":
-                $callback = dbescape($field["value"]);
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
         }
 
@@ -1560,21 +1421,17 @@ function save_employee_salary_history() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "employeeid":
-                $employeeid = dbescape($field["value"]);
-                break;
             case "id":
-                $id = dbescape($field["value"]);
+            case "callback":
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "date":
-                $date = dbescape($field["value"]);
-                $date = strtotime($date);
+                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = strtotime($date);
                 break;
             case "wage":
-                $wage = dbescape($field["value"]);
-                $wage = str_replace("$", "", $wage);
-                break;
-            case "callback":
-                $callback = dbescape($field["value"]);
+                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = str_replace("$", "", $wage);
                 break;
         }
 
@@ -3802,22 +3659,12 @@ function toggle_enrollment() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "eid":
-                $eid = dbescape($field["value"]);
-                break;
             case "aid":
-                $aid = dbescape($field["value"]);
-                break;
             case "chid":
-                $chid = dbescape($field["value"]);
-                break;
             case "pid":
-                $pid = dbescape($field["value"]);
-                break;
-            case "callback":
-                $callback = dbescape($field["value"]);
-                break;
             case "exempt":
-                $exempt = dbescape($field["value"]);
+            case "callback":
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "M":
             case "T":
@@ -3938,14 +3785,12 @@ function save_required_notes() {
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "rnid":
-                $rnid = dbescape($field["value"]);
+            case "question_type":
+                ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "title":
-                $title = dbescape($field["value"]);
+                ${$field["name"]} = dbescape($field["value"]);
                 $tag   = strtolower(preg_replace("/[^a-zA-Z0-9\s]/", "_", $title));
-                break;
-            case "question_type":
-                $question_type = dbescape($field["value"]);
                 break;
         }
     }

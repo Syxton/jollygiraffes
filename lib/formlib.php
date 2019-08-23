@@ -28,14 +28,22 @@ global $CFG;
             $multiple_discount = empty($vars["program"]["multiple_discount"]) ? "0" : $vars["program"]["multiple_discount"];
             $consider_full = empty($vars["program"]["consider_full"]) ? "5" : $vars["program"]["consider_full"];
             $bill_by = empty($vars["program"]["bill_by"]) ? "enrollment" : $vars["program"]["bill_by"];
+            $payahead = empty($vars["program"]["payahead"]) ? "0" : $vars["program"]["payahead"];
             $discount_rule = empty($vars["program"]["discount_rule"]) ? "0" : $vars["program"]["discount_rule"];
 
             $title = empty($vars["pid"]) ? "Add Program" : "Edit Program";
             $days[0] = new stdClass(); $days[1] = new stdClass(); $days[2] = new stdClass(); $days[3] = new stdClass(); $days[4] = new stdClass();
+            $days[0]->value = "1"; $days[0]->display = "1 day attending";
+            $days[1]->value = "2"; $days[2]->display = "2 days attending";
+            $days[2]->value = "3"; $days[3]->display = "3 days attending";
+            $days[3]->value = "4"; $days[4]->display = "4 days attending";
+            $days[4]->value = "5"; $days[5]->display = "5 days attending";
             $bill_by_array[0] = new stdClass(); $bill_by_array[1] = new stdClass();
             $bill_by_array[0]->value = "enrollment"; $bill_by_array[0]->display = "Enrollment";
             $bill_by_array[1]->value = "attendance"; $bill_by_array[1]->display = "Attendance";
-            $days[0]->value = "1"; $days[1]->value = "2"; $days[2]->value = "3"; $days[3]->value = "4"; $days[4]->value = "5";
+            $payahead_array[0] = new stdClass(); $payahead_array[1] = new stdClass();
+            $payahead_array[0]->value = "0"; $payahead_array[0]->display = "No";
+            $payahead_array[1]->value = "1"; $payahead_array[1]->display = "Yes";
             $fields = "";
             $pid = empty($vars["pid"]) ? "0" : $vars["pid"];
             $fields .= empty($vars["pid"]) ? "" : '<input type="hidden" name="pid" class="fields pid" value="'.$vars["pid"].'" />';
@@ -47,8 +55,9 @@ global $CFG;
                             <table style="width:100%;">
                                 <tr><td><label for="name">Name</label></td><td><input style="width:100%;" class="fields" type="input" name="name" id="name" value="'.$name.'" /></td></tr>
                                 <tr><td><label for="business_hours">Normal Hours</label></td><td><span style="display:inline-block;width:55px;">From:</span><input class="time fields" name="timeopen" id="timeopen" type="text" value="'.$timeopen.'" /><br /><span style="display:inline-block;width:55px;">To:</span><input class="time fields" name="timeclosed" id="timeclosed" type="text" value="'.$timeclosed.'" /></td></tr>
-                                <tr><td><label for="consider_full">Full Week (days)</label></td><td>'.make_select_from_array("consider_full",$days,"value","value","fields",$consider_full).'</td></tr>
+                                <tr><td><label for="consider_full">Full Week (days)</label></td><td>'.make_select_from_array("consider_full",$days,"value","display","fields",$consider_full).'</td></tr>
                                 <tr><td><label for="bill_by">Bill By</label></td><td>'.make_select_from_array("bill_by",$bill_by_array,"value","display","fields",$bill_by).'</td></tr>
+                                <tr><td><label for="payahead">Pay Ahead</label></td><td>'.make_select_from_array("payahead",$payahead_array,"value","display","fields",$payahead).'</td></tr>
                                 <tr><td><label for="perday">Price Per Day</label></td><td>$<input style="width:125px;" class="fields" type="input" name="perday" id="perday" value="'.$perday.'" /></td></tr>
                                 <tr><td><label for="fulltime">Full Week Price</label></td><td>$<input style="width:125px;" class="fields" type="input" name="fulltime" id="fulltime" value="'.$fulltime.'" /></td></tr>
                                 <tr><td><label for="minimumactive">Minimum (Active)</label></td><td>$<input style="width:125px;" class="fields" type="input" name="minimumactive" id="minimumactive" value="'.$minimumactive.'" /></td></tr>
@@ -77,23 +86,36 @@ global $CFG;
                     ';
             break;
         case "billing_overrides":
-            $perday = empty($vars["override"]["perday"]) ? "0" : $vars["override"]["perday"];
-            $fulltime = empty($vars["override"]["fulltime"]) ? "0" : $vars["override"]["fulltime"];
-            $minimumactive = empty($vars["override"]["minimumactive"]) ? "0" : $vars["override"]["minimumactive"];
-            $minimuminactive = empty($vars["override"]["minimuminactive"]) ? "0" : $vars["override"]["minimuminactive"];
-            $vacation = empty($vars["override"]["vacation"]) ? "0" : $vars["override"]["vacation"];
-            $multiple_discount = empty($vars["override"]["multiple_discount"]) ? "0" : $vars["override"]["multiple_discount"];
-            $consider_full = empty($vars["override"]["consider_full"]) ? "5" : $vars["override"]["consider_full"];
+            $perday = empty($vars["override"]["perday"]) ? "" : $vars["override"]["perday"];
+            $fulltime = empty($vars["override"]["fulltime"]) ? "" : $vars["override"]["fulltime"];
+            $minimumactive = empty($vars["override"]["minimumactive"]) ? "" : $vars["override"]["minimumactive"];
+            $minimuminactive = empty($vars["override"]["minimuminactive"]) ? "" : $vars["override"]["minimuminactive"];
+            $vacation = empty($vars["override"]["vacation"]) ? "" : $vars["override"]["vacation"];
+            $multiple_discount = empty($vars["override"]["multiple_discount"]) ? "" : $vars["override"]["multiple_discount"];
+            $consider_full = empty($vars["override"]["consider_full"]) ? "" : $vars["override"]["consider_full"];
             $bill_by = empty($vars["override"]["bill_by"]) ? "none" : $vars["override"]["bill_by"];
-            $discount_rule = empty($vars["override"]["discount_rule"]) ? "0" : $vars["override"]["discount_rule"];
+            $payahead = empty($vars["override"]["payahead"]) ? "none" : $vars["override"]["payahead"];
+            $discount_rule = empty($vars["override"]["discount_rule"]) ? "" : $vars["override"]["discount_rule"];
 
             $title = "Billing Override";
-            $days[0] = new stdClass(); $days[1] = new stdClass(); $days[2] = new stdClass(); $days[3] = new stdClass(); $days[4] = new stdClass();
+            $days[0] = new stdClass(); $days[1] = new stdClass(); $days[2] = new stdClass(); $days[3] = new stdClass(); $days[4] = new stdClass(); $days[5] = new stdClass();
+            $days[0]->value = "none"; $days[0]->display = "None";
+            $days[1]->value = "1"; $days[1]->display = "1 day attending";
+            $days[2]->value = "2"; $days[2]->display = "2 days attending";
+            $days[3]->value = "3"; $days[3]->display = "3 days attending";
+            $days[4]->value = "4"; $days[4]->display = "4 days attending";
+            $days[5]->value = "5"; $days[5]->display = "5 days attending";
+
             $bill_by_array[0] = new stdClass(); $bill_by_array[1] = new stdClass(); $bill_by_array[2] = new stdClass();
             $bill_by_array[0]->value = "none"; $bill_by_array[0]->display = "None";
             $bill_by_array[1]->value = "enrollment"; $bill_by_array[1]->display = "Enrollment";
             $bill_by_array[2]->value = "attendance"; $bill_by_array[2]->display = "Attendance";
-            $days[0]->value = "1"; $days[1]->value = "2"; $days[2]->value = "3"; $days[3]->value = "4"; $days[4]->value = "5";
+
+            $payahead_array[0] = new stdClass(); $payahead_array[1] = new stdClass(); $payahead_array[2] = new stdClass();
+            $payahead_array[0]->value = "none"; $payahead_array[0]->display = "None";
+            $payahead_array[1]->value = "0"; $payahead_array[1]->display = "No";
+            $payahead_array[2]->value = "1"; $payahead_array[2]->display = "Yes";
+
             $fields = "";
             $pid = empty($vars["pid"]) ? "0" : $vars["pid"];
             $aid = empty($vars["aid"]) ? "0" : $vars["aid"];
@@ -109,7 +131,8 @@ global $CFG;
                             '.$fields.'
                             <table style="width:100%;">
                                 <tr><td><label for="bill_by">Override Type</label></td><td>'.make_select_from_array("bill_by",$bill_by_array,"value","display","fields",$bill_by).'</td></tr>
-                                <tr><td><label for="consider_full">Full Week (days)</label></td><td>'.make_select_from_array("consider_full",$days,"value","value","fields",$consider_full).'</td></tr>
+                                <tr><td><label for="payahead">Pay Ahead</label></td><td>'.make_select_from_array("payahead",$payahead_array,"value","display","fields",$payahead).'</td></tr>
+                                <tr><td><label for="consider_full">Full Week (days)</label></td><td>'.make_select_from_array("consider_full",$days,"value","display","fields",$consider_full).'</td></tr>
                                 <tr><td><label for="perday">Price Per Day</label></td><td>$<input style="width:125px;" class="fields" type="input" name="perday" id="perday" value="'.$perday.'" /></td></tr>
                                 <tr><td><label for="fulltime">Full Week Price</label></td><td>$<input style="width:125px;" class="fields" type="input" name="fulltime" id="fulltime" value="'.$fulltime.'" /></td></tr>
                                 <tr><td><label for="minimumactive">Minimum (Active)</label></td><td>$<input style="width:125px;" class="fields" type="input" name="minimumactive" id="minimumactive" value="'.$minimumactive.'" /></td></tr>

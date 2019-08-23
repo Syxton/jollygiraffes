@@ -25,26 +25,30 @@ function account_balance($pid,$aid,$running_balance = false){
     return number_format($total_owed - $total_paid,2);
 }
 
+function apply_overrides($program, $pid, $aid) {
+    if($override = get_db_row("SELECT * FROM billing_override WHERE pid='$pid' AND aid='$aid'")) { // account override is present
+        foreach($program as $key => $value) {
+            if (isset($override[$key])) {
+                $program[$key] = $override[$key];
+            }
+        }
+        return $program;
+    }
+
+    return false;
+}
+
 function current_week_balance($pid,$aid,$enrollment = true){
 global $CFG;
     $invoiceweek = date("N") == 7 ? strtotime("Sunday") : strtotime("previous Sunday");
     $program = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
-    $SQL = "SELECT * FROM accounts WHERE aid='$aid'";
-
-    if($override = get_db_row("SELECT * FROM billing_override WHERE pid='$pid' AND aid='$aid'")){ //account override is present
-        $program["bill_by"] = $override["bill_by"]; //override program settings
-        $program["perday"] = $override["perday"]; //override program settings
-        $program["fulltime"] = $override["fulltime"]; //override program settings
-        $program["minimumactive"] = $override["minimumactive"]; //override program settings
-        $program["minimuminactive"] = $override["minimuminactive"]; //override program settings
-        $program["vacation"] = $override["vacation"]; //override program settings
-        $program["multiple_discount"] = $override["multiple_discount"]; //override program settings
-        $program["consider_full"] = $override["consider_full"]; //override program settings
-        $program["discount_rule"] = $override["discount_rule"]; //override program settings
+    if ($overrides = apply_overrides($program, $pid, $aid)) {
+        $program = $overrides;
     }
 
     $totalbill = $perchildbill = $childcount = 0;
     $lastid = '0';
+    $SQL = "SELECT * FROM accounts WHERE aid='$aid'";
     if($accounts = get_db_result($SQL)){
         while($account = fetch_row($accounts)){
             $SQL = "SELECT * FROM children WHERE aid='".$account["aid"]."' AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid' AND exempt=0) AND chid IN (SELECT chid FROM activity WHERE pid='$pid' AND tag='in') ORDER BY last,first";
@@ -236,6 +240,7 @@ function make_child_invoice($pid,$chid,$invoiceweek,$refresh=false,$lastid='0',$
 global $CFG;
     $discount = ""; $override = false;
     $program = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
+    $aid = get_db_field("aid", "children", "chid='$chid'");
     $perchild = get_db_row("SELECT * FROM billing_perchild WHERE pid='$pid' AND chid='$chid' AND fromdate = '$invoiceweek'");
     $endofweek = strtotime("+1 week -1 second",$invoiceweek);
 
@@ -245,17 +250,9 @@ global $CFG;
     //you want to remember past settings and there is a history recorded
     if(!empty($honor_past_enrollment) && !empty($perchild)){
         $bill_by = $perchild["days_attending"];  //bill according to the days attended
-    }elseif($override = get_db_row("SELECT * FROM billing_override WHERE pid='$pid' AND aid IN (SELECT aid FROM children WHERE chid='$chid')")){ //account override is present
-        $bill_by = $override["bill_by"];
-        $program["bill_by"] = $override["bill_by"]; //override program settings
-        $program["perday"] = $override["perday"]; //override program settings
-        $program["fulltime"] = $override["fulltime"]; //override program settings
-        $program["minimumactive"] = $override["minimumactive"]; //override program settings
-        $program["minimuminactive"] = $override["minimuminactive"]; //override program settings
-        $program["vacation"] = $override["vacation"]; //override program settings
-        $program["multiple_discount"] = $override["multiple_discount"]; //override program settings
-        $program["consider_full"] = $override["consider_full"]; //override program settings
-        $program["discount_rule"] = $override["discount_rule"]; //override program settings
+    }elseif($overrides = apply_overrides($program, $pid, $aid)){ //account override is present
+        $program = $overrides;
+        $bill_by = $program["bill_by"];
     }elseif($program["bill_by"] == "enrollment"){ //there is no history or you don't want to remember the past and the program is now set to enrollment billing
         $bill_by = get_db_field("days_attending","enrollments","chid='$chid' AND pid='$pid'"); //Get the days attending.
     }else{ //only other choice is that there is no history and the program is set to attendance billing.  This will be built next.

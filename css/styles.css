@@ -97,6 +97,7 @@ h3 {
 
 .scroll-pane .list_buttons {
 	zoom: 90%;
+    margin-left: 4px;
 }
 
 .main_level {
@@ -218,6 +219,13 @@ h3 {
 .infobox {
 	border-top: 2px solid black;
 	height: 46.5%;
+}
+
+.info_tabbar {
+    text-align:center;
+    white-space: nowrap;
+    position: relative;
+    top: 70px;
 }
 
 .attending {
@@ -739,6 +747,21 @@ div.day-number {
 	text-align: center;
 }
 
+div.day-add {
+    background: green;
+    padding: 2px;
+    float: right;
+    margin: -5px -5px 0 5px;
+    width: 15px;
+    text-align: center;
+}
+
+div.day-add a {
+    font-size: 14px;
+    font-weight: bold;
+    text-decoration: none;
+    color: white;
+}
 
 /* shared */
 td.calendar-day,
@@ -793,4 +816,12 @@ td.calendar-day-np {
 #clock .digits div.zero .d6,
 #clock .digits div.zero .d7{
     opacity:1;
+}
+
+.container_list.expanded {
+    width: 0px;
+}
+
+.container_info.expanded, .container_actions.expanded {
+    width: 99%;
 }

@@ -182,13 +182,13 @@ function draw_calendar($month,$year,$vars=false){
   /* keep going with days.... */
   for($list_day = 1; $list_day <= $days_in_month; $list_day++):
       /** QUERY THE DATABASE FOR AN ENTRY FOR THIS DAY !!  IF MATCHES FOUND, PRINT THEM !! **/
-      $content = $attending = "";
-    if(!empty($vars["type"])){
+      $content = $attending = $dayadd = "";
+    if (!empty($vars["type"])) {
         $pid = get_pid();
         $activeprogramsql = " n.pid='$pid' AND ";
         $fromtime = strtotime("$month/$list_day/$year") - get_offset();
         $totime = $fromtime + 86400;
-        switch($vars["type"]){
+        switch ($vars["type"]) {
             case "activity":
                 $id = "nid";
                 if(!empty($vars["aid"])){
@@ -207,6 +207,7 @@ function draw_calendar($month,$year,$vars=false){
                     $type = "employeeid";
                     $SQL = "SELECT * FROM notes n JOIN employee_activity a ON a.actid=n.actid JOIN events_tags t ON a.tag = t.tag WHERE n.tag NOT IN (SELECT tag FROM notes_required) AND n.employeeid='".$vars["employeeid"]."' AND n.timelog >= $fromtime AND n.timelog <= $totime ORDER BY n.timelog";
                 }
+
                 //echo "$list_day " . $SQL . "<br />";
             break;
             case "notes":
@@ -226,7 +227,7 @@ function draw_calendar($month,$year,$vars=false){
             break;
         }
 
-        if(!empty($vars["chid"]) ){
+        if (!empty($vars["chid"]) ) {
             if($child = get_db_row("SELECT * FROM enrollments WHERE pid='$pid' AND chid='".$vars["chid"]."'")){
                 $days_attending = explode(",",$child["days_attending"]);
                 $days_array = array("1" => "M", "2" => "T", "3" => "W", "4" => "Th", "5" => "F", "6" => "S", "7" => "Su");
@@ -234,9 +235,9 @@ function draw_calendar($month,$year,$vars=false){
             }
         }
 
-        if($result = get_db_result($SQL)){
+        if ($result = get_db_result($SQL)) {
             $content .= '<div style="height:20px;"></div>';
-            while($row = fetch_row($result)){
+            while ($row = fetch_row($result)) {
                 $aid = !empty($row["aid"]) ? $row["aid"] : "";
                 $chid = !empty($row["chid"]) ? $row["chid"] : "";
                 $actid = !empty($row["actid"]) ? $row["actid"] : "";
@@ -251,7 +252,7 @@ function draw_calendar($month,$year,$vars=false){
                             '.get_icon('magnifier').'
                         </a>';
 
-                if($type == "chid"){
+                if ($type == "chid") {
                     $identifier = $vars["type"]."_".$row[$id];
                     $content .= get_form($vars["form"],array("month" => $month, "year" => $year, "aid" => $row["aid"],"chid" => $chid,"actid" => $actid,"cid" => $cid,"nid" => $nid,"callback" => "children"),$identifier);
 
@@ -284,7 +285,7 @@ function draw_calendar($month,$year,$vars=false){
                         <a style="padding:2px;" class="inline-button ui-corner-all" id="a-'.$actid.'" data="'.$row["title"].'" href="javascript: '.$delete_action.'">
                             '.get_icon('bin_closed').'
                         </a>';
-                }elseif($type == "employeeid"){
+                } else if ($type == "employeeid") {
                     $identifier = $vars["type"]."_".$row[$id];
                     $content .= get_form("update_employee_activity",array("month" => $month, "year" => $year, "employeeid" => $row["employeeid"],"actid" => $actid,"nid" => $nid,"callback" => "employee"),$identifier);
 
@@ -326,13 +327,32 @@ function draw_calendar($month,$year,$vars=false){
         }
     }
     $calendar.= '<td class="calendar-day '.$attending.'">';
+
+    if ($type == "chid" && !empty($vars["chid"]) && $days_in_this_week > 1 && $days_in_this_week < 7) {
+        $identifier = $list_day."_".$month."_".$year;
+        if (empty($aid)) {
+            $aid = get_db_field("aid", "children", "chid='" . $vars["chid"] . "'");
+        }
+
+        $content .= get_form("add_activity",array("day" => $list_day, "month" => $month, "year" => $year, "aid" => $aid,"chid" => $vars["chid"],"callback" => "children"),$identifier);
+
+        $dayadd = '<div class="day-add">
+                        <a style="" href="javascript: CreateDialog(\'add_activity_'.$identifier.'\',300,400)">
+                            +
+                        </a>
+                   </div>';
+    } else {
+        $dayadd = "";
+    }
+
+    $calendar .= $dayadd;
     /* add in the day number */
-    $calendar.= '<div class="day-number">'.$list_day.'</div>';
-    $calendar.= $content;
-    $calendar.= '</td>';
-    if($running_day == 6):
+    $calendar .= '<div class="day-number">'.$list_day.'</div>';
+    $calendar .= $content;
+    $calendar .= '</td>';
+    if ($running_day == 6):
       $calendar.= '</tr>';
-      if(($day_counter+1) != $days_in_month):
+      if (($day_counter+1) != $days_in_month):
         $calendar.= '<tr class="calendar-row">';
       endif;
       $running_day = -1;
@@ -342,7 +362,7 @@ function draw_calendar($month,$year,$vars=false){
   endfor;
 
   /* finish the rest of the days in the week */
-  if($days_in_this_week > 1 && $days_in_this_week < 8):
+  if ($days_in_this_week > 1 && $days_in_this_week < 8):
     for($x = 1; $x <= (8 - $days_in_this_week); $x++):
       $calendar.= '<td class="calendar-day-np">&nbsp;</td>';
     endfor;

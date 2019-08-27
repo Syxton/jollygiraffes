@@ -233,7 +233,7 @@ function check_in_out_form() {
     echo $returnme;
 }
 
-function check_in_out($chids, $cid, $type) {
+function check_in_out($chids, $cid, $type, $time = false) {
     global $CFG, $MYVARS;
     $returnme = $notify = "";
     $rnids    = !empty($MYVARS->GET["rnid"]) ? $MYVARS->GET["rnid"] : false;
@@ -249,7 +249,7 @@ function check_in_out($chids, $cid, $type) {
     }
 
     $event        = get_db_row("SELECT * FROM events WHERE pid='$pid' OR pid='0' AND tag='$type'");
-    $time         = get_timestamp();
+    $time = empty($time) ? get_timestamp() : $time;
     $readabletime = get_date("l, F j, Y \a\\t g:i a", display_time($time));
     $contact      = get_contact_name($cid);
 
@@ -1254,7 +1254,54 @@ function add_edit_bulletin() {
     }
 }
 
-function add_edit_activity() {
+function add_activity() {
+    global $CFG, $MYVARS;
+    $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
+    $time   = get_timestamp();
+
+    foreach ($fields as $field) {
+        switch ($field["name"]) {
+            case "chid":
+            case "aid":
+            case "tag":
+            case "callback":
+                ${$field["name"]} = dbescape($field["value"]);
+                break;
+            case "timelog":
+                ${$field["name"]} = dbescape(strtotime($field["value"]) - get_offset());
+                break;
+        }
+    }
+
+    $chid     = empty($chid) ? false : $chid;
+    $aid      = empty($aid) ? false : $aid;
+    $callback = empty($callback) ? false : $callback;
+    $pid      = get_pid();
+    $evid     = get_db_field("evid", "events", "tag='$tag'");
+    if (!empty($evid) && !empty($chid)) {
+        $cid        = 0;
+        $chids      = array(array("value" => $chid));
+
+        check_in_out($chids, $cid, $tag, $timelog);
+
+        if (execute_db_sql($SQL)) { //Saved successfully
+            switch ($callback) {
+                case "children":
+                    get_admin_children_form(false, $chid);
+                    break;
+                default:
+                    get_admin_accounts_form(false, $aid);
+                    break;
+            }
+        } else {
+            echo "false";
+        }
+    } else {
+        echo "false";
+    }
+}
+
+function add_edit_notes() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
     $time   = get_timestamp();
@@ -1468,6 +1515,9 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
     $returnme      = "";
     $deleted       = $recover ? '1' : '0';
     $recover_param = $recover ? 'true' : '';
+
+    // Expand button.
+    $returnme .= '<button title="Expand View" class="image_button" type="button" onclick="$(\'.container_actions,.container_info,.container_list\').toggleClass(\'expanded\'); refresh_all();">' . get_icon('expand') . '</button>';
 
     if ($pid) { //Program actions
         $identifier = "pid_$pid";
@@ -1823,6 +1873,9 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
     $returnme   = "";
     $identifier = time() . "pid_$pid" . "_$aid";
 
+    // Expand button.
+    $returnme .= '<button title="Expand View" class="image_button" type="button" onclick="$(\'.container_actions,.container_info,.container_list\').toggleClass(\'expanded\'); refresh_all();">' . get_icon('expand') . '</button>';
+
     if (!empty($pid)) {
         //view invoices
         $returnme .= '<button title="Show Invoices" class="image_button" type="button" onclick="$.ajax({
@@ -2155,7 +2208,18 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = false
                 $balance       = $total_billed - $total_paid;
                 $returnme .= "<div style='text-align:right;color:darkred;'><strong>Owed:</strong> $" . number_format($total_billed, 2) . "</div><div style='text-align:right;color:blue;'><strong>Paid:</strong> $" . number_format($total_paid, 2) . "</div><hr align='right' style='width:100px;'/><div style='text-align:right'><strong>Balance:</strong> $" . number_format($balance, 2) . "</div>";
             } else {
-                $returnme .= "<div style='text-align:center'>No Invoices</div>";
+                // Add current week charges.
+                if ($current_week = current_week_balance($pid, $account["aid"], true)) {
+                    $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white;">
+                                    <div><a style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width:50%">Current Week</td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($current_week, 2) . '</td></tr></table></a></div>
+                                  </div>';
+                    $total_billed += (float) $current_week;
+
+                    $balance       = $total_billed - $total_paid;
+                    $returnme .= "<div style='text-align:right;color:darkred;'><strong>Owed:</strong> $" . number_format($total_billed, 2) . "</div><div style='text-align:right;color:blue;'><strong>Paid:</strong> $" . number_format($total_paid, 2) . "</div><hr align='right' style='width:100px;'/><div style='text-align:right'><strong>Balance:</strong> $" . number_format($balance, 2) . "</div>";
+                } else {
+                    $returnme .= "<div style='text-align:center'>No Invoices</div>";
+                }
             }
             $returnme .= "</div>";
         }
@@ -2403,7 +2467,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
         //later
 
     } elseif ($chid) { //Children
-        $returnme .= '<div style="text-align:center;">' . get_children_button($chid, "", "width:130px;height:130px;", "", true) . '</div>';
+        $returnme .= '<div style="text-align:center;">' . get_children_button($chid, "", "width:100px;height:100px;", "", true) . '</div>';
         $docs_selected = $notes_selected = $activity_selected = $reports_selected = "";
         $tabkey        = empty($MYVARS->GET["values"]) ? false : array_search('tab', $MYVARS->GET["values"]);
         $tab           = $tabkey === false && empty($MYVARS->GET["values"][$tabkey]["value"]) ? (empty($MYVARS->GET["tab"]) ? '' : $MYVARS->GET["tab"]) : $MYVARS->GET["values"][$tabkey]["value"];
@@ -2429,7 +2493,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
             $docs_selected = "selected_button";
         }
 
-        $returnme .= '<div style="text-align:center;white-space: nowrap;">
+        $returnme .= '<div class="info_tabbar">
                         <button class="subselect_buttons ' . $docs_selected . '" id="documents" onclick="$(\'.subselect_buttons\').toggleClass(\'selected_button\',true); $(\'.subselect_buttons\').not(this).toggleClass(\'selected_button\',false);
                           $.ajax({
                           type: \'POST\',
@@ -2460,7 +2524,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                           });">Reports</button>
                       </div>';
 
-        $returnme .= '<div id="subselect_div" style="" class="scroll-pane infobox fill_height">' . $info . '</div>';
+        $returnme .= '<div id="subselect_div" style="width: 100%;" class="scroll-pane infobox fill_height">' . $info . '</div>';
     } elseif ($cid) { //Contacts
         $docs_selected = $notes_selected = $activity_selected = $reports_selected = "";
         $tabkey        = empty($MYVARS->GET["values"]) ? false : array_search('tab', $MYVARS->GET["values"]);
@@ -3065,7 +3129,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
     //$selected_class = $pid && !$aid ? "selected_button" : "" ;
     $program  = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
     $returnme = '<div class="container_list scroll-pane ui-corner-all">';
-    $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_full"><button class="list_buttons" style="float:none;margin: 4px;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
+    $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_full"><button class="list_buttons" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
                         $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
@@ -3088,7 +3152,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
             $kid_count      = get_db_count("SELECT * FROM children WHERE aid='" . $account["aid"] . "' AND deleted='0'");
             $selected_class = $aid && $aid == $account["aid"] || ($pid && !$aid && $i == 0) ? "selected_button" : "";
             $aid            = $selected_class == "selected_button" ? $account["aid"] : $aid;
-            $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_left"><button class="list_buttons ' . $selected_class . '" style="float:none;margin: 4px;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
+            $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_left"><button class="list_buttons ' . $selected_class . '" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
                         $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
@@ -3202,7 +3266,7 @@ function get_admin_employees_form($return = false, $employeeid = false, $recover
             $selected_class = $employeeid && $employeeid == $employee["employeeid"] ? "selected_button" : "";
             $deleted_param  = $recover ? ',recover: \'true\'' : '';
 
-            $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_left"><button class="list_buttons ' . $selected_class . '" style="float:none;margin: 4px;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
+            $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_left"><button class="list_buttons ' . $selected_class . '" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
                         $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
@@ -3456,7 +3520,7 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
             $deleted_param = $recover ? ',recover: \'true\'' : '';
             $notifications = get_notifications($pid, false, $account["aid"], true) ? 'background: darkred;' : '';
             $override      = $recover ? "display:block;" : "";
-            $returnme .= '<div class="ui-corner-all list_box ' . $active . '" style="' . $notifications . $override . '"><div class="list_box_item_left"><button class="list_buttons ' . $selected_class . '" style="float:none;margin: 4px;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
+            $returnme .= '<div class="ui-corner-all list_box ' . $active . '" style="' . $notifications . $override . '"><div class="list_box_item_left"><button class="list_buttons ' . $selected_class . '" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
                         $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',

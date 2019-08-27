@@ -32,7 +32,7 @@ global $CFG;
             $discount_rule = empty($vars["program"]["discount_rule"]) ? "0" : $vars["program"]["discount_rule"];
 
             $title = empty($vars["pid"]) ? "Add Program" : "Edit Program";
-            $days[0] = new stdClass(); $days[1] = new stdClass(); $days[2] = new stdClass(); $days[3] = new stdClass(); $days[4] = new stdClass();
+            $days[0] = new stdClass(); $days[1] = new stdClass(); $days[2] = new stdClass(); $days[3] = new stdClass(); $days[4] = new stdClass(); $days[5] = new stdClass();
             $days[0]->value = "1"; $days[0]->display = "1 day attending";
             $days[1]->value = "2"; $days[2]->display = "2 days attending";
             $days[2]->value = "3"; $days[3]->display = "3 days attending";
@@ -769,7 +769,7 @@ global $CFG;
                                   error: function(x, t, m) {
                                     $(button).button(\'option\', \'disabled\', false);
                                   },
-                                  data: { action: \'add_edit_activity\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
+                                  data: { action: \'add_edit_notes\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
                                   success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#update_activity'.$identifier.'\').dialog(\'close\');
                                                $.ajax({
                                                 type: \'POST\',
@@ -784,6 +784,68 @@ global $CFG;
                                             });
                                         }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
                                   });">Save</button>
+                            </form>
+                        </div>';
+            break;
+        case "add_activity":
+            $fields = '<input type="hidden" name="tab" class="fields tab" value="activity" />';
+            $fields .= empty($vars["aid"]) ? "" : '<input type="hidden" name="aid" class="fields aid" value="'.$vars["aid"].'" />';
+            $fields .= empty($vars["chid"]) ? "" : '<input type="hidden" name="chid" class="fields chid" value="'.$vars["chid"].'" />';
+            $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="children" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
+            $fields .= '<input type="hidden" name="tag" class="fields tag" value="" />';
+
+            $datetime = new DateTime($vars["year"] . "-" . $vars["month"] . "-" . $vars["day"]);
+            $form = '<div id="add_activity'.$identifier.'" title="Add Activity" style="display:none;">
+                    		<form name="add_activity_form'.$identifier.'">
+                                '.$fields.'
+                                <table style="width:100%">
+                                    <tr><td style="vertical-align: top;"><label for="note">Date/Time</label></td><td>
+                                    <input type="datetime-local" class="fields" id="timelog" name="timelog" value="'.$datetime->format('Y-m-d\T08:00:00').'" /></td></tr>
+                                </table>
+                                <button class="bottom-left" type="button" onclick="$(\'input[name=tag\').val(\'in\'); var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                                  type: \'POST\',
+                                  url: \'ajax/ajax.php\',
+                                  timeout: 10000,
+                                  error: function(x, t, m) {
+                                    $(button).button(\'option\', \'disabled\', false);
+                                  },
+                                  data: { action: \'add_activity\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
+                                  success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_activity'.$identifier.'\').dialog(\'close\');
+                                               $.ajax({
+                                                type: \'POST\',
+                                                url: \'ajax/ajax.php\',
+                                                data: { action: \'get_activity_list\',chid:\''.$vars["chid"].'\',month:\''.$vars["month"].'\',year:\''.$vars["year"].'\' },
+                                                success: function(data) {
+                                                        $(\'#subselect_div\').hide(\'fade\');
+                                                        $(\'#subselect_div\').html(data);
+                                                        $(\'#subselect_div\').show(\'fade\');
+                                                        refresh_all();
+                                                    }
+                                            });
+                                        }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                                  });">Check In</button>
+                                  <button class="bottom-right" type="button" onclick="$(\'input[name=tag\').val(\'out\'); var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                                    type: \'POST\',
+                                    url: \'ajax/ajax.php\',
+                                    timeout: 10000,
+                                    error: function(x, t, m) {
+                                      $(button).button(\'option\', \'disabled\', false);
+                                    },
+                                    data: { action: \'add_activity\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
+                                    success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_activity'.$identifier.'\').dialog(\'close\');
+                                                 $.ajax({
+                                                  type: \'POST\',
+                                                  url: \'ajax/ajax.php\',
+                                                  data: { action: \'get_activity_list\',chid:\''.$vars["chid"].'\',month:\''.$vars["month"].'\',year:\''.$vars["year"].'\' },
+                                                  success: function(data) {
+                                                          $(\'#subselect_div\').hide(\'fade\');
+                                                          $(\'#subselect_div\').html(data);
+                                                          $(\'#subselect_div\').show(\'fade\');
+                                                          refresh_all();
+                                                      }
+                                              });
+                                          }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                                    });">Check Out</button>
                             </form>
                         </div>';
             break;

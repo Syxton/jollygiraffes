@@ -17,7 +17,7 @@ function account_balance($pid,$aid,$running_balance = false){
     $total_owed = empty($total_owed) ? "0.00" : $total_owed;
 
     if ($running_balance) {
-        $running_balance = current_week_balance($pid, $aid);
+        $running_balance = week_balance($pid, $aid);
         $running_balance = empty($running_balance) ? "0.00" : $running_balance;
 
         $total_owed += $running_balance;
@@ -38,7 +38,7 @@ function apply_overrides($program, $pid, $aid) {
     return false;
 }
 
-function current_week_balance($pid,$aid,$enrollment = true){
+function week_balance($pid,$aid,$enrollment = true,$nextweek = false){
 global $CFG;
     $invoiceweek = date("N") == 7 ? strtotime("Sunday") : strtotime("previous Sunday");
     $program = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
@@ -46,59 +46,75 @@ global $CFG;
         $program = $overrides;
     }
 
-    $totalbill = $perchildbill = $childcount = 0;
+    $totalbill = $childcount = 0;
     $lastid = '0';
     $SQL = "SELECT * FROM accounts WHERE aid='$aid'";
-    if($accounts = get_db_result($SQL)){
-        while($account = fetch_row($accounts)){
+    if ($accounts = get_db_result($SQL)) {
+        while ($account = fetch_row($accounts)) {
             $SQL = "SELECT * FROM children WHERE aid='".$account["aid"]."' AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid' AND exempt=0) AND chid IN (SELECT chid FROM activity WHERE pid='$pid' AND tag='in') ORDER BY last,first";
-            if($children = get_db_result($SQL)){
-                while($child = fetch_row($children)){
-                    //Child has signed in so he may be billed
-                    if($firstin = get_db_field("MIN(timelog)","activity","pid='$pid' AND chid='".$child["chid"]."' AND tag='in'")){
-                        //Get nearest Saturday, counting today if Saturday
-                        $chid = $child["chid"];
-                        $discount = "";
-                        $perchild = get_db_row("SELECT * FROM billing_perchild WHERE pid='$pid' AND chid='$chid' AND fromdate = '$invoiceweek'");
-                        $enrollment = $enrollment && $perchild ? $perchild["days_attending"] : ($program["bill_by"] == "enrollment" ? get_db_field("days_attending","enrollments","chid='$chid' AND pid='$pid'") : "attendance");
-                        $endofweek = strtotime("next Saturday",$invoiceweek);
+            if ($children = get_db_result($SQL)) {
+                while ($child = fetch_row($children)) {
+                    $perchildbill = 0;
+                    $chid = $child["chid"];
+                    $days_attending = get_db_field("days_attending","enrollments","chid='$chid' AND pid='$pid'");
+                    $discount = "";
+                    if ($nextweek) { // Base off of assumptions.
+                        if ($program["bill_by"] == "enrollment") {
+                            if ($program["consider_full"] <= count(explode(',', $days_attending))) {
+                                $perchildbill = $program["fulltime"];
+                            } else {
+                                $perchildbill = count(explode(',', $days_attending)) * $program["perday"];
+                                $perchildbill = $program["minimumactive"] > "0" && ($perchildbill < $program["minimumactive"]) ? $program["minimumactive"] : $perchildbill;
+                            }
+                        } else { // Assumed attendance based.
+                            $perchildbill = count(explode(',', $days_attending)) * $program["perday"];
+                            $perchildbill = $program["minimumactive"] > "0" && ($perchildbill < $program["minimumactive"]) ? $program["minimumactive"] : $perchildbill;
+                        }
+                    } else { // Base off of activity
+                        //Child has signed in so he may be billed
+                        if ($firstin = get_db_field("MIN(timelog)","activity","pid='$pid' AND chid='".$child["chid"]."' AND tag='in'")) {
+                            //Get nearest Saturday, counting today if Saturday
+                            $perchild = get_db_row("SELECT * FROM billing_perchild WHERE pid='$pid' AND chid='$chid' AND fromdate = '$invoiceweek'");
+                            $enrollment = $enrollment && $perchild ? $perchild["days_attending"] : ($program["bill_by"] == "enrollment" ? get_db_field("days_attending","enrollments","chid='$chid' AND pid='$pid'") : "attendance");
+                            $endofweek = strtotime("next Saturday",$invoiceweek);
 
-                        //Create a week's enrollment based on attendance instead of the program enrollment settings
-                        if($enrollment == "attendance"){
-                            $enrollment = "";
-                            if($days_attending = get_db_result("SELECT DAYOFWEEK(CONVERT_TZ(FROM_UNIXTIME(timelog),'".get_date('P',time(),$CFG->servertz)."','".get_date('P',time(),$CFG->timezone)."')) as daynum, CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'".get_date('P',time(),$CFG->servertz)."','".get_date('P',time(),$CFG->timezone)."'))) as order_day FROM activity WHERE tag='in' AND pid='$pid' AND chid='$chid' AND timelog >= $invoiceweek AND timelog < $endofweek GROUP BY order_day ORDER BY order_day")){
-                                $days = array("","S","M","T","W","Th","F","Sa");
-                                while($attend = fetch_row($days_attending)){
-                                    $enrollment .= empty($enrollment) ? $days[$attend["daynum"]] : ','.$days[$attend["daynum"]];
+                            //Create a week's enrollment based on attendance instead of the program enrollment settings
+                            if ($enrollment == "attendance") {
+                                $enrollment = "";
+                                if ($days_attending = get_db_result("SELECT DAYOFWEEK(CONVERT_TZ(FROM_UNIXTIME(timelog),'".get_date('P',time(),$CFG->servertz)."','".get_date('P',time(),$CFG->timezone)."')) as daynum, CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'".get_date('P',time(),$CFG->servertz)."','".get_date('P',time(),$CFG->timezone)."'))) as order_day FROM activity WHERE tag='in' AND pid='$pid' AND chid='$chid' AND timelog >= $invoiceweek AND timelog < $endofweek GROUP BY order_day ORDER BY order_day")) {
+                                    $days = array("","S","M","T","W","Th","F","Sa");
+                                    while ($attend = fetch_row($days_attending)) {
+                                        $enrollment .= empty($enrollment) ? $days[$attend["daynum"]] : ','.$days[$attend["daynum"]];
+                                    }
                                 }
                             }
-                        }
 
-                        if($activities = get_db_result("SELECT * FROM activity WHERE tag='in' AND pid='$pid' AND chid='$chid' AND timelog >= $invoiceweek AND timelog < $endofweek ORDER BY timelog")){
-                            $sameday = $bill = $attendance = 0;
-                            $days = "";
-                            while($activity = fetch_row($activities)){
-                                $bill += date("m/d/Y",display_time($activity["timelog"])) == $sameday ? 0 : $program["perday"];
-                                $attendance += date("m/d/Y",display_time($activity["timelog"])) == $sameday ? "0" : "1";
-                                $days .= date("m/d/Y",display_time($activity["timelog"])) == $sameday ? "" : ($days == "" ? date("D",display_time($activity["timelog"])) : " ".date("D",display_time($activity["timelog"])));
-                                $sameday = date("m/d/Y",display_time($activity["timelog"]));
-                            }
-                            $bill = $program["minimumactive"] > "0" && ($bill < $program["minimumactive"]) ? $program["minimumactive"] : $bill;
-                            $attendance .= $attendance > 0 ? ($attendance == 1 ? " day ($days)" : " days ($days)") : " days";
+                            if ($activities = get_db_result("SELECT * FROM activity WHERE tag='in' AND pid='$pid' AND chid='$chid' AND timelog >= $invoiceweek AND timelog < $endofweek ORDER BY timelog")) {
+                                $sameday = $bill = $attendance = 0;
+                                $days = "";
+                                while ($activity = fetch_row($activities)) {
+                                    $bill += date("m/d/Y",display_time($activity["timelog"])) == $sameday ? 0 : $program["perday"];
+                                    $attendance += date("m/d/Y",display_time($activity["timelog"])) == $sameday ? "0" : "1";
+                                    $days .= date("m/d/Y",display_time($activity["timelog"])) == $sameday ? "" : ($days == "" ? date("D",display_time($activity["timelog"])) : " ".date("D",display_time($activity["timelog"])));
+                                    $sameday = date("m/d/Y",display_time($activity["timelog"]));
+                                }
+                                $bill = $program["minimumactive"] > "0" && ($bill < $program["minimumactive"]) ? $program["minimumactive"] : $bill;
+                                $attendance .= $attendance > 0 ? ($attendance == 1 ? " day ($days)" : " days ($days)") : " days";
 
-                            if(!$perchild){
-                                $perchildbill = save_child_invoice($program,$chid,$invoiceweek,$endofweek,$enrollment,$lastid,$bill,$attendance,"unknown",true);
-                            }
-                        }else{ //Did not attend, see if there is a minimum.
-                            $bill = $program["minimuminactive"] > "0" ? $program["minimuminactive"] : "0";
+                                if(!$perchild){
+                                    $perchildbill = save_child_invoice($program,$chid,$invoiceweek,$endofweek,$enrollment,$lastid,$bill,$attendance,"unknown",true);
+                                }
+                            } else { //Did not attend, see if there is a minimum.
+                                $bill = $program["minimuminactive"] > "0" ? $program["minimuminactive"] : "0";
 
-                            if(!$perchild){
-                                $perchildbill = save_child_invoice($program,$chid,$invoiceweek,$endofweek,$enrollment,$lastid,$bill,"","unknown",true);
+                                if (!$perchild) {
+                                    $perchildbill = save_child_invoice($program,$chid,$invoiceweek,$endofweek,$enrollment,$lastid,$bill,"","unknown",true);
+                                }
                             }
                         }
                     }
 
-                    if($perchildbill >= $program["discount_rule"]){
+                    if ($perchildbill >= $program["discount_rule"]) {
                         $childcount++;
                     }
                     $totalbill += $perchildbill;

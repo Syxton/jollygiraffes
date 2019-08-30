@@ -686,7 +686,7 @@ switch($report){
             $returnme .= '<div style="font-size:150%;text-align:center;"><strong>'.$name.'</strong></div>';
             $balance = array();
             while($account = fetch_row($accounts)){
-                $balance[] = array("field1name" => "Name", "field1value" => get_name(array("type"=> "aid","id" => $account["aid"])), "field2name" => "Balance as of ".date('m/d/Y'), "field2value" => "$".account_balance($id,$account["aid"]), "field3name" => "Current Week", "field3value" => current_week_balance($id,$account["aid"]));
+                $balance[] = array("field1name" => "Name", "field1value" => get_name(array("type"=> "aid","id" => $account["aid"])), "field2name" => "Balance as of ".date('m/d/Y'), "field2value" => "$".account_balance($id,$account["aid"]), "field3name" => "Current Week", "field3value" => week_balance($id,$account["aid"]));
             }
 
             $returnme .= format_report_data($balance);

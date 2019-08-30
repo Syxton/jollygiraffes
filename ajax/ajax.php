@@ -258,7 +258,7 @@ function check_in_out($chids, $cid, $type, $time = false) {
     if ($type == "out" && $cid != "admin") {
         $aid           = get_db_field("aid", "children", "chid='" . $chids[0]["value"] . "'");
         $balance       = account_balance($pid, $aid); //Previous weeks combined total - paid
-        $current_week  = current_week_balance($pid, $aid); //Current weeks total
+        $current_week  = week_balance($pid, $aid); //Current weeks total
         $method        = get_enrollment_method($pid, $aid);
         $exempt        = get_db_field("exempt", "enrollments", "chid='" . $chids[0]["value"] . "' AND pid='$pid'");
         $payahead      = get_db_field("payahead", "programs", "pid='$pid'");
@@ -270,9 +270,10 @@ function check_in_out($chids, $cid, $type, $time = false) {
             if ($method == "enrollment") { // Flat rate based on days they are expected to attend
                 if ($combined_balance <= 0) { // They have paid more than they previously owed
                     if ($payahead) {
+                        $next_week          = week_balance($pid, $aid, true, true); // Next weeks total
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
                                               "You are currently paid up. Thanks!" .
-                                              "<br />Payment of $" . number_format($float_current, 2) . " is due ahead of next weeks services." .
+                                              "<br />Payment of $" . $next_week . " is due ahead of next weeks services." .
                                               "</span>";
                     } else {
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
@@ -281,9 +282,10 @@ function check_in_out($chids, $cid, $type, $time = false) {
                     }
                 } else {
                     if ($payahead) {
+                        $next_week          = week_balance($pid, $aid, true, true); // Next weeks total
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
                                               "Your account is overdue $" . number_format($combined_balance, 2) . "." .
-                                              "<br />An additional payment of $" . number_format($float_current, 2) . " is due ahead of next weeks services." .
+                                              "<br />An additional payment of $" . $next_week . " is due ahead of next weeks services." .
                                               "</span>";
                     } else {
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
@@ -294,9 +296,10 @@ function check_in_out($chids, $cid, $type, $time = false) {
             } else { // Rate based on actual attendance
                 if ($combined_balance <= 0) {
                     if ($payahead) {
+                        $next_week          = week_balance($pid, $aid, true, true); // Next weeks total
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
                                               "You are currently paid up. Thanks!" .
-                                              "<br />An estimated $" . number_format($float_current, 2) . " is expected for next week." .
+                                              "<br />An estimated $" . $next_week . " is expected for next week." .
                                               "</span>";
                     } else {
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
@@ -305,9 +308,10 @@ function check_in_out($chids, $cid, $type, $time = false) {
                     }
                 } else {
                     if ($payahead) {
+                        $next_week          = week_balance($pid, $aid, true, true); // Next weeks total
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
                                               "Your account is overdue $" . number_format($combined_balance, 2) . "." .
-                                              "<br />An estimated $" . number_format($float_current, 2) . " is expected for next week." .
+                                              "<br />An estimated $" . $next_week . " is expected for next week." .
                                               "</span>";
                     } else {
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
@@ -2198,7 +2202,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = false
                 $total_billed = empty($total_billed) ? "0.00" : $total_billed;
 
                 // Add current week charges.
-                if ($current_week = current_week_balance($pid, $account["aid"], true)) {
+                if ($current_week = week_balance($pid, $account["aid"], true)) {
                     $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white;">
                                     <div><a style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width:50%">Current Week</td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($current_week, 2) . '</td></tr></table></a></div>
                                   </div>';
@@ -2209,7 +2213,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = false
                 $returnme .= "<div style='text-align:right;color:darkred;'><strong>Owed:</strong> $" . number_format($total_billed, 2) . "</div><div style='text-align:right;color:blue;'><strong>Paid:</strong> $" . number_format($total_paid, 2) . "</div><hr align='right' style='width:100px;'/><div style='text-align:right'><strong>Balance:</strong> $" . number_format($balance, 2) . "</div>";
             } else {
                 // Add current week charges.
-                if ($current_week = current_week_balance($pid, $account["aid"], true)) {
+                if ($current_week = week_balance($pid, $account["aid"], true)) {
                     $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white;">
                                     <div><a style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width:50%">Current Week</td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($current_week, 2) . '</td></tr></table></a></div>
                                   </div>';

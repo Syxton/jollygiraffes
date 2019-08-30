@@ -271,9 +271,10 @@ function check_in_out($chids, $cid, $type, $time = false) {
                 if ($combined_balance <= 0) { // They have paid more than they previously owed
                     if ($payahead) {
                         $next_week          = week_balance($pid, $aid, true, true); // Next weeks total
+                        $combined_balance  += (float) $next_week;
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
                                               "You are currently paid up. Thanks!" .
-                                              "<br />Payment of $" . $next_week . " is due ahead of next weeks services." .
+                                              "<br />Payment of $" . number_format($combined_balance, 2) . " is due ahead of next weeks services." .
                                               "</span>";
                     } else {
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
@@ -283,9 +284,10 @@ function check_in_out($chids, $cid, $type, $time = false) {
                 } else {
                     if ($payahead) {
                         $next_week          = week_balance($pid, $aid, true, true); // Next weeks total
+                        $next_week          = (float) $next_week;
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
                                               "Your account is overdue $" . number_format($combined_balance, 2) . "." .
-                                              "<br />An additional payment of $" . $next_week . " is due ahead of next weeks services." .
+                                              "<br />An additional payment of $" . number_format($next_week, 2) . " is due ahead of next weeks services." .
                                               "</span>";
                     } else {
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
@@ -297,9 +299,10 @@ function check_in_out($chids, $cid, $type, $time = false) {
                 if ($combined_balance <= 0) {
                     if ($payahead) {
                         $next_week          = week_balance($pid, $aid, true, true); // Next weeks total
+                        $combined_balance  += (float) $next_week;
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
                                               "You are currently paid up. Thanks!" .
-                                              "<br />An estimated $" . $next_week . " is expected for next week." .
+                                              "<br />An estimated $" . number_format($combined_balance, 2) . " is expected for next week." .
                                               "</span>";
                     } else {
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
@@ -309,9 +312,10 @@ function check_in_out($chids, $cid, $type, $time = false) {
                 } else {
                     if ($payahead) {
                         $next_week          = week_balance($pid, $aid, true, true); // Next weeks total
+                        $next_week          = (float) $next_week;
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
                                               "Your account is overdue $" . number_format($combined_balance, 2) . "." .
-                                              "<br />An estimated $" . $next_week . " is expected for next week." .
+                                              "<br />An estimated $" . number_format($next_week, 2) . " is expected for next week." .
                                               "</span>";
                     } else {
                         $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .

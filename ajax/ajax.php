@@ -3157,9 +3157,11 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
     if ($accounts = get_db_result("SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid')) ORDER BY name")) {
         $i = 0;
         while ($account = fetch_row($accounts)) {
-            $kid_count      = get_db_count("SELECT * FROM children WHERE aid='" . $account["aid"] . "' AND deleted='0'");
-            $selected_class = $aid && $aid == $account["aid"] || ($pid && !$aid && $i == 0) ? "selected_button" : "";
-            $aid            = $selected_class == "selected_button" ? $account["aid"] : $aid;
+            $kid_count       = get_db_count("SELECT * FROM children WHERE aid='" . $account["aid"] . "' AND deleted='0'");
+            $selected_class  = $aid && $aid == $account["aid"] || ($pid && !$aid && $i == 0) ? "selected_button" : "";
+            $aid             = $selected_class == "selected_button" ? $account["aid"] : $aid;
+            $account_balance = account_balance($pid, $account["aid"], true);
+            $balanceclass    = $account_balance <= 0 ? "balance_good" : "balance_bad";
             $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_left"><button class="list_buttons ' . $selected_class . '" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
                         $.ajax({
                             type: \'POST\',
@@ -3176,7 +3178,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
                             }
                         });
 
-                      ">Select</button><span class="list_title">' . $account["name"] . '</span></div><div class="list_box_item_right"><div style="width:100px;text-align:center;background:none;display:inline-block;color:lightGrey;text-shadow: black 1px 1px 3px;">Children: ' . $kid_count . '<br /><span style="color:white;text-decoration:none;">Balance: $' . account_balance($pid, $account["aid"], true) . '</span></div></div></div>';
+                      ">Select</button><span class="list_title">' . $account["name"] . '</span></div><div class="list_box_item_right"><div style="width:100px;text-align:center;background:none;display:inline-block;color:lightGrey;text-shadow: black 1px 1px 3px;">Children: ' . $kid_count . '<br /><span class="' . $balanceclass . '">Balance: $' . $account_balance . '</span></div></div></div>';
             $i++;
         }
     }
@@ -3525,9 +3527,11 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
                 $selected_class = $active == 'activeaccount' && !empty($aid) && $aid == $account["aid"] ? "selected_button" : "";
             }
 
-            $deleted_param = $recover ? ',recover: \'true\'' : '';
-            $notifications = get_notifications($pid, false, $account["aid"], true) ? 'background: darkred;' : '';
-            $override      = $recover ? "display:block;" : "";
+            $deleted_param   = $recover ? ',recover: \'true\'' : '';
+            $notifications   = get_notifications($pid, false, $account["aid"], true) ? 'background: darkred;' : '';
+            $override        = $recover ? "display:block;" : "";
+            $account_balance = account_balance($pid, $account["aid"], true);
+            $balanceclass    = $account_balance <= 0 ? "balance_good" : "balance_bad";
             $returnme .= '<div class="ui-corner-all list_box ' . $active . '" style="' . $notifications . $override . '"><div class="list_box_item_left"><button class="list_buttons ' . $selected_class . '" style="float:none;" onclick="$(\'.list_buttons\').toggleClass(\'selected_button\',true); $(\'.list_buttons\').not(this).toggleClass(\'selected_button\',false);
                         $.ajax({
                             type: \'POST\',
@@ -3544,12 +3548,12 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
                             }
                         });
 
-                      ">Select</button><span class="list_title">' . $account["name"] . '</span></div><div class="list_box_item_right"><div style="width:100px;text-align:center;background:none;display:inline-block;color:lightGrey;text-shadow: black 1px 1px 3px;">Children: ' . $kid_count . '<br /><a style="color:white;text-decoration:none;" href="javascript: void(0);" onclick="$.ajax({
+                      ">Select</button><span class="list_title">' . $account["name"] . '</span></div><div class="list_box_item_right"><div style="width:100px;text-align:center;background:none;display:inline-block;color:lightGrey;text-shadow: black 1px 1px 3px;">Children: ' . $kid_count . '<br /><a class="'.$balanceclass.'" href="javascript: void(0);" onclick="$.ajax({
                                                                                               type: \'POST\',
                                                                                               url: \'ajax/ajax.php\',
                                                                                               data: { action: \'get_admin_billing_form\', aid:\'' . $account["aid"] . '\' ,pid: \'' . $pid . '\' },
                                                                                               success: function(data) { $(\'#admin_display\').hide(\'fade\',null,null,function(){ $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); });  }
-                                                                                          });$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not($(\'#admin_menu_billing\')).toggleClass(\'selected_button\',false);">Balance: $' . account_balance($pid, $account["aid"], true) . '</a></div></div></div>';
+                                                                                          });$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not($(\'#admin_menu_billing\')).toggleClass(\'selected_button\',false);">Balance: $' . $account_balance . '</a></div></div></div>';
         }
     }
     $returnme .= '</div>';

@@ -618,7 +618,7 @@ h3 {
 	position: relative;
 	height: 100%;
 	background-color: lightgrey;
-	border: none;
+	border: none !important;
 	background: none;
 }
 
@@ -824,4 +824,14 @@ td.calendar-day-np {
 
 .container_info.expanded, .container_actions.expanded {
     width: 99%;
+}
+
+.balance_good {
+    color: lightblue;
+    text-decoration: none;
+}
+
+.balance_bad {
+    color: pink;
+    text-decoration: none;
 }

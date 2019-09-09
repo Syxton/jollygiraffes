@@ -328,18 +328,23 @@ function check_in_out($chids, $cid, $type, $time = false) {
         }
     }
 
-    $returnme .= '<div class="heading" style="margin:0px 10px;"><h1>Checked ' . ucwords($type) . ' on ' . $readabletime . ' by ' . $contact . '</h1>' . $remaining_balance . '</div>';
-    $returnme .= '<div class="container_main scroll-pane ui-corner-all fill_height_middle">';
-
     $childcount  = count($chids);
     $notes_count = !empty($rnids) && count($rnids) ? count($rnids) / $childcount : false;
     $notified    = array();
     $c           = 1; //Child counter
     $i           = 0; //Note counter
+    $content = "";
     foreach ($chids as $chid) {
         //Signed out
         $child = get_db_row("SELECT * FROM children WHERE chid='" . $chid["value"] . "' AND deleted=0");
         $note  = $child["first"] . " " . $child["last"] . ": Checked $type by $contact: $readabletime";
+
+        // birthday flag
+        $confetti_start = $$confetti_stop = $bday = "";
+        if (date("md",$child["birthdate"]) == date("md", get_timestamp())) {
+            $confetti_start = 'confetti.start();';
+            $bday = '<h1 class="heading" style="font-size:4em">Happy Birthday!</h1>';
+        }
 
         //prevents duplicate entries -- not sure why it is happening
         if (!get_db_row("SELECT timelog FROM activity WHERE timelog='$time' AND chid='" . $chid["value"] . "'") && $actid = execute_db_sql("INSERT INTO activity (pid,aid,chid,cid,evid,tag,timelog) VALUES('$pid','" . $child["aid"] . "','" . $chid["value"] . "','$cid','" . $event["evid"] . "','" . $event["tag"] . "',$time) ")) {
@@ -361,10 +366,10 @@ function check_in_out($chids, $cid, $type, $time = false) {
                 $req_notes_text .= "</span>";
             }
             $c++;
-            $returnme .= '<div class="child_wrapper ui-corner-all">';
-            $returnme .= get_children_button($chid["value"], "", "", "", true);
-            $returnme .= $req_notes_text;
-            $returnme .= '</div>';
+            $content .= '<div class="child_wrapper ui-corner-all">';
+            $content .= get_children_button($chid["value"], "", "", "", true);
+            $content .= $req_notes_text;
+            $content .= '</div>';
 
             if ($type == "out") {
                 if (array_search($child["aid"], $notified) === FALSE) {
@@ -382,10 +387,15 @@ function check_in_out($chids, $cid, $type, $time = false) {
 
     $wait = empty($notify) ? "6000" : "15000"; //if there are notifications, give them more time to read
 
-    $returnme .= '</div>';
+    $returnme .= $bday . '<div class="heading" style="margin:0px 10px;"><h1>Checked ' . ucwords($type) . ' on ' . $readabletime . ' by ' . $contact . '</h1>' . $remaining_balance . '</div>
+                 <div class="container_main scroll-pane ui-corner-all fill_height_middle">' . $content . '</div>';
+
     $returnme .= $type == "out" && !empty($notify) ? '<br /><div class="bottom center ui-corner-all" style="padding-bottom:10px;position:initial;max-height:initial;height:30%;">' . get_icon("alert") . ' <span style="position:relative;top:-8px;font-size:24px"><strong>Attention</strong></span><br />' . $notify . '</div>' : '';
+
     $returnme .= '<script type="text/javascript">
+        '.$confetti_start.'
         var autoback = setTimeout(function(){
+            '.$confetti_stop.'
             location.reload();
         },' . $wait . ');
     </script>';

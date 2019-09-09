@@ -32,12 +32,20 @@ global $CFG;
             $discount_rule = empty($vars["program"]["discount_rule"]) ? "0" : $vars["program"]["discount_rule"];
 
             $title = empty($vars["pid"]) ? "Add Program" : "Edit Program";
-            $days[0] = new stdClass(); $days[1] = new stdClass(); $days[2] = new stdClass(); $days[3] = new stdClass(); $days[4] = new stdClass(); $days[5] = new stdClass();
-            $days[0]->value = "1"; $days[0]->display = "1 day attending";
-            $days[1]->value = "2"; $days[2]->display = "2 days attending";
-            $days[2]->value = "3"; $days[3]->display = "3 days attending";
-            $days[3]->value = "4"; $days[4]->display = "4 days attending";
-            $days[4]->value = "5"; $days[5]->display = "5 days attending";
+
+            $days[1] = new stdClass(); $days[2] = new stdClass();
+            $days[3] = new stdClass(); $days[4] = new stdClass(); $days[5] = new stdClass();
+            $days[6] = new stdClass(); $days[7] = new stdClass(); $days[8] = new stdClass();
+
+            $days[1]->value = "1"; $days[1]->display = "1 day attending";
+            $days[2]->value = "2"; $days[2]->display = "2 days attending";
+            $days[3]->value = "3"; $days[3]->display = "3 days attending";
+            $days[4]->value = "4"; $days[4]->display = "4 days attending";
+            $days[5]->value = "5"; $days[5]->display = "5 days attending";
+            $days[6]->value = "6"; $days[6]->display = "6 days attending";
+            $days[7]->value = "7"; $days[7]->display = "7 days attending";
+            $days[8]->value = "8"; $days[8]->display = "Part-time Rate Only";
+
             $bill_by_array[0] = new stdClass(); $bill_by_array[1] = new stdClass();
             $bill_by_array[0]->value = "enrollment"; $bill_by_array[0]->display = "Enrollment";
             $bill_by_array[1]->value = "attendance"; $bill_by_array[1]->display = "Attendance";
@@ -86,25 +94,31 @@ global $CFG;
                     ';
             break;
         case "billing_overrides":
-            $perday = empty($vars["override"]["perday"]) ? "" : $vars["override"]["perday"];
-            $fulltime = empty($vars["override"]["fulltime"]) ? "" : $vars["override"]["fulltime"];
-            $minimumactive = empty($vars["override"]["minimumactive"]) ? "" : $vars["override"]["minimumactive"];
-            $minimuminactive = empty($vars["override"]["minimuminactive"]) ? "" : $vars["override"]["minimuminactive"];
-            $vacation = empty($vars["override"]["vacation"]) ? "" : $vars["override"]["vacation"];
-            $multiple_discount = empty($vars["override"]["multiple_discount"]) ? "" : $vars["override"]["multiple_discount"];
+            $perday = empty($vars["override"]["perday"]) && $vars["override"]["perday"] !== "0" ? "" : $vars["override"]["perday"];
+            $fulltime = empty($vars["override"]["fulltime"]) && $vars["override"]["fulltime"] !== "0" ? "" : $vars["override"]["fulltime"];
+            $minimumactive = empty($vars["override"]["minimumactive"]) && $vars["override"]["minimumactive"] !== "0" ? "" : $vars["override"]["minimumactive"];
+            $minimuminactive = empty($vars["override"]["minimuminactive"]) && $vars["override"]["minimuminactive"] !== "0" ? "" : $vars["override"]["minimuminactive"];
+            $vacation = empty($vars["override"]["vacation"]) && $vars["override"]["vacation"] !== "0" ? "" : $vars["override"]["vacation"];
+            $multiple_discount = empty($vars["override"]["multiple_discount"]) && $vars["override"]["multiple_discount"] !== "0" ? "" : $vars["override"]["multiple_discount"];
             $consider_full = empty($vars["override"]["consider_full"]) ? "" : $vars["override"]["consider_full"];
             $bill_by = empty($vars["override"]["bill_by"]) ? "none" : $vars["override"]["bill_by"];
             $payahead = empty($vars["override"]["payahead"]) ? "none" : $vars["override"]["payahead"];
             $discount_rule = empty($vars["override"]["discount_rule"]) ? "" : $vars["override"]["discount_rule"];
 
             $title = "Billing Override";
-            $days[0] = new stdClass(); $days[1] = new stdClass(); $days[2] = new stdClass(); $days[3] = new stdClass(); $days[4] = new stdClass(); $days[5] = new stdClass();
+            $days[0] = new stdClass(); $days[1] = new stdClass(); $days[2] = new stdClass();
+            $days[3] = new stdClass(); $days[4] = new stdClass(); $days[5] = new stdClass();
+            $days[6] = new stdClass(); $days[7] = new stdClass(); $days[8] = new stdClass();
             $days[0]->value = "none"; $days[0]->display = "None";
             $days[1]->value = "1"; $days[1]->display = "1 day attending";
             $days[2]->value = "2"; $days[2]->display = "2 days attending";
             $days[3]->value = "3"; $days[3]->display = "3 days attending";
             $days[4]->value = "4"; $days[4]->display = "4 days attending";
             $days[5]->value = "5"; $days[5]->display = "5 days attending";
+            $days[6]->value = "6"; $days[6]->display = "6 days attending";
+            $days[7]->value = "7"; $days[7]->display = "7 days attending";
+            $days[8]->value = "8"; $days[8]->display = "Part-time Rate Only";
+
 
             $bill_by_array[0] = new stdClass(); $bill_by_array[1] = new stdClass(); $bill_by_array[2] = new stdClass();
             $bill_by_array[0]->value = "none"; $bill_by_array[0]->display = "None";

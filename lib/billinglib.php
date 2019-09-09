@@ -64,11 +64,11 @@ global $CFG;
                                 $perchildbill = $program["fulltime"];
                             } else {
                                 $perchildbill = count(explode(',', $days_attending)) * $program["perday"];
-                                $perchildbill = $program["minimumactive"] > "0" && ($perchildbill < $program["minimumactive"]) ? $program["minimumactive"] : $perchildbill;
+                                $perchildbill = $program["minimumactive"] > 0 && ($perchildbill < $program["minimumactive"]) ? $program["minimumactive"] : $perchildbill;
                             }
                         } else { // Assumed attendance based.
                             $perchildbill = count(explode(',', $days_attending)) * $program["perday"];
-                            $perchildbill = $program["minimumactive"] > "0" && ($perchildbill < $program["minimumactive"]) ? $program["minimumactive"] : $perchildbill;
+                            $perchildbill = $program["minimumactive"] > 0 && ($perchildbill < $program["minimumactive"]) ? $program["minimumactive"] : $perchildbill;
                         }
                     } else { // Base off of activity
                         //Child has signed in so he may be billed
@@ -105,7 +105,7 @@ global $CFG;
                                     $perchildbill = save_child_invoice($program,$chid,$invoiceweek,$endofweek,$enrollment,$lastid,$bill,$attendance,"unknown",true);
                                 }
                             } else { //Did not attend, see if there is a minimum.
-                                $bill = $program["minimuminactive"] > "0" ? $program["minimuminactive"] : "0";
+                                $bill = $program["minimuminactive"] > 0 ? $program["minimuminactive"] : "0";
 
                                 if (!$perchild) {
                                     $perchildbill = save_child_invoice($program,$chid,$invoiceweek,$endofweek,$enrollment,$lastid,$bill,"","unknown",true);
@@ -199,11 +199,12 @@ function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$l
         AND $discount_rule /* record must also meet the discount rules */";
 
     // $billed_by is either enrollment or days the child attended ex. M,W,Th,F
-    if(($billed_by == "enrollment" && count(explode(",",$days_attending)) >= $program["consider_full"]) || ($billed_by != "enrollment" && !empty($attendance) && $attendance[0] >= $program["consider_full"])){ // If enrollment is considered full time
-        if(empty($attendance)){
+    // If we expected to bill for a full week, either enrollment based or attendance over the considered full amount.
+    if(($billed_by == "enrollment" && count(explode(",",$days_attending)) >= $program["consider_full"]) || ($billed_by != "enrollment" && !empty($attendance) && $attendance[0] >= $program["consider_full"])){
+        if(empty($attendance)){ // If we expected attendance but no attendance was recorded.
             $bill = $program["vacation"];
             $rate = "Did Not Attend [Vacation Rate]";
-        }else{
+        } else {
             $bill = empty($program["fulltime"]) ? $program["perday"] * $program["consider_full"] : $program["fulltime"];
             if($bill >= $program["discount_rule"] && get_db_row($otherchildrenthatmatch)){ //Not the first child on this account this week
                 $discount = "[$".number_format($program["multiple_discount"],2)." Multiple Child Discount]";
@@ -288,7 +289,7 @@ global $CFG;
         $sameday = $bill = $attendance = 0;
         $days = "";
         while($activity = fetch_row($activities)){
-            $bill += date("m/d/Y",display_time($activity["timelog"])) == $sameday ? 0 : (!empty($override) ? $override["perday"] : $program["perday"]);
+            $bill += date("m/d/Y",display_time($activity["timelog"])) == $sameday ? 0 : $program["perday"];
             $attendance += date("m/d/Y",display_time($activity["timelog"])) == $sameday ? "0" : "1";
             $days .= date("m/d/Y",display_time($activity["timelog"])) == $sameday ? "" : ($days == "" ? date("D",display_time($activity["timelog"])) : " ".date("D",display_time($activity["timelog"])));
             $sameday = date("m/d/Y",display_time($activity["timelog"]));

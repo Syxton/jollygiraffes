@@ -548,7 +548,7 @@ function get_admin_page($type = false, $id = false) {
     $returnme .= get_form("add_edit_account", array(
         "account" => $account
     ), $identifier);
-    $admin_button = '<button title="Edit Admin" style="float:right;font-size: 150%;" type="button" onclick="CreateDialog(\'add_edit_account_' . $identifier . '\',200,315)">Edit Admin</button>';
+    $admin_button = '<button title="Edit Admin" class="topright_button" type="button" onclick="CreateDialog(\'add_edit_account_' . $identifier . '\',200,315)">Edit Admin</button>';
     $returnme .= '<div id="dialog-confirm" title="Confirm" style="display:none;">
                        <p><span class="ui-icon ui-icon-alert" style="margin-right: auto;margin-left: auto;"></span><label></label></p>
                     </div>';

@@ -200,7 +200,7 @@ function get_home_page() {
 }
 
 function get_admin_button() {
-    return get_numpad("", true, "", "#display_level", 'admin_numpad1') . '<div class="top-right"><button class="admin_button" style="font-size: 150%;" onclick="if(typeof(autoback) != \'undefined\'){ clearTimeout(autoback); } numpad(\'admin_numpad1\');">Admin</button></div>';
+    return get_numpad("", true, "", "#display_level", 'admin_numpad1') . '<div class="top-right"><button class="admin_button topright_button" onclick="if(typeof(autoback) != \'undefined\'){ clearTimeout(autoback); } numpad(\'admin_numpad1\');">Admin</button></div>';
 }
 
 function get_employee_button($employeeid, $class = "", $style = "", $action = "") {
@@ -232,7 +232,7 @@ function get_employee_status($employeeid) {
 }
 
 function get_employee_timeclock_button() {
-    return '<div class="top-left"><button class="employee_button" style="font-size: 150%;" onclick="$.ajax({
+    return '<div class="top-left"><button class="employee_button topleft_button" onclick="$.ajax({
               type: \'POST\',
               url: \'ajax/ajax.php\',
               timeout: 10000,
@@ -320,7 +320,7 @@ function get_icon($icon) {
 }
 
 function go_home_button($button_text = 'Back') {
-    return '<div style="height:55px;"><button style="font-size: 150%;" onclick="if(typeof(autoback) != \'undefined\'){ clearTimeout(autoback); }
+    return '<div style="height:55px;"><button class="topleft_button" onclick="if(typeof(autoback) != \'undefined\'){ clearTimeout(autoback); }
             location.reload();
             ">' . $button_text . '</button></div>';
 }

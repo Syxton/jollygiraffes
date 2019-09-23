@@ -377,4 +377,14 @@ function draw_calendar($month,$year,$vars=false){
   /* all done, return result */
   return $calendar;
 }
+
+function make_timestamp_from_date($date, $timezone = false) {
+    if (strpos($date, "/")) {
+        return DateTime::createFromFormat('!m/d/Y', $date)->getTimestamp() + 43200; // Noon
+    } elseif (stropos($date, "-")) {
+        return DateTime::createFromFormat('!m-d-Y', $date)->getTimestamp() + 43200; // Noon
+    } else {
+        return strtotime($date) + 43200; // Noon
+    }
+}
 ?>

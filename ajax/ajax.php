@@ -702,7 +702,7 @@ function add_edit_expense() {
                 ${$field["name"]} = str_replace("$", "", dbescape($field["value"]));
                 break;
             case "timelog":
-                ${$field["name"]} = strtotime(dbescape($field["value"]));
+                ${$field["name"]} = make_timestamp_from_date($field["value"]);
                 break;
             case "note":
             case "pid":
@@ -875,7 +875,7 @@ function add_edit_payment() {
                 ${$field["name"]} = str_replace("$", "", dbescape($field["value"]));
                 break;
             case "timelog":
-                ${$field["name"]} = strtotime(dbescape($field["value"]));
+                ${$field["name"]} = make_timestamp_from_date($field["value"]);
                 break;
         }
     }
@@ -1038,7 +1038,7 @@ function add_edit_child() {
                 ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "birthdate":
-                ${$field["name"]} = strtotime(dbescape($field["value"]));
+                ${$field["name"]} = make_timestamp_from_date($field["value"]);
                 break;
         }
     }
@@ -1286,7 +1286,7 @@ function add_activity() {
                 ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "timelog":
-                ${$field["name"]} = dbescape(strtotime($field["value"]) - get_offset());
+                ${$field["name"]} = make_timestamp_from_date($field["value"]);
                 break;
         }
     }
@@ -1491,8 +1491,7 @@ function save_employee_salary_history() {
                 ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "date":
-                ${$field["name"]} = dbescape($field["value"]);
-                ${$field["name"]} = strtotime($date);
+                ${$field["name"]} = make_timestamp_from_date($field["value"]);
                 break;
             case "wage":
                 ${$field["name"]} = dbescape($field["value"]);

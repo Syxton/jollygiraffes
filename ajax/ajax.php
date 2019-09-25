@@ -2487,7 +2487,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
         $returnme .= '<div style="text-align:center;">' . get_children_button($chid, "", "width:100px;height:100px;", "", true) . '</div>';
         $docs_selected = $notes_selected = $activity_selected = $reports_selected = "";
         $tabkey        = empty($MYVARS->GET["values"]) ? false : array_search('tab', $MYVARS->GET["values"]);
-        $tab           = $tabkey === false && empty($MYVARS->GET["values"][$tabkey]["value"]) ? (empty($MYVARS->GET["tab"]) ? '' : $MYVARS->GET["tab"]) : $MYVARS->GET["values"][$tabkey]["value"];
+        $tab           = $tabkey === false && empty($MYVARS->GET["values"][$tabkey]["value"]) ? (empty($MYVARS->GET["tab"]) ? 'activity' : $MYVARS->GET["tab"]) : $MYVARS->GET["values"][$tabkey]["value"];
         if (!empty($tab)) {
             if ($tab == "documents") {
                 $info          = get_documents_list(true, false, $chid);
@@ -2502,15 +2502,19 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                 $info             = get_reports_list(true, false, false, $chid);
                 $reports_selected = "selected_button";
             } else {
-                $info          = get_documents_list(true, false, $chid);
+                $info          = get_activity_list(true, false, $chid);
                 $docs_selected = "selected_button";
             }
-        } else {
-            $info          = get_documents_list(true, false, $chid);
-            $docs_selected = "selected_button";
         }
 
         $returnme .= '<div class="info_tabbar">
+                        <button class="subselect_buttons ' . $activity_selected . '" id="activity" onclick="$(\'.subselect_buttons\').toggleClass(\'selected_button\',true); $(\'.subselect_buttons\').not(this).toggleClass(\'selected_button\',false);
+                          $.ajax({
+                          type: \'POST\',
+                          url: \'ajax/ajax.php\',
+                          data: { action: \'get_activity_list\', chid: \'' . $chid . '\' },
+                          success: function(data) { $(\'#subselect_div\').html(data); refresh_all(); }
+                          });">Activity</button>
                         <button class="subselect_buttons ' . $docs_selected . '" id="documents" onclick="$(\'.subselect_buttons\').toggleClass(\'selected_button\',true); $(\'.subselect_buttons\').not(this).toggleClass(\'selected_button\',false);
                           $.ajax({
                           type: \'POST\',
@@ -2525,13 +2529,6 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                           data: { action: \'get_notes_list\', chid: \'' . $chid . '\' },
                           success: function(data) { $(\'#subselect_div\').html(data); refresh_all(); }
                           });">Notes</button>
-                        <button class="subselect_buttons ' . $activity_selected . '" id="activity" onclick="$(\'.subselect_buttons\').toggleClass(\'selected_button\',true); $(\'.subselect_buttons\').not(this).toggleClass(\'selected_button\',false);
-                          $.ajax({
-                          type: \'POST\',
-                          url: \'ajax/ajax.php\',
-                          data: { action: \'get_activity_list\', chid: \'' . $chid . '\' },
-                          success: function(data) { $(\'#subselect_div\').html(data); refresh_all(); }
-                          });">Activity</button>
                         <button class="subselect_buttons ' . $reports_selected . '" id="reports" onclick="$(\'.subselect_buttons\').toggleClass(\'selected_button\',true); $(\'.subselect_buttons\').not(this).toggleClass(\'selected_button\',false);
                           $.ajax({
                           type: \'POST\',

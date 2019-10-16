@@ -380,9 +380,13 @@ function draw_calendar($month,$year,$vars=false){
 
 function make_timestamp_from_date($date, $timezone = false) {
     if (strpos($date, "/")) {
-        return DateTime::createFromFormat('!m/d/Y', $date)->getTimestamp() + 43200; // Noon
-    } elseif (stropos($date, "-")) {
-        return DateTime::createFromFormat('!m-d-Y', $date)->getTimestamp() + 43200; // Noon
+        return DateTime::createFromFormat('m/d/Y', $date)->getTimestamp() + 43200; // Noon
+    } elseif (strpos($date, "-")) {
+        if (strlen($date) == 10) { //expected mm-dd-YYYY format
+            return DateTime::createFromFormat('m-d-Y', $date)->getTimestamp() + 43200; // Noon
+        } else { //might be YYYY-MM-dd'T'HH:mm:ss
+            return DateTime::createFromFormat('Y-m-d\TH:i:s', $date)->getTimestamp() - get_offset(); // Time is given
+        }
     } else {
         return strtotime($date) + 43200; // Noon
     }

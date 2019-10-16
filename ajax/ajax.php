@@ -340,7 +340,7 @@ function check_in_out($chids, $cid, $type, $time = false) {
         $note  = $child["first"] . " " . $child["last"] . ": Checked $type by $contact: $readabletime";
 
         // birthday flag
-        $confetti_start = $$confetti_stop = $bday = "";
+        $confetti_start = $confetti_stop = $bday = "";
         if (date("md",$child["birthdate"]) == date("md", get_timestamp())) {
             $confetti_start = 'confetti.start();';
             $bday = '<h1 class="heading" style="font-size:4em">Happy Birthday!</h1>';
@@ -1302,17 +1302,13 @@ function add_activity() {
 
         check_in_out($chids, $cid, $tag, $timelog);
 
-        if (execute_db_sql($SQL)) { //Saved successfully
-            switch ($callback) {
-                case "children":
-                    get_admin_children_form(false, $chid);
-                    break;
-                default:
-                    get_admin_accounts_form(false, $aid);
-                    break;
-            }
-        } else {
-            echo "false";
+        switch ($callback) {
+            case "children":
+                get_admin_children_form(false, $chid);
+                break;
+            default:
+                get_admin_accounts_form(false, $aid);
+                break;
         }
     } else {
         echo "false";

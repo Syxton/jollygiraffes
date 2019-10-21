@@ -2063,8 +2063,8 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = false
                 "callbackinfo" => $aid
             ), $identifier);
             $payfee_button .= '<button style="font-size: 9px;" type="button" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\',300,400)">Add Payment/Fee</button>';
-            $list_invoices_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoice&pid=' . $pid . '&aid=' . $account["aid"] . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 0px 7px 2px 4px;">' . get_icon('list_small') . ' List Invoices</span></a>';
-            $timeline_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoicetimeline&pid=' . $pid . '&aid=' . $account["aid"] . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 0px 7px 2px 4px;">' . get_icon('calendar') . ' Invoice Timeline</span></a>';
+            $list_invoices_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoice&pid=' . $pid . '&aid=' . $account["aid"] . '&time='.time().'" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 0px 7px 2px 4px;">' . get_icon('list_small') . ' List Invoices</span></a>';
+            $timeline_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoicetimeline&pid=' . $pid . '&aid=' . $account["aid"] . '&time='.time().'" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 0px 7px 2px 4px;">' . get_icon('calendar') . ' Invoice Timeline</span></a>';
 
             $returnme .= '<div class="document_list_item ui-corner-all"><strong>Account: ' . $account["name"] . '</strong><div style="padding: 6px;">' . $list_invoices_button . " " . $timeline_button . " " . $payfee_button . '</div>';
 

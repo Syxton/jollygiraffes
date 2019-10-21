@@ -307,7 +307,7 @@ switch($report){
                                 if ($transactions = get_db_result($SQL)) {
                                     $returnme .= '<div class="week" style="vertical-align: top;padding: 5px;">
                                                         <div><strong>Payments/Fees Prior to 1st Invoice</strong></div>';
-                                    $returnme .= '<div style="padding-left: 30px;">'.str_replace("Week Total", "Invoice Amount", $invoice["receipt"]);
+                                    $returnme .= '<div style="padding-left: 30px;">';
                                     while ($transaction = fetch_row($transactions)) {
                                         if ($transaction["payment"] < 0) {
                                             $returnme .= '  <div>
@@ -346,12 +346,12 @@ switch($report){
                             $lasttodate = $invoice["todate"];
                         }
 
-                        $returnme .= '<div class="week" style="vertical-align: top;padding: 5px;">
-                                            <div><strong>More Recent Activity</strong></div>';
-                        $returnme .= '<div style="padding-left: 30px;">'.str_replace("Week Total", "Invoice Amount", $invoice["receipt"]);
                         // check for payment or Fee after last invoice
                         $SQL = "SELECT * FROM billing_payments WHERE pid = '$pid' AND aid = '".$account["aid"]."' AND timelog >= '$lasttodate' ORDER BY timelog,payid";
                         if ($transactions = get_db_result($SQL)) {
+                            $returnme .= '<div class="week" style="vertical-align: top;padding: 5px;">
+                                                <div><strong>More Recent Activity</strong></div>';
+                            $returnme .= '<div style="padding-left: 30px;">';
                             while ($transaction = fetch_row($transactions)) {
                                 if ($transaction["payment"] < 0) {
                                     $returnme .= '  <div>
@@ -363,8 +363,8 @@ switch($report){
                                                     </div>';
                                 }
                             }
+                            $returnme .= '</div></div>';
                         } //Logic end
-                        $returnme .= '</div></div>';
 
                         $totalpaid = get_db_field("SUM(payment)","billing_payments","pid='$pid' AND aid='".$account["aid"]."' AND payment >= 0 ");
                         $totalpaid = empty($totalpaid) ? "0.00" : $totalpaid;

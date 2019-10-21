@@ -2056,15 +2056,17 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = false
         while ($account = fetch_row($accounts)) {
             $total_paid     = $total_billed = $total_fee = 0;
             $identifier     = time() . "accountpayment_" . $account["aid"];
-            $payment_button = get_form("add_edit_payment", array(
+            $payfee_button = get_form("add_edit_payment", array(
                 "pid" => $pid,
                 "aid" => $account["aid"],
                 "callback" => "billing",
                 "callbackinfo" => $aid
             ), $identifier);
-            $payment_button .= '<button style="font-size: 9px;" type="button" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\',300,400)">Add Payment/Fee</button>';
-            $print_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoice&pid=' . $pid . '&aid=' . $account["aid"] . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 0px 7px 2px 4px;">' . get_icon('magnifier') . ' Print Invoice</span></a>';
-            $returnme .= '<div class="document_list_item ui-corner-all"><strong>Account: ' . $account["name"] . '</strong><div style="padding: 6px;">' . $print_button . " " . $payment_button . '</div>';
+            $payfee_button .= '<button style="font-size: 9px;" type="button" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\',300,400)">Add Payment/Fee</button>';
+            $list_invoices_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoice&pid=' . $pid . '&aid=' . $account["aid"] . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 0px 7px 2px 4px;">' . get_icon('list_small') . ' List Invoices</span></a>';
+            $timeline_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoicetimeline&pid=' . $pid . '&aid=' . $account["aid"] . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 0px 7px 2px 4px;">' . get_icon('calendar') . ' Invoice Timeline</span></a>';
+
+            $returnme .= '<div class="document_list_item ui-corner-all"><strong>Account: ' . $account["name"] . '</strong><div style="padding: 6px;">' . $list_invoices_button . " " . $timeline_button . " " . $payfee_button . '</div>';
 
             //Fees
             $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 ORDER BY timelog,payid";

@@ -31,15 +31,13 @@ function refresh_all() {
     $("input:submit, button, .button").not('.ui-button').button();
     //scriptTimer.stopTimer(); alert(scriptTimer.scriptRunTime);
 
-    $(".button").click(function() {
-        return false;
-    });
+    $(".button").off("click");
 
     $("button").click(function() {
         this.blur();
     });
     $(".toggleswitch").toggleSwitch(); // Make toggle switches
-    $('.flexsection').click(function() {
+    $('.flexsection').off("click").click(function() {
         $(this).next().toggle('blind');
         return false;
     }).next().hide();

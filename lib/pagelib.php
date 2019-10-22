@@ -81,7 +81,7 @@ function make_select($name, $values, $valuename, $displayname, $class = "", $sel
     return $returnme;
 }
 
-function make_select_from_array($name, $values, $valuename, $displayname, $class = "", $selected = false, $width = "", $onchange = "", $leadingblank = false, $size = 1, $style = "", $leadingblanktitle = "", $excludevalue = false) {
+function make_select_from_object($name, $values, $valuename, $displayname, $class = "", $selected = false, $width = "", $onchange = "", $leadingblank = false, $size = 1, $style = "", $leadingblanktitle = "", $excludevalue = false) {
     $returnme = '<select class=' . $class . ' size="' . $size . '" id="' . $name . '" name="' . $name . '" ' . $onchange . ' ' . $width . ' style="' . $style . '">';
     if ($leadingblank) {
         $returnme .= '<option value="">' . $leadingblanktitle . '</option>';
@@ -89,6 +89,65 @@ function make_select_from_array($name, $values, $valuename, $displayname, $class
     foreach ($values as $value) {
         if (!$excludevalue || ($excludevalue && $excludevalue != $value->$valuename)) {
             $returnme .= $value->$valuename == $selected ? '<option value="' . $value->$valuename . '" selected="selected">' . $value->$displayname . '</option>' : '<option value="' . $value->$valuename . '">' . $value->$displayname . '</option>';
+        }
+    }
+
+    $returnme .= '</select>';
+    return $returnme;
+}
+
+function make_select_from_array($name, $values, $valuename, $displayname, $selected = false, $onchange = "", $leadingblank = false, $size = 1, $style = "", $leadingblanktitle = "", $excludevalue = false) {
+    $returnme = '<select size="' . $size . '" id="' . $name . '" name="' . $name . '" ' . 'onchange="' . $onchange . '" ' . ' style="' . $style . '">';
+    if ($leadingblank) {
+        $returnme .= '<option value="">' . $leadingblanktitle . '</option>';
+    }
+    foreach ($values as $value) {
+        $exclude = false;
+        if ($excludevalue) { //exclude value
+            switch (gettype($excludevalue)) {
+                case "string":
+                    if (!$valuename) {
+                        $exclude = $excludevalue == $value ? true : false;
+                    } else {
+                        $exclude = $excludevalue == $value[$valuename] ? true : false;
+                    }
+                    break;
+                case "array":
+                    foreach ($excludevalue as $e) {
+                        if (!$valuename) {
+                            if ($e == $value) {
+                                $exclude = true;
+                            }
+                        } else {
+                            if ($e == $value[$valuename]) {
+                                $exclude = true;
+                            }
+                        }
+                    }
+                    break;
+                case "object":
+                    while ($e = fetch_row($excludevalue)) {
+                        if (!$valuename) {
+                            if ($e == $value) {
+                                $exclude = true;
+                            }
+                        } else {
+                            if ($e[$valuename] == $value[$valuename]) {
+                                $exclude = true;
+                            }
+                        }
+                    }
+
+                    db_goto_row($excludevalue);
+                    break;
+            }
+        }
+        if (!$excludevalue || !$exclude) {
+            if (!$valuename) {
+                $returnme .= $value == $selected ? '<option value="' . $value . '" selected="selected">' . $value . '</option>' : '<option value="' . $value . '">' . $value . '</option>';
+            } else {
+                $returnme .= $value[$valuename] == $selected ? '<option value="' . $value[$valuename] . '" selected="selected">' . $value[$displayname] . '</option>' : '<option value="' . $value[$valuename] . '">' . $value[$displayname] . '</option>';
+            }
         }
     }
 

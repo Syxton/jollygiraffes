@@ -63,9 +63,9 @@ global $CFG;
                             <table style="width:100%;">
                                 <tr><td><label for="name">Name</label></td><td><input style="width:100%;" class="fields" type="input" name="name" id="name" value="'.$name.'" /></td></tr>
                                 <tr><td><label for="business_hours">Normal Hours</label></td><td><span style="display:inline-block;width:55px;">From:</span><input class="time fields" name="timeopen" id="timeopen" type="text" value="'.$timeopen.'" /><br /><span style="display:inline-block;width:55px;">To:</span><input class="time fields" name="timeclosed" id="timeclosed" type="text" value="'.$timeclosed.'" /></td></tr>
-                                <tr><td><label for="consider_full">Full Week (days)</label></td><td>'.make_select_from_array("consider_full",$days,"value","display","fields",$consider_full).'</td></tr>
-                                <tr><td><label for="bill_by">Bill By</label></td><td>'.make_select_from_array("bill_by",$bill_by_array,"value","display","fields",$bill_by).'</td></tr>
-                                <tr><td><label for="payahead">Pay Ahead</label></td><td>'.make_select_from_array("payahead",$payahead_array,"value","display","fields",$payahead).'</td></tr>
+                                <tr><td><label for="consider_full">Full Week (days)</label></td><td>'.make_select_from_object("consider_full",$days,"value","display","fields",$consider_full).'</td></tr>
+                                <tr><td><label for="bill_by">Bill By</label></td><td>'.make_select_from_object("bill_by",$bill_by_array,"value","display","fields",$bill_by).'</td></tr>
+                                <tr><td><label for="payahead">Pay Ahead</label></td><td>'.make_select_from_object("payahead",$payahead_array,"value","display","fields",$payahead).'</td></tr>
                                 <tr><td><label for="perday">Price Per Day</label></td><td>$<input style="width:125px;" class="fields" type="input" name="perday" id="perday" value="'.$perday.'" /></td></tr>
                                 <tr><td><label for="fulltime">Full Week Price</label></td><td>$<input style="width:125px;" class="fields" type="input" name="fulltime" id="fulltime" value="'.$fulltime.'" /></td></tr>
                                 <tr><td><label for="minimumactive">Minimum (Active)</label></td><td>$<input style="width:125px;" class="fields" type="input" name="minimumactive" id="minimumactive" value="'.$minimumactive.'" /></td></tr>
@@ -144,9 +144,9 @@ global $CFG;
                 		<form name="billing_overrides'.$identifier.'">
                             '.$fields.'
                             <table style="width:100%;">
-                                <tr><td><label for="bill_by">Override Type</label></td><td>'.make_select_from_array("bill_by",$bill_by_array,"value","display","fields",$bill_by).'</td></tr>
-                                <tr><td><label for="payahead">Pay Ahead</label></td><td>'.make_select_from_array("payahead",$payahead_array,"value","display","fields",$payahead).'</td></tr>
-                                <tr><td><label for="consider_full">Full Week (days)</label></td><td>'.make_select_from_array("consider_full",$days,"value","display","fields",$consider_full).'</td></tr>
+                                <tr><td><label for="bill_by">Override Type</label></td><td>'.make_select_from_object("bill_by",$bill_by_array,"value","display","fields",$bill_by).'</td></tr>
+                                <tr><td><label for="payahead">Pay Ahead</label></td><td>'.make_select_from_object("payahead",$payahead_array,"value","display","fields",$payahead).'</td></tr>
+                                <tr><td><label for="consider_full">Full Week (days)</label></td><td>'.make_select_from_object("consider_full",$days,"value","display","fields",$consider_full).'</td></tr>
                                 <tr><td><label for="perday">Price Per Day</label></td><td>$<input style="width:125px;" class="fields" type="input" name="perday" id="perday" value="'.$perday.'" /></td></tr>
                                 <tr><td><label for="fulltime">Full Week Price</label></td><td>$<input style="width:125px;" class="fields" type="input" name="fulltime" id="fulltime" value="'.$fulltime.'" /></td></tr>
                                 <tr><td><label for="minimumactive">Minimum (Active)</label></td><td>$<input style="width:125px;" class="fields" type="input" name="minimumactive" id="minimumactive" value="'.$minimumactive.'" /></td></tr>
@@ -305,7 +305,7 @@ global $CFG;
             $fields .= empty($vars["account"]["aid"]) ? "" : '<input type="hidden" name="aid" class="fields aid" value="'.$vars["account"]["aid"].'" />';
             $fields .= empty($vars["recover_param"]) ? "" : '<input type="hidden" name="recover" class="fields recover" value="'.$vars["recover_param"].'" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="accounts" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
-            $meal_status_field = empty($vars["account"]["admin"]) ? '<tr><td><label for="meal_status">Meal Status</label></td><td>'.make_select_from_array("meal_status",$meal_status,"value","display","fields",$status).'</td></tr>' : '<input type="hidden" name="meal_status" class="fields meal_status" value="none" />';
+            $meal_status_field = empty($vars["account"]["admin"]) ? '<tr><td><label for="meal_status">Meal Status</label></td><td>'.make_select_from_object("meal_status",$meal_status,"value","display","fields",$status).'</td></tr>' : '<input type="hidden" name="meal_status" class="fields meal_status" value="none" />';
 
             $form = '<div id="add_edit_account'.$identifier.'" title="'.$title.'" style="display:none;">
                 		<form name="add_edit_account_form'.$identifier.'">
@@ -695,8 +695,8 @@ global $CFG;
                                         }
                                     }
                                     $form .= '" /></td></tr>
-                                    <tr><td><label for="notify">Notify Parent</label></td><td>'.make_select_from_array("notify",$notify_array,"value","display","fields",$notify).'</td></tr>
-                                    <tr><td><label for="persistent">Persistent</label></td><td>'.make_select_from_array("persistent",$notify_array,"value","display","fields",$persistent).'</td></tr>
+                                    <tr><td><label for="notify">Notify Parent</label></td><td>'.make_select_from_object("notify",$notify_array,"value","display","fields",$notify).'</td></tr>
+                                    <tr><td><label for="persistent">Persistent</label></td><td>'.make_select_from_object("persistent",$notify_array,"value","display","fields",$persistent).'</td></tr>
                                     <tr><td style="vertical-align: top;"><label for="note">Note</label></td><td><textarea class="fields" style="width:100%;height:160px;" name="note">'.$note.'</textarea></td></tr>
                                 </table>
                                 <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
@@ -737,7 +737,7 @@ global $CFG;
                     		<form name="bulletin_form'.$identifier.'">
                                 '.$fields.'
                                 <table style="width:100%">
-                                    <tr><td><label for="notify">Notify Parents</label></td><td>'.make_select_from_array("notify",$notify_array,"value","display","fields",$notify).'</td></tr>
+                                    <tr><td><label for="notify">Notify Parents</label></td><td>'.make_select_from_object("notify",$notify_array,"value","display","fields",$notify).'</td></tr>
                                     <tr><td style="vertical-align: top;"><label for="note">Bulletin</label></td><td><textarea class="fields" style="width:100%;height:160px;" name="note">'.$note.'</textarea></td></tr>
                                 </table>
                                 <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
@@ -1063,8 +1063,8 @@ global $CFG;
                             '.$fields.'
                             <table>
                                 <tr><td><label for="startweek">Start processing from:</label></td><td>'.make_select("startweek",get_db_result("SELECT (DATE_FORMAT(FROM_UNIXTIME(fromdate-".get_offset()."),'%M %D %Y') ) as display, fromdate FROM billing WHERE pid='$activepid' $sql GROUP BY fromdate ORDER BY fromdate"),"fromdate","display","fields",$startweek,"",true,"1","","Beginning").'</td></tr>
-                                <tr><td><label for="refresh">Remake Existing Invoices</label></td><td>'.make_select_from_array("refresh",$refresh,"value","display","fields").'</td></tr>
-                                <tr><td><label for="enrollment">Remember Past Enrollment Settings</label></td><td>'.make_select_from_array("enrollment",$refresh,"value","display","fields","1").'</td></tr>
+                                <tr><td><label for="refresh">Remake Existing Invoices</label></td><td>'.make_select_from_object("refresh",$refresh,"value","display","fields").'</td></tr>
+                                <tr><td><label for="enrollment">Remember Past Enrollment Settings</label></td><td>'.make_select_from_object("enrollment",$refresh,"value","display","fields","1").'</td></tr>
                             </table><br />
                         <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
                           type: \'POST\',

@@ -411,7 +411,20 @@ switch($report){
         }
     break;
     case "all_tax_papers":
-        if($accounts = get_db_result($SQL)){
+        $years = range(date("Y") - 5, date("Y"));
+        $selected = date("Y", $fromnum);
+        $onchange = "
+            $.ajax({
+              method: 'GET',
+              url: 'ajax/reports.php',
+              data: { report: 'all_tax_papers', type: 'aid', id: '$id', from: '01/01/' + this.value, to: '12/31/' + this.value }
+            })
+              .done(function( msg ) {
+                 $('.nyroModalForm').html(msg);
+            });
+        ";
+        echo '<div align="center">Year Selector: ' . make_select_from_array("yearselector", $years, false, false, $selected, $onchange) . '</div>';
+        if ($accounts = get_db_result($SQL)) {
             while($account = fetch_row($accounts)){
                 $name = get_name(array("type" => "aid","id" => $account["aid"]));
                 $SQL = "SELECT * FROM billing_payments WHERE payment > 0 AND aid='".$account["aid"]."' $timesql ORDER BY timelog ASC";

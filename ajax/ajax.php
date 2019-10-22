@@ -3842,7 +3842,7 @@ function view_required_notes_form($pid = false, $evid = false) {
                                 }
                             }); $(\'#sortable\').disableSelection(); }
             });}, function(){})">Delete</button>';
-            $question_type = get_db_row("SELECT nid FROM notes WHERE rnid='" . $event["rnid"] . "'") ? '<input class="fields" type="hidden" name="question_type" id="question_type" value="' . $event["question_type"] . '" />' . $event["question_type"] : make_select_from_array("question_type", get_note_type_array(), "id", "name", "fields", $event["question_type"]);
+            $question_type = get_db_row("SELECT nid FROM notes WHERE rnid='" . $event["rnid"] . "'") ? '<input class="fields" type="hidden" name="question_type" id="question_type" value="' . $event["question_type"] . '" />' . $event["question_type"] : make_select_from_object("question_type", get_note_type_array(), "id", "name", "fields", $event["question_type"]);
             $notes_list .= '<li id="' . $event["rnid"] . '" class="ui-state-default"><input class="fields" type="hidden" name="rnid" value="' . $event["rnid"] . '" /><span class="draggable ui-icon ui-icon-arrowthick-2-n-s"></span>&nbsp;&nbsp;Title: <input class="fields" type="text" name="title" id="title" value="' . $event["title"] . '" />&nbsp;&nbsp;Type: ' . $question_type . '<span style="float:right;position: initial;">' . $delete . ' ' . $save . '</span></li>';
         }
         $notes_list .= '</ul>';
@@ -3899,7 +3899,7 @@ function add_required_notes_form() {
     $evid = empty($evid) ? (empty($MYVARS->GET["evid"]) ? false : $MYVARS->GET["evid"]) : $evid;
     echo '<strong>Add Required Event Note:</strong><br /><br />
     <ul id="sortable">
-        <li id="addone" class="ui-state-default">&nbsp;&nbsp;Title: <input class="fields" name="title" id="title" type="text" value="" />&nbsp;&nbsp;Type: ' . make_select_from_array("question_type", get_note_type_array(), "id", "name", "fields") . '
+        <li id="addone" class="ui-state-default">&nbsp;&nbsp;Title: <input class="fields" name="title" id="title" type="text" value="" />&nbsp;&nbsp;Type: ' . make_select_from_object("question_type", get_note_type_array(), "id", "name", "fields") . '
             <button type="button" style="font-size:9px;float:right;" onclick="if($(\'#name\',\'li#addone\').val() != \'\'){ $.ajax({
               type: \'POST\',
               url: \'ajax/ajax.php\',

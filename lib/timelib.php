@@ -3,8 +3,8 @@
 * timelib.php - Time Library
 * -------------------------------------------------------------------------
 * Author: Matthew Davidson
-* Date: 9/27/2013
-* Revision: 0.3.3
+* Date: 10/24/2019
+* Revision: 0.3.4
 ***************************************************************************/
 
 if(!isset($LIBHEADER)) include('header.php');
@@ -379,14 +379,14 @@ function draw_calendar($month,$year,$vars=false){
 }
 
 function make_timestamp_from_date($date, $timezone = false) {
-    if (strpos($date, "/")) {
+    if (DateTime::createFromFormat('m/d/Y', $date)) {
         return DateTime::createFromFormat('m/d/Y', $date)->getTimestamp() + 43200; // Noon
-    } elseif (strpos($date, "-")) {
-        if (strlen($date) == 10) { //expected mm-dd-YYYY format
-            return DateTime::createFromFormat('m-d-Y', $date)->getTimestamp() + 43200; // Noon
-        } else { //might be YYYY-MM-dd'T'HH:mm:ss
-            return DateTime::createFromFormat('Y-m-d\TH:i:s', $date)->getTimestamp() - get_offset(); // Time is given
-        }
+    } else if (DateTime::createFromFormat('m-d-Y', $date)) {
+        return DateTime::createFromFormat('m-d-Y', $date)->getTimestamp() + 43200; // Noon
+    } else if (DateTime::createFromFormat('Y-m-d\TH:i:s', $date)) {
+        return DateTime::createFromFormat('Y-m-d\TH:i:s', $date)->getTimestamp() - get_offset(); // Time is given
+    } else if (DateTime::createFromFormat('Y-m-d\TH:i', $date)) {
+        return DateTime::createFromFormat('Y-m-d\TH:i', $date)->getTimestamp() - get_offset(); // Time is given
     } else {
         return strtotime($date) + 43200; // Noon
     }

@@ -341,7 +341,7 @@ function check_in_out($chids, $cid, $type, $time = false) {
 
         // birthday flag
         $confetti_start = $confetti_stop = $bday = "";
-        if (date("md",$child["birthdate"]) == date("md", get_timestamp())) {
+        if (date("md",$child["birthdate"] + get_offset()) == date("md", get_timestamp())) {
             $confetti_start = 'confetti.start();';
             $bday = '<h1 class="heading" style="font-size:4em">Happy Birthday!</h1>';
         }

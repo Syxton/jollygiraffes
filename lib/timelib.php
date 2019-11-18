@@ -378,17 +378,21 @@ function draw_calendar($month,$year,$vars=false){
   return $calendar;
 }
 
-function make_timestamp_from_date($date, $timezone = false) {
+function make_timestamp_from_date($date, $timezone = "UTC") {
+    global $CFG;
+    $timezone = empty($timezone) ? $CFG->timezone : $timezone;
+    $LOCAL = new DateTimeZone($timezone);
+
     if (DateTime::createFromFormat('m/d/Y', $date)) {
-        return DateTime::createFromFormat('m/d/Y', $date)->getTimestamp() + 43200; // Noon
+        return DateTime::createFromFormat('m/d/Y', $date, $LOCAL)->getTimestamp(); // Noon
     } else if (DateTime::createFromFormat('m-d-Y', $date)) {
-        return DateTime::createFromFormat('m-d-Y', $date)->getTimestamp() + 43200; // Noon
+        return DateTime::createFromFormat('m-d-Y', $date, $LOCAL)->getTimestamp(); // Noon
     } else if (DateTime::createFromFormat('Y-m-d\TH:i:s', $date)) {
-        return DateTime::createFromFormat('Y-m-d\TH:i:s', $date)->getTimestamp() - get_offset(); // Time is given
+        return DateTime::createFromFormat('Y-m-d\TH:i:s', $date, $LOCAL)->getTimestamp(); // Time is given
     } else if (DateTime::createFromFormat('Y-m-d\TH:i', $date)) {
-        return DateTime::createFromFormat('Y-m-d\TH:i', $date)->getTimestamp() - get_offset(); // Time is given
+        return DateTime::createFromFormat('Y-m-d\TH:i', $date, $LOCAL)->getTimestamp(); // Time is given
     } else {
-        return strtotime($date) + 43200; // Noon
+        return strtotime($date); // Noon
     }
 }
 ?>

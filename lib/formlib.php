@@ -499,7 +499,7 @@ global $CFG;
         case "add_edit_child":
             $first = empty($vars["child"]) ? "" : $vars["child"]["first"];
             $last = empty($vars["child"]) ? "" : $vars["child"]["last"];
-            $birthdate = empty($vars["child"]) ? "" : date('m/d/Y',$vars["child"]["birthdate"]);
+            $birthdate = empty($vars["child"]) ? "" : date('m/d/Y',$vars["child"]["birthdate"] + get_offset());
             $male = empty($vars["child"]) ? "" : ($vars["child"]["sex"] == "Male" ? "selected" : "");
             $female = empty($vars["child"]) ? "" : ($vars["child"]["sex"] == "Female" ? "selected" : "");
             $grade0 = empty($vars["child"]) ? "" : ($vars["child"]["grade"] == "0" ? "selected" : "");

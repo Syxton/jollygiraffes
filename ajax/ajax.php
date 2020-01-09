@@ -2928,8 +2928,8 @@ function get_reports_list($return = false, $pid = null, $aid = null, $chid = nul
             $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_account_bill\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View All Account Balances</span></a><div class="report-cubes-container"></div>';
             //Program Cash Flow
             $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_program_cash_flow\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Program Cash Flow</span></a><div class="report-cubes-container"></div>';
-            //Program Payments
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'payments_between\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' Program Payments</span></a><div class="report-cubes-container"></div>';
+            //Program Payments between dates (optional)
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'payments_between\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' Program Payments (dates optional)</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
             break;
         case "aid":
             //Activities between dates

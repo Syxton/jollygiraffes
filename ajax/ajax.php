@@ -647,6 +647,7 @@ function add_edit_program() {
         switch ($field["name"]) {
             case "pid":
             case "name":
+            case "fein":
             case "timeopen":
             case "timeclosed":
             case "consider_full":
@@ -672,9 +673,9 @@ function add_edit_program() {
 
     if (!empty($name) && !empty($timeopen) && !empty($timeclosed) && is_numeric($perday) && is_numeric($fulltime)) {
         if ($pid) {
-            $SQL = "UPDATE programs SET name='$name',timeopen='$timeopen',timeclosed='$timeclosed',perday='$perday',fulltime='$fulltime',minimumactive='$minimumactive',minimuminactive='$minimuminactive',vacation='$vacation',multiple_discount='$multiple_discount',consider_full='$consider_full',bill_by='$bill_by',discount_rule='$discount_rule',payahead='$payahead' WHERE pid='$pid'";
+            $SQL = "UPDATE programs SET name='$name',fein='$fein',timeopen='$timeopen',timeclosed='$timeclosed',perday='$perday',fulltime='$fulltime',minimumactive='$minimumactive',minimuminactive='$minimuminactive',vacation='$vacation',multiple_discount='$multiple_discount',consider_full='$consider_full',bill_by='$bill_by',discount_rule='$discount_rule',payahead='$payahead' WHERE pid='$pid'";
         } else {
-            $SQL = "INSERT INTO programs (name,timeopen,timeclosed,perday,fulltime,minimumactive,minimuminactive,vacation,multiple_discount,consider_full,bill_by,discount_rule,payahead) VALUES('$name','$timeopen','$timeclosed','$perday','$fulltime','$minimumactive','$minimuminactive','$vacation','$multiple_discount','$consider_full','$bill_by','$discount_rule','$payahead')";
+            $SQL = "INSERT INTO programs (name,fein,timeopen,timeclosed,perday,fulltime,minimumactive,minimuminactive,vacation,multiple_discount,consider_full,bill_by,discount_rule,payahead) VALUES('$name','$fein','$timeopen','$timeclosed','$perday','$fulltime','$minimumactive','$minimuminactive','$vacation','$multiple_discount','$consider_full','$bill_by','$discount_rule','$payahead')";
         }
 
         if (execute_db_sql($SQL)) { //Saved successfully

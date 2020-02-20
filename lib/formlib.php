@@ -18,6 +18,7 @@ global $CFG;
     switch ($formname) {
         case "add_edit_program":
             $name = empty($vars["program"]["name"]) ? "" : $vars["program"]["name"];
+            $fein = empty($vars["program"]["fein"]) ? "" : $vars["program"]["fein"];
             $timeopen = empty($vars["program"]["timeopen"]) ? "" : $vars["program"]["timeopen"];
             $timeclosed = empty($vars["program"]["timeclosed"]) ? "" : $vars["program"]["timeclosed"];
             $perday = empty($vars["program"]["perday"]) ? "0" : $vars["program"]["perday"];
@@ -62,6 +63,7 @@ global $CFG;
                             '.$fields.'
                             <table style="width:100%;">
                                 <tr><td><label for="name">Name</label></td><td><input style="width:100%;" class="fields" type="input" name="name" id="name" value="'.$name.'" /></td></tr>
+                                <tr><td><label for="fein">Business ID or FEIN</label></td><td><input style="width:100%;" class="fields" type="input" name="name" id="name" value="'.$fein.'" /></td></tr>
                                 <tr><td><label for="business_hours">Normal Hours</label></td><td><span style="display:inline-block;width:55px;">From:</span><input class="time fields" name="timeopen" id="timeopen" type="text" value="'.$timeopen.'" /><br /><span style="display:inline-block;width:55px;">To:</span><input class="time fields" name="timeclosed" id="timeclosed" type="text" value="'.$timeclosed.'" /></td></tr>
                                 <tr><td><label for="consider_full">Full Week (days)</label></td><td>'.make_select_from_object("consider_full",$days,"value","display","fields",$consider_full).'</td></tr>
                                 <tr><td><label for="bill_by">Bill By</label></td><td>'.make_select_from_object("bill_by",$bill_by_array,"value","display","fields",$bill_by).'</td></tr>

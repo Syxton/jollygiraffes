@@ -425,7 +425,8 @@ switch($report){
         ";
         echo '<div align="center">Year Selector: ' . make_select_from_array("yearselector", $years, false, false, $selected, $onchange) . '</div>';
         if ($accounts = get_db_result($SQL)) {
-            while($account = fetch_row($accounts)){
+            $program = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
+            while ($account = fetch_row($accounts)) {
                 $name = get_name(array("type" => "aid","id" => $account["aid"]));
                 $SQL = "SELECT * FROM billing_payments WHERE payment > 0 AND aid='".$account["aid"]."' $timesql ORDER BY timelog ASC";
                 $sum = 0;
@@ -433,13 +434,13 @@ switch($report){
                     $returnme .= '
                     <div style="float:right;">
                         <div style="font-size:120%;">
-                            <strong>'.$CFG->sitename.'</strong>
+                            <strong>'.$program['name'].'</strong>
                         </div>
                         <div>
                             <strong>'.$CFG->streetaddress.'</strong>
                         </div>
                         <div>
-                            <strong>FEIN:</strong> '.$CFG->fein.'
+                            <strong>Business ID or FEIN:</strong> '.$program['fein'].'
                         </div>
                     </div>
                     <div style="float:left;">
@@ -463,17 +464,18 @@ switch($report){
     break;
     case "payments_between":
         $sum = 0;
-        if($payments = get_db_result($SQL)){
+        if ($payments = get_db_result($SQL)) {
+            $program = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
             $returnme .= '
             <div style="float:right;">
                 <div style="font-size:120%;">
-                    <strong>'.$CFG->sitename.'</strong>
+                    <strong>'.$program['name'].'</strong>
                 </div>
                 <div>
                     <strong>'.$CFG->streetaddress.'</strong>
                 </div>
                 <div>
-                    <strong>FEIN:</strong> '.$CFG->fein.'
+                    <strong>FEIN:</strong> '.$program['fein'].'
                 </div>
             </div>
             <div style="float:left;">
@@ -481,7 +483,7 @@ switch($report){
                 <div><strong>Dates:</strong> '.$fromtostring.'</div>
             ';
             $names = array();
-            while($payment = fetch_row($payments)){
+            while ($payment = fetch_row($payments)) {
                 $sum += $payment["payment"];
                 $names[] = array("field1name" => "Date", "field1value" => date('m/d/Y',display_time($payment["timelog"])), "field2name" => "Amount", "field2value" => '$'.number_format($payment["payment"],2), "field3name" => "Note", "field3value" => $payment["note"]);
             }

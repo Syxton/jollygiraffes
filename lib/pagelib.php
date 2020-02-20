@@ -1205,6 +1205,16 @@ function check_and_run_upgrades() {
 
         execute_db_sql("UPDATE version SET version='$thisversion'");
     }
+
+       $thisversion = 2020022000;
+       if($version < $thisversion){ //# = new version number.  If this is the first...start at 1
+           $SQL = "ALTER TABLE `programs` ADD `fein` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '' AFTER `payahead`";
+           if(execute_db_sql($SQL)) //if successful upgrade
+           {
+               execute_db_sql("UPDATE version SET version='$thisversion'");
+           }
+       }
+
     //    $thisversion = YYYYMMDD;
     //    if($version < $thisversion){ //# = new version number.  If this is the first...start at 1
     //        $SQL = "";

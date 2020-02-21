@@ -1,4 +1,4 @@
-<?php  /// Moodle Configuration File 
+<?php  /// Moodle Configuration File
 
 unset($CFG);
 
@@ -7,7 +7,6 @@ $CFG = new stdClass();
 $CFG->sitename 	= '';
 $CFG->siteemail = '';
 $CFG->streetaddress = '';
-$CFG->fein = '';
 $CFG->logo 	= 'logo.png';
 
 //Database connection variables

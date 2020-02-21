@@ -2382,12 +2382,13 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
             $balance       = $total_billed - $total_paid;
             $returnme .= "<div style='text-align:right;color:darkred;'><strong>Owed:</strong> $" . number_format($total_billed, 2) . "</div><div style='text-align:right;color:blue;'><strong>Paid:</strong> $" . number_format($total_paid, 2) . "</div><hr align='right' style='width:100px;'/><div style='text-align:right'><strong>Balance:</strong> $" . number_format($balance, 2) . "</div>";
-
+            $returnme .= '</div>';
         }
+        $returnme .= '</div>';
     } else {
         $returnme .= "<div>No Accounts</div>";
     }
-    $returnme .= '</div>';
+
 
     if ($return) {
         return $returnme;

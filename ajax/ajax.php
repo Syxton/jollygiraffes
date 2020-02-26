@@ -2380,8 +2380,13 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 $total_billed += (float) $current_week;
             }
 
-            $balance       = $total_billed - $total_paid;
-            $returnme .= "<div style='text-align:right;color:darkred;'><strong>Owed:</strong> $" . number_format($total_billed, 2) . "</div><div style='text-align:right;color:blue;'><strong>Paid:</strong> $" . number_format($total_paid, 2) . "</div><hr align='right' style='width:100px;'/><div style='text-align:right'><strong>Balance:</strong> $" . number_format($balance, 2) . "</div>";
+            $balance = $total_billed - $total_paid;
+            $returnme .= '<div style="padding: 5px;">
+                            <div style="text-align:right;color:darkred;"><strong>Owed:</strong> $' . number_format($total_billed, 2) . '</div>
+                            <div style="text-align:right;color:blue;"><strong>Paid:</strong> $' . number_format($total_paid, 2) . '</div>
+                            <hr align="right" style="width:100px;" />
+                            <div style="text-align:right"><strong>Balance:</strong> $' . number_format($balance, 2) .
+                         '</div>';
 
             // Expected next week if prepaid.
             if (get_db_field("payahead", "programs", "pid='$pid'")) { // if prepaid

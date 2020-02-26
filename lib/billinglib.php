@@ -56,18 +56,18 @@ global $CFG;
                 while ($child = fetch_row($children)) {
                     $perchildbill = 0;
                     $chid = $child["chid"];
-                    $days_attending = get_db_field("days_attending","enrollments","chid='$chid' AND pid='$pid'");
                     $discount = "";
                     if ($nextweek) { // Base off of assumptions.
+                        $days_attending = count(array_filter(explode(',', get_db_field("days_attending","enrollments","chid='$chid' AND pid='$pid'"))));
                         if ($program["bill_by"] == "enrollment") {
-                            if ($program["consider_full"] <= count(explode(',', $days_attending))) {
+                            if ($program["consider_full"] <= $days_attending) {
                                 $perchildbill = $program["fulltime"];
                             } else {
-                                $perchildbill = count(explode(',', $days_attending)) * $program["perday"];
+                                $perchildbill = $days_attending * $program["perday"];
                                 $perchildbill = $program["minimumactive"] > 0 && ($perchildbill < $program["minimumactive"]) ? $program["minimumactive"] : $perchildbill;
                             }
                         } else { // Assumed attendance based.
-                            $perchildbill = count(explode(',', $days_attending)) * $program["perday"];
+                            $perchildbill = $days_attending * $program["perday"];
                             $perchildbill = $program["minimumactive"] > 0 && ($perchildbill < $program["minimumactive"]) ? $program["minimumactive"] : $perchildbill;
                         }
                     } else { // Base off of activity

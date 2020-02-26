@@ -2381,17 +2381,17 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
             }
 
             $balance = $total_billed - $total_paid;
-            $returnme .= '<div style="padding: 5px;">
-                            <div style="text-align:right;color:darkred;"><strong>Owed:</strong> $' . number_format($total_billed, 2) . '</div>
-                            <div style="text-align:right;color:blue;"><strong>Paid:</strong> $' . number_format($total_paid, 2) . '</div>
+            $returnme .= '<div style="padding: 0px 12px;">
+                            <div style="text-align: right;color: darkred;"><strong>Owed:</strong> $' . number_format($total_billed, 2) . '</div>
+                            <div style="text-align: right;color: blue;"><strong>Paid:</strong> $' . number_format($total_paid, 2) . '</div>
                             <hr align="right" style="width:100px;" />
-                            <div style="text-align:right"><strong>Balance:</strong> $' . number_format($balance, 2) .
-                         '</div>';
+                            <div style="text-align: right"><strong>Balance:</strong> $' . number_format($balance, 2) . '</div>
+                          </div>';
 
             // Expected next week if prepaid.
             if (get_db_field("payahead", "programs", "pid='$pid'")) { // if prepaid
                 $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white; background: green;">
-                                <div><a style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width:50%">Next Week</td><td style="width:50%;text-align:right"><strong>Expected: </strong>$' . number_format(week_balance($pid, $account["aid"], true, true), 2) . '</td></tr></table></a></div>
+                                <div><a style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width:50%">Next Week</td><td style="width:50%;text-align:right"><strong>Prepay Expected: </strong>$' . number_format(week_balance($pid, $account["aid"], true, true), 2) . '</td></tr></table></a></div>
                               </div>';
             }
 

@@ -2048,16 +2048,39 @@ function ajax_refresh_all_invoices($return = false, $pid = null, $aid = null, $s
     create_invoices($return, $pid, $aid, $refresh, $startweek, $enrollment);
 }
 
-function view_invoices($return = false, $pid = null, $aid = null, $print = null, $orderbytime = null) {
+function view_invoices($return = false, $pid = null, $aid = null, $print = null, $orderbytime = null, $year = null) {
     global $CFG, $MYVARS;
     $pid         = $pid !== null ? $pid : (empty($MYVARS->GET["pid"]) ? false : $MYVARS->GET["pid"]);
     $aid         = $aid !== null ? $aid : (empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"]);
     $print       = $print !== null ? $print : (empty($MYVARS->GET["print"]) ? false : $MYVARS->GET["print"]);
     $orderbytime = $orderbytime !== null ? $orderbytime : (empty($MYVARS->GET["orderbytime"]) ? false : $MYVARS->GET["orderbytime"]);
+    $year        = $year !== null ? $year : (empty($MYVARS->GET["year"]) ? date("Y") : $MYVARS->GET["year"]);
+
+    $yearsql = $yearsql2 = "";
+    if ($year !== "all") {
+        $beginningofyear = make_timestamp_from_date('01/01/' . $year);
+        $endofyear = make_timestamp_from_date('12/31/' . $year);
+        $yearsql = "AND fromdate >= '$beginningofyear' AND fromdate <= '$endofyear'";
+        $yearsql2 = "AND timelog >= '$beginningofyear' AND timelog <= '$endofyear'";
+    }
 
     $returnme   = "";
     $total_paid = 0;
-    $returnme .= '<div class="scroll-pane fill_height"><div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px; 5px;">Invoices:</div>';
+
+    $onchange = '$.ajax({
+                        type: \'POST\',
+                        url: \'ajax/ajax.php\',
+                        data: { action: \'view_invoices\', aid: \''.$aid.'\',pid: \''.$pid.'\',orderbytime: \''.$orderbytime.'\',year: this.value },
+                        success: function(data) { $(\'#info_div\').html(data); refresh_all(); }
+                    });';
+
+    $years[] = "all";
+    for ($i = date("Y");$i > date("Y") - 5;$i--) {
+        $years[] = $i;
+    }
+
+    $yearselector = make_select_from_array("yearselector", $years, false, false, $year, $onchange);
+    $returnme .= '<div class="scroll-pane fill_height"><div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px; 5px;">Invoices: ' . $yearselector . '</div>';
     if (empty($aid)) { //All accounts enrolled in program
         $SQL = "SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid')) ORDER BY name";
     } else { //Only selected account
@@ -2082,7 +2105,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
             if (empty($orderbytime)) {  // Group all transactions
                 //Fees
-                $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 ORDER BY timelog,payid";
+                $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2 ORDER BY timelog,payid";
                 if ($payments = get_db_result($SQL)) {
                     $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0"));
                     $total_fee = empty($total_fee) ? "0.00" : $total_fee;
@@ -2135,9 +2158,9 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                     $returnme .= '</div></div>';
                 }
 
-                $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 ORDER BY timelog,payid";
+                $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2 ORDER BY timelog,payid";
                 if ($payments = get_db_result($SQL)) {
-                    $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0");
+                    $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2");
                     $total_paid = empty($total_paid) ? "0.00" : $total_paid;
                     $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkCyan;padding: 5px;color: white;">
                                         <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td>Payments $' . number_format($total_paid, 2) . '</td></tr></table></a></div>
@@ -2188,7 +2211,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                     $returnme .= '</div></div>';
                 }
 
-                $SQL = "SELECT * FROM billing WHERE pid='$pid' AND aid='" . $account["aid"] . "' ORDER BY fromdate";
+                $SQL = "SELECT * FROM billing WHERE pid='$pid' AND aid='" . $account["aid"] . "' $yearsql ORDER BY fromdate";
                 if ($invoices = get_db_result($SQL)) {
                     while ($invoice = fetch_row($invoices)) {
                         $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white;">
@@ -2220,17 +2243,24 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                         $returnme .= '</div></div>';
                     }
                 }
-                $total_billed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "'");
+                $total_billed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "' $yearsql");
                 $total_billed += $total_fee;
                 $total_billed = empty($total_billed) ? "0.00" : $total_billed;
             } else { // Order all transactions by date
-                $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0"));
+                $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2"));
                 $total_fee = empty($total_fee) ? "0.00" : $total_fee;
 
-                $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0");
+                $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2");
                 $total_paid = empty($total_paid) ? "0.00" : $total_paid;
 
-                $SQL = "SELECT id, pid, aid, amount, note, fromdate, bill FROM (SELECT id, pid, aid, owed as amount, receipt as note, fromdate, 1 AS bill FROM billing UNION SELECT payid as id, pid, aid, payment as amount, note, timelog as fromtime, 0 as bill FROM billing_payments) c WHERE pid='$pid' AND aid='" . $account["aid"] . "' ORDER BY fromdate";
+                $SQL = "SELECT id, pid, aid, amount, note, fromdate, bill
+                          FROM (SELECT id, pid, aid, owed as amount, receipt as note, fromdate, 1 AS bill
+                                  FROM billing
+                                UNION
+                                SELECT payid as id, pid, aid, payment as amount, note, timelog as fromtime, 0 as bill
+                                  FROM billing_payments) c
+                         WHERE pid='$pid' AND aid='" . $account["aid"] . "' $yearsql
+                      ORDER BY fromdate";
                 if ($results = get_db_result($SQL)) {
                     while ($result = fetch_row($results)) {
                         if (!$result["bill"]) { // Payment or Fee
@@ -2367,13 +2397,13 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                             $returnme .= '</div></div>';
                         }
                     }
-                    $total_billed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "'");
+                    $total_billed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "' $yearsql");
                     $total_billed += $total_fee;
                     $total_billed = empty($total_billed) ? "0.00" : $total_billed;
                 }
             }
             // Add current week charges.
-            if ($current_week = week_balance($pid, $account["aid"], true)) {
+            if (($year == "all" || $year == date("Y") ) && $current_week = week_balance($pid, $account["aid"], true)) {
                 $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white;">
                                 <div><a style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width:50%">Current Week</td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($current_week, 2) . '</td></tr></table></a></div>
                               </div>';

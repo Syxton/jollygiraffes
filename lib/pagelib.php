@@ -337,14 +337,18 @@ function is_checked_in($chid) {
     $lastin  = get_db_row("SELECT * FROM activity WHERE pid='$pid' AND chid='$chid' AND tag='in' AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid') ORDER BY timelog DESC");
     $today   = get_today();
 
-    if ($lastout["timelog"] > $lastin["timelog"] && $lastout["timelog"] > $today) { //have signed out today
-        return false;
-    } elseif ($lastin["timelog"] > $lastout["timelog"] && $today > $lastin["timelog"]) { //haven't signed in today
-        return false;
-    } elseif ($lastout["timelog"] > $lastin["timelog"] && $today > $lastout["timelog"]) { //new day
-        return false;
-    } elseif (!$lastin["timelog"]) { //have never signed in
-        return false;
+    if (isset($lastout["timelog"]) && isset($lastin["timelog"])) {
+        if ($lastout["timelog"] > $lastin["timelog"] && $lastout["timelog"] > $today) { //have signed out today
+            return false;
+        } elseif ($lastin["timelog"] > $lastout["timelog"] && $today > $lastin["timelog"]) { //haven't signed in today
+            return false;
+        } elseif ($lastout["timelog"] > $lastin["timelog"] && $today > $lastout["timelog"]) { //new day
+            return false;
+        }
+    } else {
+        if (!isset($lastin["timelog"])) { //have never signed in
+            return false;
+        }
     }
 
     return $lastin["actid"];

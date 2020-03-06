@@ -2110,7 +2110,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                     $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0"));
                     $total_fee = empty($total_fee) ? "0.00" : $total_fee;
                     $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkRed;padding: 5px;color: white;">
-                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td>Fees $' . number_format($total_fee, 2) . '</td></tr></table></a></div>
+                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width: 16px;">'.get_icon('plusminus').' </td><td>Fees</td><td style="width:50%;text-align:right"><strong>Total Fees: </strong>$' . number_format($total_fee, 2) . '</td></tr></table></a></div>
                                         <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                     while ($payment = fetch_row($payments)) {
                         $identifier          = time() . "accountpaymentpayid_" . $payment["payid"];
@@ -2163,7 +2163,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                     $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2");
                     $total_paid = empty($total_paid) ? "0.00" : $total_paid;
                     $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkCyan;padding: 5px;color: white;">
-                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td>Payments $' . number_format($total_paid, 2) . '</td></tr></table></a></div>
+                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width: 16px;">'.get_icon('plusminus').' </td><td>Payments</td><td style="width:50%;text-align:right"><strong>Total Payments:</strong> $' . number_format($total_paid, 2) . '</td></tr></table></a></div>
                                         <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                     while ($payment = fetch_row($payments)) {
                         $identifier          = time() . "accountpaymentpayid_" . $payment["payid"];
@@ -2215,7 +2215,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 if ($invoices = get_db_result($SQL)) {
                     while ($invoice = fetch_row($invoices)) {
                         $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white;">
-                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width:50%">Week of ' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($invoice["owed"], 2) . '</td></tr></table></a></div>
+                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%">Week of ' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($invoice["owed"], 2) . '</td></tr></table></a></div>
                                         <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                         $SQL = "SELECT * FROM billing_perchild WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND fromdate = '" . $invoice["fromdate"] . "' ORDER BY id";
 
@@ -2266,7 +2266,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                         if (!$result["bill"]) { // Payment or Fee
                             if ($result["amount"] < 0) { // Fee
                                 $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkRed;padding: 5px;color: white;">
-                                                    <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td>Fees $' . number_format($result["amount"], 2) . '</td></tr></table></a></div>
+                                                    <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%;text-align:right"><strong>Fee:</strong> $' . number_format(abs($result["amount"]), 2) . '</td></tr></table></a></div>
                                                     <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
 
                                 $identifier          = time() . "accountpaymentpayid_" . $result["id"];
@@ -2317,7 +2317,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                            </div>';
                             } else { // Payment
                                 $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkCyan;padding: 5px;color: white;">
-                                                    <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td>Payments $' . number_format($result["amount"], 2) . '</td></tr></table></a></div>
+                                                    <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%;text-align:right"><strong>Payment:</strong> $' . number_format($result["amount"], 2) . '</td></tr></table></a></div>
                                                     <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
 
                                 $identifier          = time() . "accountpaymentpayid_" . $result["id"];
@@ -2369,7 +2369,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                             }
                         } else { // Bill
                             $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white;">
-                                            <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width:50%">Week of ' . date('F \t\h\e jS, Y', $result["fromdate"]) . '</td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($result["amount"], 2) . '</td></tr></table></a></div>
+                                            <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%">Week of ' . date('F \t\h\e jS, Y', $result["fromdate"]) . '</td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($result["amount"], 2) . '</td></tr></table></a></div>
                                             <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                             $SQL = "SELECT * FROM billing_perchild WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND fromdate = '" . $result["fromdate"] . "' ORDER BY id";
 

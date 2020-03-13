@@ -703,7 +703,7 @@ function add_edit_expense() {
                 ${$field["name"]} = str_replace("$", "", dbescape($field["value"]));
                 break;
             case "timelog":
-                ${$field["name"]} = make_timestamp_from_date($field["value"]);
+                ${$field["name"]} = make_timestamp_from_date($field["value"], $CFG->timezone);
                 break;
             case "note":
             case "pid":
@@ -876,7 +876,7 @@ function add_edit_payment() {
                 ${$field["name"]} = str_replace("$", "", dbescape($field["value"]));
                 break;
             case "timelog":
-                ${$field["name"]} = make_timestamp_from_date($field["value"]);
+                ${$field["name"]} = make_timestamp_from_date($field["value"], $CFG->timezone);
                 break;
         }
     }
@@ -1039,7 +1039,7 @@ function add_edit_child() {
                 ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "birthdate":
-                ${$field["name"]} = make_timestamp_from_date($field["value"]);
+                ${$field["name"]} = make_timestamp_from_date($field["value"], $CFG->timezone);
                 break;
         }
     }
@@ -1287,7 +1287,7 @@ function add_activity() {
                 ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "timelog":
-                ${$field["name"]} = make_timestamp_from_date($field["value"]);
+                ${$field["name"]} = make_timestamp_from_date($field["value"], $CFG->timezone);
                 break;
         }
     }
@@ -1488,7 +1488,7 @@ function save_employee_salary_history() {
                 ${$field["name"]} = dbescape($field["value"]);
                 break;
             case "date":
-                ${$field["name"]} = make_timestamp_from_date($field["value"]);
+                ${$field["name"]} = make_timestamp_from_date($field["value"], $CFG->timezone);
                 break;
             case "wage":
                 ${$field["name"]} = dbescape($field["value"]);
@@ -2058,8 +2058,8 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
     $yearsql = $yearsql2 = "";
     if ($year !== "all") {
-        $beginningofyear = make_timestamp_from_date('01/01/' . $year);
-        $endofyear = make_timestamp_from_date('12/31/' . $year);
+        $beginningofyear = make_timestamp_from_date('01/01/' . $year, $CFG->timezone);
+        $endofyear = make_timestamp_from_date('12/31/' . $year, $CFG->timezone);
         $yearsql = "AND fromdate >= '$beginningofyear' AND fromdate <= '$endofyear'";
         $yearsql2 = "AND timelog >= '$beginningofyear' AND timelog <= '$endofyear'";
     }

@@ -334,8 +334,8 @@ function is_checked_in($chid) {
     global $CFG;
     $pid     = get_pid();
     $today   = get_today();
-    $lastout = get_db_row("SELECT * FROM activity WHERE pid='$pid' AND chid='$chid' AND tag='out' AND timelog < ($today + 8600) AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid') ORDER BY timelog DESC");
-    $lastin  = get_db_row("SELECT * FROM activity WHERE pid='$pid' AND chid='$chid' AND tag='in' AND timelog < ($today + 8600) AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid') ORDER BY timelog DESC");
+    $lastout = get_db_row("SELECT * FROM activity WHERE pid='$pid' AND chid='$chid' AND tag='out' AND timelog < ($today + 86400) AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid') ORDER BY timelog DESC");
+    $lastin  = get_db_row("SELECT * FROM activity WHERE pid='$pid' AND chid='$chid' AND tag='in' AND timelog < ($today + 86400) AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid') ORDER BY timelog DESC");
 
     if (isset($lastout["timelog"]) && isset($lastin["timelog"])) {
         if ($lastout["timelog"] > $lastin["timelog"] && $lastout["timelog"] > $today) { //have signed out today

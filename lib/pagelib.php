@@ -334,24 +334,26 @@ function is_checked_in($chid) {
     global $CFG;
     $pid     = get_pid();
     $today   = get_today();
-    $lastout = get_db_row("SELECT * FROM activity WHERE pid='$pid' AND chid='$chid' AND tag='out' AND timelog < ($today + 86400) AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid') ORDER BY timelog DESC");
-    $lastin  = get_db_row("SELECT * FROM activity WHERE pid='$pid' AND chid='$chid' AND tag='in' AND timelog < ($today + 86400) AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid') ORDER BY timelog DESC");
 
-    if (isset($lastout["timelog"]) && isset($lastin["timelog"])) {
-        if ($lastout["timelog"] > $lastin["timelog"] && $lastout["timelog"] > $today) { //have signed out today
-            return false;
-        } elseif ($lastin["timelog"] > $lastout["timelog"] && $today > $lastin["timelog"]) { //haven't signed in today
-            return false;
-        } elseif ($lastout["timelog"] > $lastin["timelog"] && $today > $lastout["timelog"]) { //new day
+    $lastinout = get_db_row("SELECT *
+                               FROM activity a
+                               JOIN children c ON a.chid = c.chid
+                              WHERE a.pid='$pid' AND a.chid='$chid'
+                                AND a.chid IN (SELECT e.chid FROM enrollments e WHERE e.pid='$pid')
+                                AND (a.tag='in' OR a.tag='out')
+                                AND a.timelog > $today
+                                AND a.timelog < ($today + 86400)
+                           ORDER BY a.timelog DESC");
+
+    if (isset($lastinout["actid"])) { // A sign in or out has occured today.
+        if ($lastinout["tag"] == 'out') { // Last action today was to sign out.
             return false;
         }
     } else {
-        if (!isset($lastin["timelog"])) { //have never signed in
-            return false;
-        }
+        return false;
     }
 
-    return $lastin["actid"];
+    return $lastinout["actid"];
 }
 
 function is_working($employeeid) {

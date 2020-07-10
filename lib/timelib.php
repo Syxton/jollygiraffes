@@ -49,7 +49,8 @@ global $CFG;
 
 function get_today($timezone = "UTC"){
 global $CFG;
-    $time = strtotime("today $timezone");
+    $currenttime = get_timestamp($CFG->timezone); // get datetime for current timezone.
+    $time = strtotime(date("m/d/Y", $currenttime) . " $timezone");
     return $time;
 }
 

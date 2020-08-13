@@ -333,7 +333,7 @@ function get_numpad($aid = "\'\'", $admin = "false", $type = "\'\'", $display = 
 function is_checked_in($chid) {
     global $CFG;
     $pid     = get_pid();
-    $today   = get_today();
+    $today   = get_today() - get_offset();
 
     $lastinout = get_db_row("SELECT *
                                FROM activity a

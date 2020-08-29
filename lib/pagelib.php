@@ -334,16 +334,17 @@ function is_checked_in($chid) {
     global $CFG;
     $pid     = get_pid();
     $today   = get_today() - get_offset();
+    $SQL = "SELECT *
+              FROM activity a
+              JOIN children c ON a.chid = c.chid
+             WHERE a.pid='$pid' AND a.chid='$chid'
+               AND a.chid IN (SELECT e.chid FROM enrollments e WHERE e.pid='$pid')
+               AND (a.tag='in' OR a.tag='out')
+               AND a.timelog > $today
+               AND a.timelog < ($today + 86400)
+          ORDER BY a.timelog DESC";
 
-    $lastinout = get_db_row("SELECT *
-                               FROM activity a
-                               JOIN children c ON a.chid = c.chid
-                              WHERE a.pid='$pid' AND a.chid='$chid'
-                                AND a.chid IN (SELECT e.chid FROM enrollments e WHERE e.pid='$pid')
-                                AND (a.tag='in' OR a.tag='out')
-                                AND a.timelog > $today
-                                AND a.timelog < ($today + 86400)
-                           ORDER BY a.timelog DESC");
+    $lastinout = get_db_row($SQL);
 
     if (isset($lastinout["actid"])) { // A sign in or out has occured today.
         if ($lastinout["tag"] == 'out') { // Last action today was to sign out.

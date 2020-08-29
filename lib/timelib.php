@@ -49,9 +49,9 @@ global $CFG;
 
 function get_today($timezone = "UTC"){
 global $CFG;
-    $currenttime = get_timestamp($CFG->timezone); // get datetime for current timezone.
-    $time = strtotime(date("m/d/Y", $currenttime) . " $timezone");
-    return $time;
+    $dateinmytimezone = new DateTime("now", new DateTimeZone($CFG->timezone)); //first argument "must" be a string
+    $UTCdate = new DateTime($dateinmytimezone->format("m/d/Y"), new DateTimeZone("UTC"));
+    return $UTCdate->getTimestamp();
 }
 
 function ago($timestamp){

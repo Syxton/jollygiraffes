@@ -38,7 +38,9 @@ function refresh_all() {
     });
     $(".toggleswitch").toggleSwitch(); // Make toggle switches
     $('.flexsection').off("click").click(function() {
-        $(this).next().toggle('blind');
+        $(this).next().toggle('blind', function() {
+           $(".scroll-pane").sbscroller("refresh");
+        });
         return false;
     }).next().hide();
 

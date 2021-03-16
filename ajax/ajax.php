@@ -91,7 +91,7 @@ function get_check_in_out_form() {
                 $letter = strtoupper(substr($row["last"], 0, 1));
                 $alphabet .= !$lastinitial || ($lastinitial != substr($row["last"], 0, 1)) ? '<button style="font-size: 20px;" class="keypad_buttons ui-corner-all" onclick="$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not(this).toggleClass(\'selected_button\',false); $(\'.child_wrapper\').children().not(\'.letter_' . $letter . '\').parent().hide(); $(\'.letter_' . $letter . '\').parent(\'.child_wrapper\').show(\'fade\'); $(\'.scroll-pane\').sbscroller(\'refresh\');">' . strtoupper(substr($row["last"], 0, 1)) . '</button>' : '';
                 $action = 'if($(\'.chid_' . $row["chid"] . '.checked_pic\').length > 0){
-                            if($(\'#askme\').val()==1 && $(\'.account_' . $row["aid"] . '.checked_pic\').not(\'.chid_' . $row["chid"] . '\').length){
+                            if($(\'#askme\').val()==1 && $(\'.account_' . $row["aid"] . '.checked_pic\').not(\'.chid_' . $row["chid"] . '\').length > 1){
                                 CreateConfirm(\'dialog-confirm\',\'Deselect all other children from this account?\',\'Yes\',\'No\',
                                     function(){
                                         $(\'.account_' . $row["aid"] . '.checked_pic\').toggleClass(\'checked_pic\',false);
@@ -120,7 +120,7 @@ function get_check_in_out_form() {
                                 }
                             }
                         }else{
-                            if($(\'#askme\').val()==1 && $(\'.account_' . $row["aid"] . '\').not(\'.chid_' . $row["chid"] . '\').not(\'.checked_pic\').length > 0){
+                            if($(\'#askme\').val()==1 && $(\'.account_' . $row["aid"] . '\').not(\'.chid_' . $row["chid"] . '\').not(\'.checked_pic\').length > 1){
                                 CreateConfirm(\'dialog-confirm\',\'Select all other children from this account?\',\'Yes\',\'No\',
                                     function(){
                                         $(\'.account_' . $row["aid"] . '\').toggleClass(\'checked_pic\',true);
@@ -177,18 +177,26 @@ function get_check_in_out_form() {
     $returnme .= $alphabet . $children;
 
     //Admin button
-    $returnme .= '<div class="top-right side" style="top:50px"><button class="submit_buttons" style="font-size: 150%;" disabled="true" onclick="if($(\'.checked_pic\').length){ var account = \'\'; $(\'.checked_pic\').each(function(index){ account = account == \'\' || account == $(this).attr(\'class\').match(/account_[1-9]+/ig).toString() ? $(this).attr(\'class\').match(/account_[1-9]+/ig) : \'false\'; }); $.ajax({
-              type: \'POST\',
-              url: \'ajax/ajax.php\',
-              data: { action: \'check_in_out_form\',type: \'' . $type . '\',chid: $(\'.checked_pic input.chid\').serializeArray(),admin: true },
-              success: function(data) { $(\'#display_level\').html(data); refresh_all(); }
-              }); }" >Admin Check ' . ucfirst($type) . '</button></div>';
-    $returnme .= '<div class="bottom center ui-corner-all"><button class="submit_buttons big_button textfill" style="font-size: 150%;" disabled="true" onclick="if($(\'.checked_pic\').length){ var account = \'\'; $(\'.checked_pic\').each(function(index){ account = account == \'\' || account == $(this).attr(\'class\').match(/account_[1-9]+/ig).toString() ? $(this).attr(\'class\').match(/account_[1-9]+/ig) : \'false\'; }); if(account == \'false\'){ CreateAlert(\'dialog-confirm\',\'All selected children must be on the same account.\', \'Ok\', function(){}); }else{ $.ajax({
-              type: \'POST\',
-              url: \'ajax/ajax.php\',
-              data: { action: \'check_in_out_form\',type: \'' . $type . '\',chid: $(\'.checked_pic input.chid\').serializeArray(),admin: false },
-              success: function(data) { $(\'#display_level\').html(data); refresh_all(); }
-              }); }}" >Next</button></div>';
+    $returnme .= '<div class="top-right side" style="top:50px">
+                      <button style="font-size: 150%;" onclick="$(\'.child\').toggleClass(\'checked_pic\',true); $(\'.submit_buttons\').button(\'enable\');" >Select All</button>
+                      <button style="font-size: 150%;" onclick="$(\'.child\').toggleClass(\'checked_pic\',false); $(\'.submit_buttons\').button(\'disable\');" >Deselect All</button>
+                      <button class="submit_buttons" style="font-size: 150%;" disabled="true" onclick="if($(\'.checked_pic\').length){ var account = \'\'; $(\'.checked_pic\').each(function(index){ account = account == \'\' || account == $(this).attr(\'class\').match(/account_[1-9]+/ig).toString() ? $(this).attr(\'class\').match(/account_[1-9]+/ig) : \'false\'; }); $.ajax({
+                      type: \'POST\',
+                      url: \'ajax/ajax.php\',
+                      data: { action: \'check_in_out_form\',type: \'' . $type . '\',chid: $(\'.checked_pic input.chid\').serializeArray(),admin: true },
+                      success: function(data) { $(\'#display_level\').html(data); refresh_all(); }}); }">
+                      Admin Check ' . ucfirst($type) .
+                      '</button>' .
+                 '</div>';
+    $returnme .= '<div class="bottom center ui-corner-all">
+                      <button class="submit_buttons big_button textfill" style="font-size: 150%;" disabled="true" onclick="if($(\'.checked_pic\').length){ var account = \'\'; $(\'.checked_pic\').each(function(index){ account = account == \'\' || account == $(this).attr(\'class\').match(/account_[1-9]+/ig).toString() ? $(this).attr(\'class\').match(/account_[1-9]+/ig) : \'false\'; }); if(account == \'false\'){ CreateAlert(\'dialog-confirm\',\'All selected children must be on the same account.\', \'Ok\', function(){}); }else{ $.ajax({
+                      type: \'POST\',
+                      url: \'ajax/ajax.php\',
+                      data: { action: \'check_in_out_form\',type: \'' . $type . '\',chid: $(\'.checked_pic input.chid\').serializeArray(),admin: false },
+                      success: function(data) { $(\'#display_level\').html(data); refresh_all(); }}); }}" >
+                      Next
+                      </button>
+                  </div>';
 
     echo $returnme;
 }
@@ -2107,7 +2115,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 //Fees
                 $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2 ORDER BY timelog,payid";
                 if ($payments = get_db_result($SQL)) {
-                    $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0"));
+                    $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2"));
                     $total_fee = empty($total_fee) ? "0.00" : $total_fee;
                     $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkRed;padding: 5px;color: white;">
                                         <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width: 16px;">'.get_icon('plusminus').' </td><td>Fees</td><td style="width:50%;text-align:right"><strong>Total Fees: </strong>$' . number_format($total_fee, 2) . '</td></tr></table></a></div>

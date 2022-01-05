@@ -38,7 +38,7 @@ function apply_overrides($program, $pid, $aid) {
     return false;
 }
 
-function week_balance($pid,$aid,$enrollment = true,$nextweek = false){
+function week_balance($pid, $aid, $enrollment = true, $nextweek = false) {
 global $CFG;
     $invoiceweek = date("N") == 7 ? strtotime("Sunday") : strtotime("previous Sunday");
     $program = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
@@ -53,10 +53,10 @@ global $CFG;
         while ($account = fetch_row($accounts)) {
             $SQL = "SELECT * FROM children WHERE aid='".$account["aid"]."' AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid' AND exempt=0) AND chid IN (SELECT chid FROM activity WHERE pid='$pid' AND tag='in') ORDER BY last,first";
             if ($children = get_db_result($SQL)) {
+                $childcount = 0;
                 while ($child = fetch_row($children)) {
                     $perchildbill = 0;
                     $chid = $child["chid"];
-                    $discount = "";
                     if ($nextweek) { // Base off of assumptions.
                         $days_attending = count(array_filter(explode(',', get_db_field("days_attending","enrollments","chid='$chid' AND pid='$pid'"))));
                         if ($program["bill_by"] == "enrollment") {
@@ -114,16 +114,21 @@ global $CFG;
                         }
                     }
 
-                    if ($perchildbill >= $program["discount_rule"]) {
-                        $childcount++;
+                    if ($perchildbill > 0) { // Only cound chilren that are billed.
+                        $childcount++; // Count the children that are billed.
                     }
-                    $totalbill += $perchildbill;
+
+                    if ($childcount > 1 && $totalbill >= $program["discount_rule"]) { // If more than 1 billed child and the total bill is greater than the discount rule, apply the discount.
+                        $totalbill += $perchildbill - $program["multiple_discount"]; // Add the discount to the total bill.
+                    } else {
+                        $totalbill += $perchildbill; // Add the child's bill to the total bill.
+                    }
                 }
             }
         }
     }
-    $totalbill = $childcount > 2 ? $totalbill - ($program["multiple_discount"] * ($childcount-1)) : $totalbill;
-    return number_format($totalbill,2);
+
+    return number_format($totalbill, 2);
 }
 
 function make_account_invoice($pid,$aid,$invoiceweek=false){

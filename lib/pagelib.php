@@ -1167,21 +1167,21 @@ function check_and_run_upgrades() {
 
         $SQL2 = "ALTER TABLE `billing_override` MODIFY bill_by VARCHAR(20) NULL DEFAULT NULL";
         execute_db_sql($SQL2);
-        $SQL2 = "ALTER TABLE `billing_override` MODIFY perday VARCHAR(10) NULL DEFAULT NULL";
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY perday INT(11) NULL DEFAULT NULL";
         execute_db_sql($SQL2);
-        $SQL2 = "ALTER TABLE `billing_override` MODIFY fulltime VARCHAR(10) NULL DEFAULT NULL";
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY fulltime INT(11) NULL DEFAULT NULL";
         execute_db_sql($SQL2);
-        $SQL2 = "ALTER TABLE `billing_override` MODIFY minimumactive VARCHAR(10) NULL DEFAULT NULL";
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY minimumactive INT(11) NULL DEFAULT NULL";
         execute_db_sql($SQL2);
-        $SQL2 = "ALTER TABLE `billing_override` MODIFY minimuminactive VARCHAR(10) NULL DEFAULT NULL";
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY minimuminactive INT(11) NULL DEFAULT NULL";
         execute_db_sql($SQL2);
-        $SQL2 = "ALTER TABLE `billing_override` MODIFY vacation VARCHAR(10) NULL DEFAULT NULL";
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY vacation INT(11) NULL DEFAULT NULL";
         execute_db_sql($SQL2);
-        $SQL2 = "ALTER TABLE `billing_override` MODIFY multiple_discount VARCHAR(10) NULL DEFAULT NULL";
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY multiple_discount INT(11) NULL DEFAULT NULL";
         execute_db_sql($SQL2);
-        $SQL2 = "ALTER TABLE `billing_override` MODIFY consider_full TINYINT(1) NULL DEFAULT NULL";
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY consider_full INT(11) NULL DEFAULT NULL";
         execute_db_sql($SQL2);
-        $SQL2 = "ALTER TABLE `billing_override` MODIFY discount_rule TINYINT(1) NULL DEFAULT NULL";
+        $SQL2 = "ALTER TABLE `billing_override` MODIFY discount_rule INT(11) NULL DEFAULT NULL";
         execute_db_sql($SQL2);
 
         execute_db_sql("UPDATE version SET version='$thisversion'");

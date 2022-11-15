@@ -30,4 +30,7 @@ $CFG->userfilespath = substr($CFG->docroot,0,strrpos($CFG->docroot,'/'));
 $CFG->timezone = '';
 $CFG->servertz = '';
 date_default_timezone_set('UTC');
+
+//Google Analytics id
+$CFG->analytics = '';
 ?>

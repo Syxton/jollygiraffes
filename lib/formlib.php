@@ -1059,14 +1059,14 @@ global $CFG;
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="billing" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
 
             $sql = empty($vars["aid"]) ? "" : "AND aid='".$vars["aid"]."'";
-
+            $weeks_sql = "SELECT (DATE_FORMAT(CONVERT_TZ(FROM_UNIXTIME(fromdate-".get_offset()."), @@session.time_zone,'UTC'),'%M %D %Y') ) as display, fromdate FROM billing WHERE pid='$activepid' $sql GROUP BY fromdate ORDER BY fromdate DESC";
             $form = '<div id="create_invoices'.$identifier.'" title="Recreate Invoices" style="display:none;">
                 		<form name="create_invoices_form'.$identifier.'">
                             '.$fields.'
                             <table>
-                                <tr><td><label for="startweek">Start processing from:</label></td><td>'.make_select("startweek",get_db_result("SELECT (DATE_FORMAT(FROM_UNIXTIME(fromdate-".get_offset()."),'%M %D %Y') ) as display, fromdate FROM billing WHERE pid='$activepid' $sql GROUP BY fromdate ORDER BY fromdate"),"fromdate","display","fields",$startweek,"",true,"1","","Beginning").'</td></tr>
-                                <tr><td><label for="refresh">Remake Existing Invoices</label></td><td>'.make_select_from_object("refresh",$refresh,"value","display","fields").'</td></tr>
-                                <tr><td><label for="enrollment">Remember Past Enrollment Settings</label></td><td>'.make_select_from_object("enrollment",$refresh,"value","display","fields","1").'</td></tr>
+                                <tr><td><label for="startweek">Start processing from:</label></td><td>'.make_select("startweek",get_db_result($weeks_sql),"fromdate","display","fields",$startweek,"",true,"1","","Beginning").'</td></tr>
+                                <tr><td><label for="refresh">Remake Existing Invoices</label></td><td>'.make_select_from_object("refresh",$refresh,"value","display","fields", "1").'</td></tr>
+                                <tr><td><label for="enrollment">Remember Past Enrollment Settings</label></td><td>'.make_select_from_object("enrollment",$refresh,"value","display","fields","0").'</td></tr>
                             </table><br />
                         <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
                           type: \'POST\',

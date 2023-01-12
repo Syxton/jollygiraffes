@@ -98,9 +98,12 @@ global $CFG;
                                     $days .= date("m/d/Y",display_time($activity["timelog"])) == $sameday ? "" : ($days == "" ? date("D",display_time($activity["timelog"])) : " ".date("D",display_time($activity["timelog"])));
                                     $sameday = date("m/d/Y",display_time($activity["timelog"]));
                                 }
-                                $bill = $program["minimumactive"] > "0" && ($bill < $program["minimumactive"]) ? $program["minimumactive"] : $bill;
+                                // Raises minimum charge if a minimum active is set and the current week bill is too low.
+                                $bill = $program["minimumactive"] > 0 && ($bill < $program["minimumactive"]) ? $program["minimumactive"] : $bill;
+                                if ($attendance >= $program["consider_full"] || !$program["minimumactive"] > 0) {
+                                    $bill = $program["fulltime"];
+                                }
                                 $attendance .= $attendance > 0 ? ($attendance == 1 ? " day ($days)" : " days ($days)") : " days";
-
                                 if(!$perchild){
                                     $perchildbill = save_child_invoice($program,$chid,$invoiceweek,$endofweek,$enrollment,$lastid,$bill,$attendance,"unknown",true);
                                 }
@@ -190,7 +193,7 @@ function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$l
     $discount_rule = empty($program["discount_rule"]) || $program["discount_rule"] < $program["multiple_discount"] ? "(bill >= ".$program["multiple_discount"]."" : "(bill >= ".$program["discount_rule"].")";
 
     $exempt = $exempt == "unknown" ? get_db_field("exempt","enrollments","chid='$chid' AND pid='".$program["pid"]."'") : $exempt;
-    $days_attending = get_db_field("days_attending","enrollments","chid='$chid' AND pid='".$program["pid"]."'");
+    $days_expected = get_db_field("days_attending","enrollments","chid='$chid' AND pid='".$program["pid"]."'");
     //SQL that finds other children on the account that would qualify this child for a discount
     $otherchildrenthatmatch = "SELECT * FROM billing_perchild WHERE
         0='$exempt' /* this child is not exempt */
@@ -205,33 +208,40 @@ function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$l
 
     // $billed_by is either enrollment or days the child attended ex. M,W,Th,F
     // If we expected to bill for a full week, either enrollment based or attendance over the considered full amount.
-    if(($billed_by == "enrollment" && count(explode(",",$days_attending)) >= $program["consider_full"]) || ($billed_by != "enrollment" && !empty($attendance) && $attendance[0] >= $program["consider_full"])){
-        if(empty($attendance)){ // If we expected attendance but no attendance was recorded.
+    // removed: && count(explode(",",$days_expected)) >= $program["consider_full"]) || ($billed_by != "enrollment" && !empty($attendance) && $attendance[0] >= $program["consider_full"])
+    if ($program["bill_by"] == "enrollment") {
+        if (empty($attendance)) { // If we expected attendance but no attendance was recorded.
             $bill = $program["vacation"];
             $rate = "Did Not Attend [Vacation Rate]";
         } else {
-            $bill = empty($program["fulltime"]) ? $program["perday"] * $program["consider_full"] : $program["fulltime"];
-            if($bill >= $program["discount_rule"] && get_db_row($otherchildrenthatmatch)){ //Not the first child on this account this week
-                $discount = "[$".number_format($program["multiple_discount"],2)." Multiple Child Discount]";
+            if (empty($bill)) {
+                $bill = empty($program["fulltime"]) ? $program["perday"] * $program["consider_full"] : $program["fulltime"];
+            }
+            if ($bill >= $program["discount_rule"] && get_db_row($otherchildrenthatmatch)) { //Not the first child on this account this week
+                $discount = "[$".number_format($program["multiple_discount"],2) . " Multiple Child Discount]";
                 $bill = $bill - $program["multiple_discount"];
             }
-            $rate = "[Fulltime Rate] $discount Attended $attendance";
+            if ($attendance[0] >= $program["consider_full"] || !$program["minimumactive"] > 0) {
+                $rate = "[Fulltime Rate] $discount Attended $attendance";
+            } else {
+                $rate = "[Partial Week Rate] $discount Attended $attendance";
+            }
         }
 
-        if($exempt == "1"){
+        if ($exempt == "1") {
             $bill = 0;
             $receipt = get_name(array("type"=>"chid","id"=>$chid))." - [Exempt] Attended $attendance: $".number_format($bill,2);
-        }else{
+        } else {
             $receipt = get_name(array("type"=>"chid","id"=>$chid))." - $rate: $".number_format($bill,2);
         }
 
-        if($billonly){ return $bill; }
-        $SQL = "INSERT INTO billing_perchild (pid,chid,fromdate,todate,bill,receipt,exempt,days_attending) VALUES('".$program["pid"]."','$chid','$invoiceweek','$endofweek','$bill','$receipt','$exempt','$billed_by')";
-        if(!get_db_row("SELECT fromdate FROM billing_perchild WHERE pid=''".$program["pid"]."'' AND chid='$chid' AND fromdate='$invoiceweek'")){
+        if ($billonly) { return $bill; }
+            $SQL = "INSERT INTO billing_perchild (pid,chid,fromdate,todate,bill,receipt,exempt,days_attending) VALUES('".$program["pid"]."','$chid','$invoiceweek','$endofweek','$bill','$receipt','$exempt','$billed_by')";
+        if (!get_db_row("SELECT fromdate FROM billing_perchild WHERE pid=''".$program["pid"]."'' AND chid='$chid' AND fromdate='$invoiceweek'")){
             execute_db_sql($SQL);
         }
-    }else{ //enrollment considered part-time
-        if(!empty($attendance) && $bill >= $program["discount_rule"] && get_db_row($otherchildrenthatmatch)){ //Not the first child on this account this week
+    } else { //enrollment considered part-time
+        if (!empty($attendance) && $bill >= $program["discount_rule"] && get_db_row($otherchildrenthatmatch)) { //Not the first child on this account this week
             $discount = "[$".number_format($program["multiple_discount"],2)." Multiple Child Discount]";
             $bill = $bill - $program["multiple_discount"];
         }
@@ -301,10 +311,11 @@ global $CFG;
         }
 
         if ($attendance > 0) {
-            $bill = $program["minimumactive"] > "0" && ($bill < $program["minimumactive"]) ? $program["minimumactive"] : $bill;
+            $bill = $program["minimumactive"] > 0 && ($bill < $program["minimumactive"]) ? $program["minimumactive"] : $bill;
         } else {
-            $bill = $program["minimuminactive"] > "0" && ($bill < $program["minimuminactive"]) ? $program["minimuminactive"] : $bill;
+            $bill = $program["minimuminactive"] > 0 && ($bill < $program["minimuminactive"]) ? $program["minimuminactive"] : $bill;
         }
+
         $attendance .= $attendance > 0 ? ($attendance == 1 ? " day ($days)" : " days ($days)") : " days";
 
         if($refresh){ execute_db_sql("DELETE FROM billing_perchild WHERE pid='$pid' AND chid='$chid' AND fromdate = '$invoiceweek'"); }

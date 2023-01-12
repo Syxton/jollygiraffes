@@ -2066,8 +2066,8 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
     $yearsql = $yearsql2 = "";
     if ($year !== "all") {
-        $beginningofyear = make_timestamp_from_date('01/01/' . $year, $CFG->timezone);
-        $endofyear = make_timestamp_from_date('12/31/' . $year, $CFG->timezone);
+        $beginningofyear = make_timestamp_from_date('01/01/' . $year . 'T00:00:00Z');
+        $endofyear = make_timestamp_from_date('12/31/' . $year . 'T00:00:00Z');
         $yearsql = "AND fromdate >= '$beginningofyear' AND fromdate <= '$endofyear'";
         $yearsql2 = "AND timelog >= '$beginningofyear' AND timelog <= '$endofyear'";
     }

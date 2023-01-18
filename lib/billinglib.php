@@ -191,7 +191,6 @@ function make_account_invoice($pid,$aid,$invoiceweek=false){
 function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$lastid="0",$bill="",$attendance="",$exempt='unknown',$billonly=false){
     $discount = "";
     $discount_rule = empty($program["discount_rule"]) || $program["discount_rule"] < $program["multiple_discount"] ? "(bill >= ".$program["multiple_discount"]."" : "(bill >= ".$program["discount_rule"].")";
-
     $exempt = $exempt == "unknown" ? get_db_field("exempt","enrollments","chid='$chid' AND pid='".$program["pid"]."'") : $exempt;
     $days_expected = get_db_field("days_attending","enrollments","chid='$chid' AND pid='".$program["pid"]."'");
     //SQL that finds other children on the account that would qualify this child for a discount
@@ -221,7 +220,7 @@ function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$l
                 $discount = "[$".number_format($program["multiple_discount"],2) . " Multiple Child Discount]";
                 $bill = $bill - $program["multiple_discount"];
             }
-            if ($attendance[0] >= $program["consider_full"] || !$program["minimumactive"] > 0) {
+            if ($attendance[0] >= $program["consider_full"] || $program["minimumactive"] == 0) {
                 $rate = "[Fulltime Rate] $discount Attended $attendance";
             } else {
                 $rate = "[Partial Week Rate] $discount Attended $attendance";
@@ -311,7 +310,11 @@ global $CFG;
         }
 
         if ($attendance > 0) {
-            $bill = $program["minimumactive"] > 0 && ($bill < $program["minimumactive"]) ? $program["minimumactive"] : $bill;
+            if ($attendance >= $program["consider_full"]) {
+                $bill = $programe["fulltime"];
+            } else {
+                $bill = $program["minimumactive"] > 0 && ($bill < $program["minimumactive"]) ? $program["minimumactive"] : $bill;
+            }
         } else {
             $bill = $program["minimuminactive"] > 0 && ($bill < $program["minimuminactive"]) ? $program["minimuminactive"] : $bill;
         }

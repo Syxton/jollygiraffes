@@ -10,10 +10,17 @@
 if(!isset($LIBHEADER)) include('header.php');
 $BILLINGLIB = true;
 
-function account_balance($pid,$aid,$running_balance = false){
-    $total_paid = get_db_field("SUM(payment)","billing_payments","pid='$pid' AND aid='$aid'");
+function account_balance($pid, $aid, $running_balance = false, $year = false) {
+    $billing_year_sql = $payment_year_sql = "";
+    if (!empty($year)) {
+        $beginningofyear = make_timestamp_from_date('01/01/' . $year . 'T00:00:00Z');
+        $billing_year_sql = "AND fromdate < '$beginningofyear'";
+        $payment_year_sql = "AND timelog < '$beginningofyear'";
+    }
+
+    $total_paid = get_db_field("SUM(payment)","billing_payments","pid='$pid' AND aid='$aid' $payment_year_sql");
     $total_paid = empty($total_paid) ? "0.00" : $total_paid;
-    $total_owed = get_db_field("SUM(owed)","billing","pid='$pid' AND aid='$aid'");
+    $total_owed = get_db_field("SUM(owed)","billing","pid='$pid' AND aid='$aid' $billing_year_sql");
     $total_owed = empty($total_owed) ? "0.00" : $total_owed;
 
     if ($running_balance) {
@@ -22,7 +29,7 @@ function account_balance($pid,$aid,$running_balance = false){
 
         $total_owed += $running_balance;
     }
-    return number_format($total_owed - $total_paid,2);
+    return number_format($total_owed - $total_paid, 2);
 }
 
 function apply_overrides($program, $pid, $aid) {

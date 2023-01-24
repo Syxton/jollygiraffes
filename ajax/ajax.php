@@ -2065,9 +2065,11 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
     $year        = $year !== null ? $year : (empty($MYVARS->GET["year"]) ? date("Y") : $MYVARS->GET["year"]);
 
     $yearsql = $yearsql2 = "";
+    $beginning_balance = 0;
     if ($year !== "all") {
         $beginningofyear = make_timestamp_from_date('01/01/' . $year . 'T00:00:00Z');
         $endofyear = make_timestamp_from_date('12/31/' . $year . 'T00:00:00Z');
+        $beginning_balance = account_balance($pid, $aid, false, $year);
         $yearsql = "AND fromdate >= '$beginningofyear' AND fromdate <= '$endofyear'";
         $yearsql2 = "AND timelog >= '$beginningofyear' AND timelog <= '$endofyear'";
     }
@@ -2418,8 +2420,9 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 $total_billed += (float) $current_week;
             }
 
-            $balance = $total_billed - $total_paid;
+            $balance = $total_billed - $total_paid + $beginning_balance;
             $returnme .= '<div style="padding: 0px 12px;">
+            <div style="text-align: right;color: darkred;"><strong>Beginning Year Balance:</strong> $' . number_format($beginning_balance, 2) . '</div>
                             <div style="text-align: right;color: darkred;"><strong>Owed:</strong> $' . number_format($total_billed, 2) . '</div>
                             <div style="text-align: right;color: blue;"><strong>Paid:</strong> $' . number_format($total_paid, 2) . '</div>
                             <hr align="right" style="width:100px;" />

@@ -163,7 +163,14 @@ function draw_calendar($month,$year,$vars=false){
 
   /* table headings */
   $headings = array('Monday','Tuesday','Wednesday','Thursday','Friday');
-  $calendar.= '<tr class="calendar-row"><td class="calendar-day-head" style="width:50px;">Sunday</td><td class="calendar-day-head">'.implode('</td><td class="calendar-day-head">',$headings).'</td><td class="calendar-day-head" style="width:50px;">Saturday</td></tr>';
+  $calendar.= '<tr class="calendar-row">
+                    <td class="calendar-day-head" style="max-width:50px;"><span class="abb_full">Sunday</span><span class="abb_half">Sun</span><span class="abb_min">S</span></td>
+                    <td class="calendar-day-head"><span class="abb_full">Monday</span><span class="abb_half">Mon</span><span class="abb_min">M</span></td>
+                    <td class="calendar-day-head"><span class="abb_full">Tuesday</span><span class="abb_half">Tue</span><span class="abb_min">T</span></td>
+                    <td class="calendar-day-head"><span class="abb_full">Wednesday</span><span class="abb_half">Wed</span><span class="abb_min">W</span></td>
+                    <td class="calendar-day-head"><span class="abb_full">Thursday</span><span class="abb_half">Thur</span><span class="abb_min">Th</span></td>
+                    <td class="calendar-day-head"><span class="abb_full">Friday</span><span class="abb_half">Fri</span><span class="abb_min">F</span></td>
+                    <td class="calendar-day-head" style="max-width:50px;"><span class="abb_full">Saturday</span><span class="abb_half">Sat</span><span class="abb_min">S</span></td></tr>';
   /* days and weeks vars now ... */
   $running_day = date('w',mktime(0,0,0,$month,1,$year));
   $days_in_month = date('t',mktime(0,0,0,$month,1,$year));

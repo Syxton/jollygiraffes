@@ -54,7 +54,7 @@ button span {
 h1 {
 	color: white;
 	margin: 0;
-	font-size: 150%;
+	font-size: 2vmax;
 	font-weight: bold;
 }
 
@@ -80,7 +80,7 @@ h3 {
 
 #activepidname {
 	z-index: 0;
-	font-size: 34px;
+	font-size: 3vw;
 	font-weight: bold;
 	color: white;
 	text-shadow: 0px 0px 8px black;
@@ -113,9 +113,9 @@ h3 {
 }
 
 .admin_menu {
-	height: 5%;
-    min-height: 30px;
-	width: 100%;
+	height: 5vh;
+    min-height: 45px;
+	width: 100vw;
 	text-align: center;
 }
 
@@ -123,7 +123,7 @@ h3 {
 	text-align: center;
 	padding: 10px;
 	color: white;
-	font-size: 1em;
+	font-size: calc(1rem + 1vmax);
 	text-shadow: black 0px 0px 10px;
 }
 
@@ -144,7 +144,7 @@ h3 {
 	color: white;
 	padding: 10px;
 	font-weight: bold;
-	font-size: 130%;
+	font-size: 3vmin;
 }
 
 .child+.list_title {
@@ -167,7 +167,9 @@ h3 {
 .list_links {
 	font-size: 12px;
 	font-weight: normal;
-	display: inline;
+	display: inline-block;
+    width: calc(50vw - 70px);
+    white-space: pre-wrap;
 }
 
 .list_box {
@@ -176,6 +178,10 @@ h3 {
 	height: auto;
 	margin: 5px;
 	padding-top: 2px;
+}
+
+.list_box.activeaccount:hover {
+	cursor: pointer;
 }
 
 .list_box_item_left {
@@ -188,7 +194,7 @@ h3 {
 .list_box_item_right {
 	display: inline-block;
 	width: 20%;
-	right: 34px;
+	right: 45px;
 	position: relative;
 	white-space: nowrap;
 	text-align: right;
@@ -212,8 +218,6 @@ h3 {
 .container_info {
 	background: lightCyan;
 	border: 2px solid silver;
-	float: right;
-	width: 58%;
 	height: 95%;
 }
 
@@ -226,7 +230,7 @@ h3 {
     text-align:center;
     white-space: nowrap;
     position: relative;
-    top: 70px;
+    margin: 10px;
 }
 
 .attending {
@@ -254,12 +258,8 @@ h3 {
 }
 
 .container_actions {
-	white-space: nowrap;
 	background: lightCyan;
 	border: 2px solid silver;
-	float: right;
-	width: 58%;
-	height: 50px;
 	padding: 2px 0px 6px;
 	margin-bottom: 5px;
 }
@@ -340,8 +340,12 @@ h3 {
 }
 
 .slider-item {
-	width: 136px;
-	height: 136px;
+	width: 25vw;
+	height: 25vw;
+	max-width: 136px;
+	max-height: 136px;
+	min-width: 80px;
+	min-height: 80px;
 	border: none;
 	margin: 2px;
 	background-color: whitesmoke;
@@ -361,7 +365,6 @@ h3 {
 }
 
 .child_wrapper {
-	float: left;
 	background: white;
 	display: inline-block;
 	padding: 2px;
@@ -545,9 +548,9 @@ h3 {
 }
 
 .bottom-center {
-	position: absolute;
+	position: fixed;
 	bottom: 0;
-	width: 100%;
+	width: 100% !important;
 	text-align: center;
 	z-index: 1;
 }
@@ -679,7 +682,7 @@ h3 {
 .selectable li {
 	margin: 3px;
 	padding: 25px;
-	font-size: 1.2em;
+	font-size: 1em;
 	font-weight: bold;
 	height: 18px;
 }
@@ -696,9 +699,12 @@ table.calendar {
 	border-left: 1px solid #999;
 	table-layout: fixed;
 }
-
-tr.calendar-row {}
-
+.calendar-day-head .abb_half {
+	display: none;
+}
+.calendar-day-head .abb_min {
+	display: none;
+}
 td.calendar-day {
 	font-size: 9px;
 	word-wrap: break-word;
@@ -786,11 +792,23 @@ td.calendar-day-np {
 }
 
 .image_button {
+	display: inline-block;
     padding: 0;
-    height: 55px;
-    width: 55px;
+    height: 5vw;
+    width: 5vw;
+	min-width: 40px;
+	min-height: 40px;
+	max-width: 50px;
+	max-height: 50px;
 }
-
+.image_button img {
+	width: 5vw;
+	height: 5vw;
+	min-width: 40px;
+	min-height: 40px;
+	max-width: 50px;
+	max-height: 50px;
+}
 #sortable {
 	list-style-type: none;
 	margin: 0;
@@ -841,12 +859,217 @@ td.calendar-day-np {
     position: absolute;
     top: 0;
     right: 0;
-    font-size: 150%;
+    font-size: 2vmax;
 }
 
 .topleft_button {
     position: absolute;
     top: 0;
     left: 0;
-    font-size: 150%;
+    font-size: 2vmax;
+}
+
+.small_spacer {
+	height: 5vh;
+}
+
+.keypad_buttons {
+	font-size: 20px;
+}
+
+.select_buttons, .submit_buttons {
+	font-size: 1.5vmax;
+}
+
+.go_home {
+	height: 5vmax;
+}
+
+.alphabet_filter .keypad_buttons {
+    font-size: 1.5vmax;
+}
+
+.admin_menu .keypad_buttons {
+    font-size: calc(60% + 10px);
+}
+
+.select_buttons_div {
+	top: 55px;
+}
+.notes_spacer {
+	margin:0px 10px;
+	height:70px;
+	width:60%;
+	float:left;
+	white-space:nowrap;
+}
+.child_count {
+	width:50px;
+	text-align:center;
+	background: none;
+	display:inline-block;
+	color:lightGrey;
+	text-shadow: black 1px 1px 3px;
+}
+.show_enrolled {
+	width:100px;
+	text-align:center;
+	background:none;
+	line-height: 17px;
+	vertical-align:top;
+	color:white;
+	text-shadow: black 1px 1px 3px;
+}
+.enrolled_count {
+	width:100px;
+	text-align:center;
+	background:none;
+	display:inline-block;
+	color:white;
+	text-shadow: black 1px 1px 3px;
+}
+.enroll_data {
+	padding-bottom: 10px;
+}
+.billing_info {
+	padding: 5px 0px;
+}
+#subselect_div {
+	min-height: 80vh;
+}
+.contact_select_at_checkout {
+	float: left;
+	width: 60%
+}
+.primary_contact, .emergency_contact {
+	float: right;
+	background: 0;
+}
+/* Extra small devices (phones, 600px and down) */
+@media only screen and (max-width: 850px) {
+	.enroll_data {
+		display: block;
+		text-align: center;
+		width: 100%;
+		right: initial;
+		left: initial;
+		text-align: center;
+	}
+	.show_enrolled {
+		width: 100%; 
+	}
+	.admin_menu .keypad_buttons {
+		font-size: calc(25% + 10px);
+	}
+	.calendar-day-head .abb_full {
+		display: none;
+	}
+	.calendar-day-head .abb_half {
+		display: inline;
+	}
+	.calendar-day-head .abb_min {
+		display: none;
+	}
+}
+
+/* Extra small devices (phones, 600px and down) */
+@media only screen and (max-width: 600px) {
+	.employee_button, .admin_button, .topleft_button {
+		zoom: 1;
+	}
+	#clock {
+		display: none;
+	}
+	.big_button {
+		zoom: 2.5;
+		min-width: initial;
+		min-height: initial;
+		width: 70%;
+	}
+	.small_spacer {
+		height: 10vmax;
+	}
+	.alphabet_filter {
+		visibility: hidden;
+		height: 0;
+	}
+	.select_buttons, .submit_buttons {
+		font-size: 3.5vmin;
+	}
+	.select_buttons_div {
+		position: fixed;
+		text-align: center;
+		width: 100%;
+	}
+	.admin_menu .keypad_buttons {
+		font-size: calc(20% + 10px);
+		margin: 2px;
+	}
+	.admin_menu {
+		height: 9vh;
+	}
+	.contact_select_at_checkout {
+		width: 30%;
+	}
+	.child_wrapper .child.noaction {
+		zoom: .3;
+		display: block !important;
+	}
+	.child.noaction {
+		display: none;
+	}
+	.list_links {
+		width: 50vw;
+	}
+	.list_box_item_left.list_title {
+		padding: 10px 10px 0px;
+	}
+	.scroll-pane .list_buttons {
+		zoom: 80%;
+	}
+	.list_box_item_right {
+		display: block;
+		width: 100%;
+		left: initial;
+		right: initial;
+		text-align: center;
+	}
+	.account_name, .employee_name, .program_name {
+		width: 100%;
+		display: block;
+	}
+	.child_count {
+		display: block;
+		width: 100%;
+	}
+	.main_account_actions {
+		width: 100%;
+		display: block;
+		white-space: pre-wrap;
+	}
+	.calendar-day-head .abb_full {
+		display: none;
+	}
+	.calendar-day-head .abb_half {
+		display: none;
+	}
+	.calendar-day-head .abb_min {
+		display: inline;
+	}
+	.selectable li {
+		padding: 10px;
+	}
+	.selectable .ui-selected {
+		background-size: 10px;
+	}
+	span.contact {
+		width: 15px !important;
+	}
+	.primary_contact, .emergency_contact {
+		display: none;
+	}
+	.selectable .ui-selectee {
+		white-space: normal;
+		font-size: .7em;
+	}
 }

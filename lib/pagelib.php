@@ -210,9 +210,9 @@ function is_enrolled($pid, $chid) {
 function get_home_page() {
     global $CFG;
 
-    echo '<div style="height:5%;"></div>
+    echo '<div class="small_spacer"></div>
           <div class="mylogo" style="background-image: url(\'' . $CFG->wwwroot . '/images/' . $CFG->logo . '\');"></div>
-          <div style="height:5%;"></div>';
+          <div class="small_spacer"></div>';
     $checkout_button = checked_in_children();
     $checkin_button  = checked_out_children();
     echo '<div class="middle-center" style="top: initial;height: 30%;">';
@@ -386,7 +386,7 @@ function get_icon($icon) {
 }
 
 function go_home_button($button_text = 'Back') {
-    return '<div style="height:55px;"><button class="topleft_button" onclick="if(typeof(autoback) != \'undefined\'){ clearTimeout(autoback); }
+    return '<div class="go_home"><button class="topleft_button" onclick="if(typeof(autoback) != \'undefined\'){ clearTimeout(autoback); }
             location.reload();
             ">' . $button_text . '</button></div>';
 }

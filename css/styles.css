@@ -889,19 +889,36 @@ td.calendar-day-np {
     font-size: 1.5vmax;
 }
 
+.alphabet_label {
+	display:inline-block;
+	width:80px;
+}
+
 .admin_menu .keypad_buttons {
     font-size: calc(60% + 10px);
 }
 
 .select_buttons_div {
-	top: 55px;
+	top: 6vmax;
 }
-.notes_spacer {
+.optional_questions {
 	margin:0px 10px;
 	height:70px;
-	width:60%;
-	float:left;
+	width: calc(60% - 20px);
+	display: inline-block;
 	white-space:nowrap;
+}
+.contact_headers {
+	vertical-align: bottom;
+	display: inline-block;
+	margin:10px;
+	width: calc(35% - 20px);
+	text-align:center;
+	white-space:nowrap;
+	font-weight:bold;
+	color:white;
+	font-size: 3vw;
+	text-shadow: black 0px 0px 10px;
 }
 .child_count {
 	width:50px;
@@ -991,7 +1008,7 @@ td.calendar-day-np {
 	}
 	.alphabet_filter {
 		visibility: hidden;
-		height: 0;
+		height: 6.5vmax;
 	}
 	.select_buttons, .submit_buttons {
 		font-size: 3.5vmin;
@@ -1071,5 +1088,11 @@ td.calendar-day-np {
 	.selectable .ui-selectee {
 		white-space: normal;
 		font-size: .7em;
+	}
+	.optional_questions {
+		width: calc(35% - 20px)
+	}
+	.contact_headers {
+		width: calc(60% - 20px);
 	}
 }

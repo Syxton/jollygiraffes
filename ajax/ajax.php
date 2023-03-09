@@ -83,7 +83,7 @@ function get_check_in_out_form() {
     //Get all active children
     $SQL = "SELECT * FROM children WHERE deleted=0 AND chid IN (SELECT chid FROM enrollments WHERE deleted=0 AND pid='$pid') ORDER BY last,first";
     if ($result = get_db_result($SQL)) {
-        $alphabet .= '<div class="fill_width_middle alphabet_filter" style="margin:0px 10px;padding:5px;white-space:nowrap;"><div class="label" style="display:inline-block;width:80px;height:45px;float:left;padding-top:10px;">Last Initial: </div><div style="white-space:normal;"><button class="keypad_buttons selected_button ui-corner-all" onclick="$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not(this).toggleClass(\'selected_button\',false); $(\'.child_wrapper\').show(\'fade\'); $(\'.scroll-pane\').sbscroller(\'refresh\');">Show All</button>';
+        $alphabet .= '<div class="fill_width_middle alphabet_filter" style="margin:0px 10px;padding:5px;white-space:nowrap;"><div class="label alphabet_label"">Last Initial: </div><div style="white-space:normal;"><button class="keypad_buttons selected_button ui-corner-all" onclick="$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not(this).toggleClass(\'selected_button\',false); $(\'.child_wrapper\').show(\'fade\'); $(\'.scroll-pane\').sbscroller(\'refresh\');">Show All</button>';
         $children .= '<div style="clear:both;"></div><div class="container_main scroll-pane ui-corner-all fill_height_middle">';
         while ($row = fetch_row($result)) {
             $checked_in = is_checked_in($row["chid"]);
@@ -217,8 +217,8 @@ function check_in_out_form() {
     }
     $returnme .= get_numpad($aid, $admin, $type);
     $note_headers = get_required_notes_header($type);
-    $returnme .= '<div class="notes_spacer" style=""><span style="display:inline-block;width:145px;"></span>' . $note_headers . '</div>';
-    $returnme .= '<div class="fill_width" style="margin:0px 10px;height:70px;width:23%;text-align:center;white-space:nowrap;"><div style="font-weight:bold;color:white;margin-top:20px;font-size:200%;text-shadow: black 0px 0px 10px;">Who is checking them ' . $type . '?</div></div>';
+    $returnme .= '<div class="optional_questions" style=""><span style="display:inline-block;width:145px;"></span>' . $note_headers . '</div>';
+    $returnme .= '<div class="contact_headers">Who is checking them ' . $type . '?</div>';
     $returnme .= '<div class="container_main scroll-pane ui-corner-all fill_height_middle contact_select_at_checkout">';
     $notes    = get_required_notes_forms($type);
     $contacts = get_contacts_selector($chids, $admin);

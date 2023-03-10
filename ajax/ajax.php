@@ -2120,7 +2120,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                     $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2"));
                     $total_fee = empty($total_fee) ? "0.00" : $total_fee;
                     $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkRed;padding: 5px;color: white;">
-                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width: 16px;">'.get_icon('plusminus').' </td><td>Fees</td><td style="width:50%;text-align:right"><strong>Total Fees: </strong>$' . number_format($total_fee, 2) . '</td></tr></table></a></div>
+                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">'.get_icon('plusminus').' </td><td>Fees</td><td style="width:50%;text-align:right"><strong>Total Fees: </strong>$' . number_format($total_fee, 2) . '</td></tr></table></a></div>
                                         <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                     while ($payment = fetch_row($payments)) {
                         $identifier          = time() . "accountpaymentpayid_" . $payment["payid"];
@@ -2172,8 +2172,8 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 if ($payments = get_db_result($SQL)) {
                     $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2");
                     $total_paid = empty($total_paid) ? "0.00" : $total_paid;
-                    $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkCyan;padding: 5px;color: white;">
-                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width: 16px;">'.get_icon('plusminus').' </td><td>Payments</td><td style="width:50%;text-align:right"><strong>Total Payments:</strong> $' . number_format($total_paid, 2) . '</td></tr></table></a></div>
+                    $returnme .= '<div class="ui-corner-all list_box invoice_payments" style="background-color:darkCyan;">
+                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">'.get_icon('plusminus').' </td><td class="hide_mobile">Payments</td><td style="width:50%;text-align:right"><strong>Total Payments:</strong> $' . number_format($total_paid, 2) . '</td></tr></table></a></div>
                                         <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                     while ($payment = fetch_row($payments)) {
                         $identifier          = time() . "accountpaymentpayid_" . $payment["payid"];
@@ -2224,8 +2224,8 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 $SQL = "SELECT * FROM billing WHERE pid='$pid' AND aid='" . $account["aid"] . "' $yearsql ORDER BY fromdate";
                 if ($invoices = get_db_result($SQL)) {
                     while ($invoice = fetch_row($invoices)) {
-                        $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white;">
-                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%">Week of ' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($invoice["owed"], 2) . '</td></tr></table></a></div>
+                        $returnme .= '<div class="ui-corner-all list_box invoice_week">
+                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%">Week of <span class="hide_mobile">' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</span><span class="show_mobile">' . date('m/d/Y', $invoice["fromdate"]) . '</span></td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($invoice["owed"], 2) . '</td></tr></table></a></div>
                                         <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                         $SQL = "SELECT * FROM billing_perchild WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND fromdate = '" . $invoice["fromdate"] . "' ORDER BY id";
 
@@ -2276,7 +2276,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                         if (!$result["bill"]) { // Payment or Fee
                             if ($result["amount"] < 0) { // Fee
                                 $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkRed;padding: 5px;color: white;">
-                                                    <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%;text-align:right"><strong>Fee:</strong> $' . number_format(abs($result["amount"]), 2) . '</td></tr></table></a></div>
+                                                    <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%;text-align:right"><strong>Fee:</strong> $' . number_format(abs($result["amount"]), 2) . '</td></tr></table></a></div>
                                                     <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
 
                                 $identifier          = time() . "accountpaymentpayid_" . $result["id"];
@@ -2327,7 +2327,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                            </div>';
                             } else { // Payment
                                 $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkCyan;padding: 5px;color: white;">
-                                                    <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%;text-align:right"><strong>Payment:</strong> $' . number_format($result["amount"], 2) . '</td></tr></table></a></div>
+                                                    <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%;text-align:right"><strong>Payment:</strong> $' . number_format($result["amount"], 2) . '</td></tr></table></a></div>
                                                     <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
 
                                 $identifier          = time() . "accountpaymentpayid_" . $result["id"];
@@ -2379,7 +2379,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                             }
                         } else { // Bill
                             $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white;">
-                                            <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%">Week of ' . date('F \t\h\e jS, Y', $result["fromdate"]) . '</td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($result["amount"], 2) . '</td></tr></table></a></div>
+                                            <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%">Week of <span class="hide_mobile">' . date('F \t\h\e jS, Y', $result["fromdate"]) . '</span><span class="show_mobile">' . date('m/d/Y', $result["fromdate"]) . '</span></td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($result["amount"], 2) . '</td></tr></table></a></div>
                                             <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                             $SQL = "SELECT * FROM billing_perchild WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND fromdate = '" . $result["fromdate"] . "' ORDER BY id";
 
@@ -2414,7 +2414,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
             }
             // Add current week charges.
             if (($year == "all" || $year == date("Y") ) && $current_week = week_balance($pid, $account["aid"], true)) {
-                $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white;">
+                $returnme .= '<div class="ui-corner-all list_box invoice_week" style="padding: 5px;color: white;">
                                 <div><a style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width:50%">Current Week</td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($current_week, 2) . '</td></tr></table></a></div>
                               </div>';
                 $total_billed += (float) $current_week;
@@ -2431,7 +2431,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
             // Expected next week if prepaid.
             if (get_db_field("payahead", "programs", "pid='$pid'")) { // if prepaid
-                $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white; background: green;">
+                $returnme .= '<div class="ui-corner-all list_box invoice_week" style="padding: 5px;color: white; background: green;">
                                 <div><a style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width:50%">Next Week</td><td style="width:50%;text-align:right"><strong>Prepay Expected: </strong>$' . number_format(week_balance($pid, $account["aid"], true, true), 2) . '</td></tr></table></a></div>
                               </div>';
             }
@@ -2531,7 +2531,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                 $edit_button = ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_child_' . $identifier . '\',300,400)"><span class="inline-button ui-corner-all">' . get_icon('wrench') . ' Edit</span></a>';
 
                 $notifications = get_notifications($pid, $child["chid"], false, true) ? 'style="background: darkred;"' : '';
-                $returnme .= '<div class="ui-corner-all list_box" ' . $notifications . '><div class="list_box_item_full">' . get_children_button($child["chid"], "", "margin: 10px;float:none;height:50px;width:50px;", false, true, false) . '<div class="list_title" style="width:98%;">' . $checked_in . ' ' . $child["first"] . ' ' . $child["last"];
+                $returnme .= '<div class="ui-corner-all list_box" ' . $notifications . '><div class="list_box_item_full">' . get_children_button($child["chid"], "", "margin: 10px;float:none;height:50px;width:50px;", false, true, false) . '<div class="list_title" style="width:98%;"><span class="hide_mobile">' . $checked_in . ' </span>' . $child["first"] . ' ' . $child["last"];
                 $returnme .= $recover ? '</div>' : '<br /><span class="list_links">' . $moreinfo . $edit_button . $enroll_button . '</span></div>';
                 $returnme .= '</div></div>';
             }
@@ -2624,7 +2624,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                 $edit_button = ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_child_' . $identifier . '\',300,400)"><span class="inline-button ui-corner-all">' . get_icon('wrench') . ' Edit</span></a>';
 
                 $notifications = get_notifications($activepid, $child["chid"], $aid, true) ? 'style="background: darkred;"' : '';
-                $returnme .= '<div class="ui-corner-all list_box" ' . $notifications . '><div class="list_box_item_full">' . get_children_button($child["chid"], "", "margin: 10px;float:none;height:50px;width:50px;", false, true, false) . '<div class="list_title" style="width:98%;">' . $checked_in . ' ' . $child["first"] . ' ' . $child["last"];
+                $returnme .= '<div class="ui-corner-all list_box" ' . $notifications . '><div class="list_box_item_full">' . get_children_button($child["chid"], "", "margin: 10px;float:none;height:50px;width:50px;", false, true, false) . '<div class="list_title" style="width:98%;"><span class="hide_mobile">' . $checked_in . ' </span>' . $child["first"] . ' ' . $child["last"];
                 $returnme .= $recover ? '<br /><span class="list_links">' . $delete_button . '</span></div>' : '<br /><span class="list_links">' . $moreinfo . $edit_button . $enroll_button . $delete_button . '</span></div>';
                 $returnme .= '</div></div>';
             }
@@ -3316,7 +3316,7 @@ function get_admin_children_form($return = false, $chid = false, $recover = fals
                                         success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
                                     });
                                 }
-                            });"><div class="list_box_item_full"><span class="list_title">' . $checked_in . ' ' . $child["last"] . ", " . $child["first"] . '</span></div></div>';
+                            });"><div class="list_box_item_full"><span class="list_title"><span class="hide_mobile">' . $checked_in . ' </span>' . $child["last"] . ", " . $child["first"] . '</span></div></div>';
         }
     } else {
         $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_full"><span class="list_title">None Enrolled</span></div></div>';
@@ -3354,7 +3354,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
                                 success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
                             });
                         }
-                    });"><div class="list_box_item_full"><span class="list_title">' . $program["name"] . '</span></div></div>';
+                    });"><div class="list_box_item_full"><span class="list_title" style="font-size: 3vmin;">' . $program["name"] . '</span></div></div>';
     if ($accounts = get_db_result("SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid')) ORDER BY name")) {
         $i = 0;
         while ($account = fetch_row($accounts)) {
@@ -3377,7 +3377,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
                                         success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
                                     });
                                 }
-                            });"><div class="list_box_item_left account_name"><span class="list_title">' . $account["name"] . '</span></div><div class="list_box_item_right billing_info"><div class="child_count">Children: ' . $kid_count . '<br /><span class="' . $balanceclass . '">Balance: $' . $account_balance . '</span></div></div></div>';
+                            });"><div class="list_box_item_left account_name"><span class="list_title">' . $account["name"] . '</span></div><div class="list_box_item_right billing_info"><div class="child_count">Children: ' . $kid_count . '<br /><span class="' . $balanceclass . '"><span class="hide_mobile">Balance: </span>$' . $account_balance . '</span></div></div></div>';
             $i++;
         }
     }
@@ -3755,7 +3755,7 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
                                                                                               url: \'ajax/ajax.php\',
                                                                                               data: { action: \'get_admin_billing_form\', aid:\'' . $account["aid"] . '\' ,pid: \'' . $pid . '\' },
                                                                                               success: function(data) { $(\'#admin_display\').hide(\'fade\',null,null,function(){ $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); });  }
-                                                                                          });$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not($(\'#admin_menu_billing\')).toggleClass(\'selected_button\',false);">Balance: $' . $account_balance . '</a></div></div></div>';
+                                                                                          });$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not($(\'#admin_menu_billing\')).toggleClass(\'selected_button\',false);"><span class="hide_mobile">Balance: </span>$' . $account_balance . '</a></div></div></div>';
         }
     }
     $returnme .= '</div>';

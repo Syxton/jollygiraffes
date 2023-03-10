@@ -145,6 +145,7 @@ h3 {
 	padding: 10px;
 	font-weight: bold;
 	font-size: 3vmin;
+	white-space: break-spaces;
 }
 
 .child+.list_title {
@@ -194,12 +195,12 @@ h3 {
 .list_box_item_right {
 	display: inline-block;
 	width: 20%;
-	right: 45px;
+	right: 50px;
 	position: relative;
 	white-space: nowrap;
 	text-align: right;
 	background: none;
-	font-size: 80%;
+	font-size: 75%;
 	vertical-align: middle;
 }
 
@@ -437,6 +438,10 @@ h3 {
 	font-weight: bold !important;
 }
 
+.big_button.signinout {
+	margin: auto 0;
+}
+
 .expected-today {
 	background-color: #d8a610;
 }
@@ -661,24 +666,20 @@ h3 {
 .selectable .ui-selecting {
 	background: #FECA40;
 }
-
 .selectable .ui-selectee {
 	background: gainsboro;
 	white-space: nowrap;
 }
-
 .selectable .ui-selected {
 	color: black;
 	background: #BAEEFF url('../images/checkmark_small.png') 10px center no-repeat;
 }
-
 .selectable {
 	list-style-type: none;
 	margin: 0;
 	padding: 0;
 	width: 400%;
 }
-
 .selectable li {
 	margin: 3px;
 	padding: 25px;
@@ -686,12 +687,14 @@ h3 {
 	font-weight: bold;
 	height: 18px;
 }
-
 .selectable li:hover {
 	background-color: whitesmoke;
 	cursor: pointer;
 }
 
+.invoice_week {
+	padding: 5px;
+}
 
 /* calendar */
 
@@ -794,20 +797,22 @@ td.calendar-day-np {
 .image_button {
 	display: inline-block;
     padding: 0;
-    height: 5vw;
-    width: 5vw;
-	min-width: 40px;
-	min-height: 40px;
-	max-width: 50px;
-	max-height: 50px;
+    height: 3vw;
+    width: 3vw;
+    min-width: 35px;
+    min-height: 35px;
+    max-width: 40px;
+    max-height: 40px;
 }
 .image_button img {
-	width: 5vw;
-	height: 5vw;
-	min-width: 40px;
-	min-height: 40px;
-	max-width: 50px;
-	max-height: 50px;
+	width: 3vw;
+	height: 3vw;
+	min-width: 20px;
+    min-height: 20px;
+    max-width: 28px;
+    max-height: 28px;
+    vertical-align: middle;
+    margin: auto;
 }
 #sortable {
 	list-style-type: none;
@@ -838,11 +843,11 @@ td.calendar-day-np {
 }
 
 .container_list.expanded {
-    width: 0px;
+    width: 0px !important;
 }
 
 .container_info.expanded, .container_actions.expanded {
-    width: 99%;
+    width: 99% !important;
 }
 
 .balance_good {
@@ -892,6 +897,7 @@ td.calendar-day-np {
 .alphabet_label {
 	display:inline-block;
 	width:80px;
+	font-size: 1vw;
 }
 
 .admin_menu .keypad_buttons {
@@ -929,7 +935,7 @@ td.calendar-day-np {
 	text-shadow: black 1px 1px 3px;
 }
 .show_enrolled {
-	width:100px;
+	width:100%;
 	text-align:center;
 	background:none;
 	line-height: 17px;
@@ -938,7 +944,7 @@ td.calendar-day-np {
 	text-shadow: black 1px 1px 3px;
 }
 .enrolled_count {
-	width:100px;
+	width:100%;
 	text-align:center;
 	background:none;
 	display:inline-block;
@@ -947,6 +953,7 @@ td.calendar-day-np {
 }
 .enroll_data {
 	padding-bottom: 10px;
+	right: 30px;
 }
 .billing_info {
 	padding: 5px 0px;
@@ -961,6 +968,9 @@ td.calendar-day-np {
 .primary_contact, .emergency_contact {
 	float: right;
 	background: 0;
+}
+.show_mobile, .show_tablet {
+	display: none;
 }
 /* Extra small devices (phones, 600px and down) */
 @media only screen and (max-width: 850px) {
@@ -987,6 +997,15 @@ td.calendar-day-np {
 	.calendar-day-head .abb_min {
 		display: none;
 	}
+	.container_list.scroll-pane {
+		width: 30%;
+	}
+	.hide_tablet {
+		display: none !important;
+	}
+	.show_tablet {
+		display: initial;
+	}
 }
 
 /* Extra small devices (phones, 600px and down) */
@@ -998,13 +1017,19 @@ td.calendar-day-np {
 		display: none;
 	}
 	.big_button {
-		zoom: 2.5;
+		zoom: 1;
 		min-width: initial;
 		min-height: initial;
 		width: 70%;
 	}
+	.big_button.signinout {
+		margin: 10px !important;
+	}
+	.mylogo {
+		height: 20%
+	}
 	.small_spacer {
-		height: 10vmax;
+		height: 8vmax;
 	}
 	.alphabet_filter {
 		visibility: hidden;
@@ -1017,6 +1042,7 @@ td.calendar-day-np {
 		position: fixed;
 		text-align: center;
 		width: 100%;
+		max-width: 100%;
 	}
 	.admin_menu .keypad_buttons {
 		font-size: calc(20% + 10px);
@@ -1032,14 +1058,24 @@ td.calendar-day-np {
 		zoom: .3;
 		display: block !important;
 	}
+	.child_wrapper .child:not(.noaction) {
+		zoom: .7;
+	}
 	.child.noaction {
 		display: none;
 	}
 	.list_links {
 		width: 50vw;
 	}
+	.list_title {
+		padding: 3px;
+	}
 	.list_box_item_left.list_title {
 		padding: 10px 10px 0px;
+	}
+	.list_box_item_full .list_title {
+		font-size: 5vmin;
+		white-space: break-spaces;
 	}
 	.scroll-pane .list_buttons {
 		zoom: 80%;
@@ -1094,5 +1130,40 @@ td.calendar-day-np {
 	}
 	.contact_headers {
 		width: calc(60% - 20px);
+	}
+	.container_list.scroll-pane {
+		width: 30%;
+	}
+	.hide_mobile, .hide_tablet {
+		display: none !important;
+	}
+	.show_mobile {
+		display: initial;
+	}
+	.slider-wrap {
+		width: 15px !important;
+	}
+	
+	.ui-slider-handle {
+		width: 10px !important;
+		margin-left: 4px !important;
+	}
+	.scroll-content {
+		padding-left: 13px !important;
+	}
+	.ui-button {
+		padding: 2px;
+	}
+	.document_list_item .list_box {
+		padding: 3px;
+	}
+	.invoice_week, .invoice_payments, .invoice_bills {
+		padding: 3px !important;
+		font-size: .8em !important;
+	}
+	.invoice_week td, .invoice_payments td, invoice_bills td {
+		display: flex;
+		width: 100% !important;
+		white-space: pre-wrap;
 	}
 }

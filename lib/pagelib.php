@@ -218,7 +218,7 @@ function get_home_page() {
     echo '<div class="middle-center" style="top: initial;height: 30%;">';
 
     if ($checkin_button) {
-        echo '<button style="margin:0 auto" onclick="
+        echo '<button class="big_button signinout bb_middle textfill" onclick="
             $(\'.employee_button\').hide();
             $.ajax({
               type: \'POST\',
@@ -226,16 +226,16 @@ function get_home_page() {
               data: { action: \'get_check_in_out_form\', type: \'in\' },
               success: function(data) { $(\'#display_level\').html(data); refresh_all(); }
               });
-            " class="big_button bb_middle textfill"><span style="font-size:10px;">Check In <br />' . checked_out_children(true) . ' available</span>
+            "><span style="font-size:10px;">Check In <br />' . checked_out_children(true) . ' available</span>
             </button>';
     }
 
     if ($checkin_button && $checkout_button) {
-        echo '<span style="width: 5%;display: inline-block;"></span>';
+        echo '<span class="hide_mobile" style="width: 5%;display: inline-block;"></span>';
     }
 
     if ($checkout_button) {
-        echo '<button style="margin:0 auto" onclick="
+        echo '<button class="big_button signinout bb_middle textfill" onclick="
             $(\'.employee_button\').hide();
             $.ajax({
               type: \'POST\',
@@ -243,7 +243,7 @@ function get_home_page() {
               data: { action: \'get_check_in_out_form\', type: \'out\' },
               success: function(data) { $(\'#display_level\').html(data); refresh_all(); }
               });
-            " class="big_button bb_middle textfill"><span style="font-size:10px;">Check Out <br />' . checked_in_children(true) . ' available</span>
+            "><span style="font-size:10px;">Check Out <br />' . checked_in_children(true) . ' available</span>
             </button>';
     }
 

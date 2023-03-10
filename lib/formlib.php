@@ -372,7 +372,7 @@ global $CFG;
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="employees" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
 
             $timecard_history = '';
-            if($timecards = get_db_result("SELECT * FROM employee_timecard WHERE employeeid='$employeeid' ORDER BY fromdate DESC")){
+            if($timecards = get_db_result("SELECT * FROM employee_timecard WHERE employeeid='$employeeid' ORDER BY fromdate DESC LIMIT 52")){
                     $timecard_history = '<tr>
                                             <td style="width:33%;">
                                                 Week of
@@ -409,20 +409,23 @@ global $CFG;
 
             $form = '<div id="edit_employee_timecards'.$identifier.'" title="Pay Stubs" style="display:none;">
         		<form name="edit_employee_timecards_form'.$identifier.'">
+                    <div style="text-align:center">
+                        <button type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                            type: \'POST\',
+                            url: \'ajax/ajax.php\',
+                            timeout: 10000,
+                            error: function(x, t, m) {
+                            $(button).button(\'option\', \'disabled\', false);
+                            },
+                            data: { action: \'save_employee_timecard\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
+                            success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#edit_employee_timecards'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                            });">Save
+                        </button>
+                    </div>
                     '.$fields.'
                     <table style="width:100%;font-size:1em;">
                         '.$timecard_history.'
                     </table>
-                <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                  type: \'POST\',
-                  url: \'ajax/ajax.php\',
-                  timeout: 10000,
-                  error: function(x, t, m) {
-                    $(button).button(\'option\', \'disabled\', false);
-                  },
-                  data: { action: \'save_employee_timecard\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                  success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#edit_employee_timecards'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                  });">Save</button>
                   </form>
                 </div>';
 

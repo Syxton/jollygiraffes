@@ -3483,7 +3483,7 @@ function get_admin_employees_form($return = false, $employeeid = false, $recover
             $employeeid     = empty($employeeid) ? $employee["employeeid"] : $employeeid;
             $selected_class = $employeeid && $employeeid == $employee["employeeid"] ? "selected_button" : "";
             $deleted_param  = $recover ? ',recover: \'true\'' : '';
-
+            $thisweekpay = get_wages_for_this_week($employeeid);
             $returnme .= '<div class="ui-corner-all list_box ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                             $.ajax({
                                 type: \'POST\',
@@ -3498,7 +3498,7 @@ function get_admin_employees_form($return = false, $employeeid = false, $recover
                                         success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
                                     });
                                 }
-                            });"><div class="list_box_item_left employee_name" ><span class="list_title">' . $employee["last"] . ', ' . $employee["first"] . '</span></div><div class="list_box_item_right"></div></div>';
+                            });"><div class="list_box_item_left employee_name" ><span class="list_title">' . $employee["last"] . ', ' . $employee["first"] . '</span></div><div class="list_box_item_right billing_info"><div class="child_count"><span class="hide_mobile">This week: </span>$' . $thisweekpay . '</div></div></div>';
         }
     }
     $returnme .= '</div>';

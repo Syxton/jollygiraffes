@@ -936,6 +936,21 @@ function get_wages_for_week($time) {
     return $sum;
 }
 
+function get_wages_for_this_week($employeeid) {
+    $time = get_timestamp();
+    if (date('N', $time) == "7") { //is already a sunday
+        $startofweek = strtotime(date('m/d/Y', $time));
+    } else {
+        $startofweek = strtotime("previous Sunday", strtotime(date('m/d/Y', $time)));
+    }
+
+    $endofweek = strtotime("next Sunday", $startofweek);
+
+    $wage = get_wage($employeeid, get_timestamp());
+    $hours = hours_worked($employeeid, $startofweek, $endofweek);
+    return number_format(($wage * $hours), 2);
+}
+
 function hours_worked($employeeid, $startofweek, $endofweek) {
     global $CFG;
     $SQL   = "SELECT CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'" . get_date('P', time(), $CFG->timezone) . "','" . get_date('P', time(), $CFG->timezone) . "'))) as order_day, tag, timelog FROM employee_activity WHERE employeeid='$employeeid' AND (tag='out' OR tag='in') AND timelog >= '$startofweek' AND timelog <= '$endofweek' ORDER BY timelog";

@@ -181,31 +181,30 @@ h3 {
 	padding-top: 2px;
 }
 
-.list_box.activeaccount:hover {
+.list_box.activeaccount:hover, .selectablelist{
 	cursor: pointer;
 }
 
 .list_box_item_left {
 	display: inline-block;
 	vertical-align: middle;
-	width: 80%;
-	white-space: nowrap;
+	width: calc(70% - 15px);
+	white-space: normal;
 }
 
 .list_box_item_right {
 	display: inline-block;
-	width: 20%;
-	right: 50px;
+	width: 30%;
 	position: relative;
-	white-space: nowrap;
 	text-align: right;
 	background: none;
-	font-size: 75%;
+	font-size: 2vmin;
 	vertical-align: middle;
 }
 
 .list_box_item_full {
 	white-space: nowrap;
+	padding: 5px;
 }
 
 .emergency {
@@ -455,9 +454,14 @@ h3 {
 }
 
 .selected_button {
-	background: 0 silver !important;
+	background: 0 #485060 !important;
+	color: white;
+    font-weight: bold;
 }
-
+button.selected_button:hover {
+    color: silver;
+	font-weight: bold;
+}
 .upload-button {
 	background: 0 grey;
 	color: white;
@@ -692,7 +696,7 @@ h3 {
 	cursor: pointer;
 }
 
-.invoice_week {
+.invoice_week, .invoice_payments, .invoice_bills {
 	padding: 5px;
 }
 
@@ -851,12 +855,13 @@ td.calendar-day-np {
 }
 
 .balance_good {
-    color: lightblue;
+    color: darkseagreen;
     text-decoration: none;
 }
 
 .balance_bad {
-    color: pink;
+    color: red;
+	font-weight: bold;
     text-decoration: none;
 }
 
@@ -927,36 +932,28 @@ td.calendar-day-np {
 	text-shadow: black 0px 0px 10px;
 }
 .child_count {
-	width:50px;
 	text-align:center;
 	background: none;
-	display:inline-block;
 	color:lightGrey;
+	white-space: normal;
 	text-shadow: black 1px 1px 3px;
 }
-.show_enrolled {
-	width:100%;
-	text-align:center;
-	background:none;
+.show_enrolled, .enrolled_count {
+	width: 100%;
+	white-space: normal;
 	line-height: 17px;
-	vertical-align:top;
-	color:white;
-	text-shadow: black 1px 1px 3px;
-}
-.enrolled_count {
-	width:100%;
-	text-align:center;
-	background:none;
-	display:inline-block;
-	color:white;
+	text-align: center;
+	background: none;
+	color: white;
 	text-shadow: black 1px 1px 3px;
 }
 .enroll_data {
-	padding-bottom: 10px;
-	right: 30px;
+	right: unset;
 }
 .billing_info {
-	padding: 5px 0px;
+	padding: 8px;
+	right: unset;
+	background-color: #00000088;
 }
 #subselect_div {
 	min-height: 80vh;
@@ -974,6 +971,12 @@ td.calendar-day-np {
 }
 /* Extra small devices (phones, 600px and down) */
 @media only screen and (max-width: 850px) {
+	.main_account_actions {
+		width: 100%;
+		display: block;
+		white-space: pre-wrap;
+		text-align: center;
+	}
 	.enroll_data {
 		display: block;
 		text-align: center;
@@ -1010,6 +1013,11 @@ td.calendar-day-np {
 
 /* Extra small devices (phones, 600px and down) */
 @media only screen and (max-width: 600px) {
+	.ui-dialog {
+		max-width: 400px;
+		width: 100% !important;
+		zoom: 0.8;
+	}
 	.employee_button, .admin_button, .topleft_button {
 		zoom: 1;
 	}
@@ -1024,6 +1032,9 @@ td.calendar-day-np {
 	}
 	.big_button.signinout {
 		margin: 10px !important;
+	}
+	.billing_info {
+		padding: 2px;
 	}
 	.mylogo {
 		height: 20%
@@ -1165,5 +1176,15 @@ td.calendar-day-np {
 		display: flex;
 		width: 100% !important;
 		white-space: pre-wrap;
+	}
+}
+
+/* Extra small devices (phones, 400px and down) */
+@media only screen and (max-width: 400px) {
+	.ui-dialog {
+		width: 100% !important;
+		zoom: 1 !important;
+		left: 0 !important;
+		top: 0 !important;
 	}
 }

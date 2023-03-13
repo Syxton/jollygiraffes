@@ -1400,15 +1400,12 @@ function add_edit_employee_activity() {
 
     foreach ($fields as $field) {
         switch ($field["name"]) {
-            case "newtime":
-                ${$field["name"]} = dbescape($field["value"]);
-                ${$field["name"]} = seconds_from_midnight($newtime);
-                break;
-            case "oldtime":
-                ${$field["name"]} = dbescape($field["value"]);
-                ${$field["name"]} = strtotime('midnight', $oldtime);
-                break;
+            case "date":
             case "nid":
+            case "newtime":
+            case "employeeid":
+            case "tab":
+            case "tag":
             case "actid":
             case "callback":
                 ${$field["name"]} = dbescape($field["value"]);
@@ -1420,20 +1417,39 @@ function add_edit_employee_activity() {
     $actid      = empty($actid) ? false : $actid;
     $nid        = empty($nid) ? false : $nid;
     $callback   = empty($callback) ? false : $callback;
+    $pid = get_pid();
 
-    if (!empty($oldtime) && !empty($newtime) && !empty($actid) && !empty($nid)) {
-        $newtime      = $oldtime + $newtime - get_offset();
-        $readabletime = get_date("l, F j, Y \a\\t g:i a", $newtime);
+    if (!empty($employeeid) && !empty($newtime) && !empty($date) && !empty($actid) && !empty($nid)) { // EDIT
+        $newdatetime      = strtotime($newtime, $date) - get_offset();
+        $readabletime = get_date("l, F j, Y \a\\t g:i a", $newdatetime);
 
-        $employeeid = get_db_field("employeeid", "employee_activity", "actid='$actid'");
         $employee   = get_db_row("SELECT * FROM employee WHERE employeeid='$employeeid'");
         $note       = get_db_row("SELECT * FROM notes WHERE nid='$nid'");
         $note       = $employee["first"] . " " . $employee["last"] . ": Signed " . $note["tag"] . " at $readabletime";
 
         $SQL1 = "UPDATE notes SET note='$note' WHERE nid='$nid'";
-        $SQL2 = "UPDATE employee_activity SET timelog='$newtime' WHERE actid='$actid'";
+        $SQL2 = "UPDATE employee_activity SET timelog='$newdatetime' WHERE actid='$actid'";
 
         if (execute_db_sql($SQL1) && execute_db_sql($SQL2)) { //Saved successfully
+            get_admin_employees_form(false, $employeeid);
+        } else {
+            echo "false";
+        }
+    } else if (!empty($newtime) && !empty($date) && !empty($employeeid)) { // ADD
+        $newdatetime  = strtotime($newdatetime, $date) - get_offset();
+        $readabletime = get_date("l, F j, Y \a\\t g:i a", $newdatetime);
+
+        $employee   = get_db_row("SELECT * FROM employee WHERE employeeid='$employeeid'");
+        $note       = get_db_row("SELECT * FROM notes WHERE tag='$tag' AND pid='$pid'");
+        $note       = $employee["first"] . " " . $employee["last"] . ": Signed " .$tag . " at $readabletime";
+
+        $event      = get_db_row("SELECT * FROM events WHERE tag='$tag'");
+        $SQL1       = "INSERT INTO employee_activity (employeeid, evid, tag, timelog) VALUES('$employeeid','" . $event["evid"] . "','" . $event["tag"] . "', $newdatetime)";
+        $actid      = execute_db_sql($SQL1);
+        $SQL2       = "INSERT INTO notes (actid,employeeid,tag,note,data,timelog) VALUES('$actid','$employeeid','" . $event["tag"] . "','$note', 1, $newdatetime)";
+        $note       = execute_db_sql($SQL2);
+
+        if ($actid && $note) { //Saved successfully
             get_admin_employees_form(false, $employeeid);
         } else {
             echo "false";
@@ -2119,7 +2135,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 if ($payments = get_db_result($SQL)) {
                     $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2"));
                     $total_fee = empty($total_fee) ? "0.00" : $total_fee;
-                    $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkRed;padding: 5px;color: white;">
+                    $returnme .= '<div class="ui-corner-all list_box invoice_bills" style="background-color:darkRed;">
                                         <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">'.get_icon('plusminus').' </td><td>Fees</td><td style="width:50%;text-align:right"><strong>Total Fees: </strong>$' . number_format($total_fee, 2) . '</td></tr></table></a></div>
                                         <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                     while ($payment = fetch_row($payments)) {
@@ -2671,7 +2687,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                 $returnme .= get_form("add_edit_contact", array(
                     "contact" => $contact
                 ), $identifier);
-                $returnme .= '<div class="ui-corner-all list_box ' . $primary . ' ' . $emergency . '"><div class="list_title">' . $contact["first"] . ' ' . $contact["last"];
+                $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $primary . ' ' . $emergency . '"><div class="list_title">' . $contact["first"] . ' ' . $contact["last"];
                 $moreinfo = '<a href="javascript: void(0);" onclick="' . $action . ' $(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not($(\'#admin_menu_contacts\')).toggleClass(\'selected_button\',false);"><span class="inline-button ui-corner-all">' . get_icon('magnifier_zoom_in') . '</span></a>';
                 $returnme .= $recover ? '<br /><span class="list_links">' . $delete_button . '</span></div>' : '<br /><span class="list_links">' . $moreinfo . ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_contact_' . $identifier . '\',520,400)"><span class="inline-button ui-corner-all">' . get_icon('wrench') . ' Edit</span></a> ' . $delete_button . '</span></div>';
                 $returnme .= '</div><div style="clear:both;"></div>';
@@ -3302,7 +3318,7 @@ function get_admin_children_form($return = false, $chid = false, $recover = fals
             $selected_class = $chid && $chid == $child["chid"] ? "selected_button" : "";
             $checked_in     = $recover ? '' : (is_checked_in($child["chid"]) ? get_icon('status_online') : get_icon('status_offline'));
             $notifications  = get_notifications(get_pid(), $child["chid"], false, true) ? 'style="background: darkred;"' : '';
-            $returnme .= '<div class="ui-corner-all list_box ' . $selected_class . '" ' . $notifications . ' onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+            $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" ' . $notifications . ' onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                             $.ajax({
                                 type: \'POST\',
                                 url: \'ajax/ajax.php\',
@@ -3363,7 +3379,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
             $aid             = $selected_class == "selected_button" ? $account["aid"] : $aid;
             $account_balance = account_balance($pid, $account["aid"], true);
             $balanceclass    = $account_balance <= 0 ? "balance_good" : "balance_bad";
-            $returnme .= '<div class="ui-corner-all list_box ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+            $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                             $.ajax({
                                 type: \'POST\',
                                 url: \'ajax/ajax.php\',
@@ -3416,7 +3432,7 @@ function get_admin_contacts_form($return = false, $cid = false, $recover = false
                 $contact_name = $contact["last"] != $accountname ? $contact["first"] . " " . $contact["last"] : $contact["first"];
             }
 
-            $returnme .= '<div class="ui-corner-all list_box ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+            $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
             $.ajax({
                 type: \'POST\',
                 url: \'ajax/ajax.php\',
@@ -3484,7 +3500,7 @@ function get_admin_employees_form($return = false, $employeeid = false, $recover
             $selected_class = $employeeid && $employeeid == $employee["employeeid"] ? "selected_button" : "";
             $deleted_param  = $recover ? ',recover: \'true\'' : '';
             $thisweekpay = get_wages_for_this_week($employeeid);
-            $returnme .= '<div class="ui-corner-all list_box ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+            $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                             $.ajax({
                                 type: \'POST\',
                                 url: \'ajax/ajax.php\',
@@ -3528,7 +3544,7 @@ function get_admin_tags_form($return = false, $tagtype = false, $tag = false) {
     foreach ($tagtypes as $tagrow) {
         $tagtype        = empty($tagtype) ? $tagrow : $tagtype;
         $selected_class = $tagtype && $tagtype == $tagrow ? "selected_button" : "";
-        $returnme .= '<div class="ui-corner-all list_box ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+        $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                         $.ajax({
                                 type: \'POST\',
                                 url: \'ajax/ajax.php\',
@@ -3645,7 +3661,7 @@ function get_admin_enrollment_form($return = false, $pid = false) {
             $active         = $activepid && $activepid == $program["pid"] ? "<span style='float:right;margin: 10px 4px;color:white;'>[Active]</span>" : "";
 
             $notifications = get_notifications($program["pid"], false, false, true) ? 'style="background: darkred;"' : '';
-            $returnme .= '<div class="ui-corner-all list_box ' . $selected_class . '" ' . $notifications . ' onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+            $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" ' . $notifications . ' onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                             $.ajax({
                                 type: \'POST\',
                                 url: \'ajax/ajax.php\',
@@ -3736,7 +3752,7 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
             $override        = $recover ? "display:block;" : "";
             $account_balance = account_balance($pid, $account["aid"], true);
             $balanceclass    = $account_balance <= 0 ? "balance_good" : "balance_bad";
-            $returnme .= '<div class="ui-corner-all list_box ' . $selected_class . ' ' . $active . '" style="' . $notifications . $override . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+            $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . ' ' . $active . '" style="' . $notifications . $override . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                             $.ajax({
                                 type: \'POST\',
                                 url: \'ajax/ajax.php\',

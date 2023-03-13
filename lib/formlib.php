@@ -59,7 +59,7 @@ global $CFG;
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="programs" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
 
             $form = '<div id="add_edit_program'.$identifier.'" title="'.$title.'" style="display:none;">
-                		<form name="add_edit_program_form'.$identifier.'">
+                        <form name="'.$formname.'_form'.$identifier.'">
                             '.$fields.'
                             <table style="width:100%;">
                                 <tr><td><label for="name">Name</label></td><td><input style="width:100%;" class="fields" type="input" name="name" id="name" value="'.$name.'" /></td></tr>
@@ -83,7 +83,7 @@ global $CFG;
                           error: function(x, t, m) {
                             $(button).button(\'option\', \'disabled\', false);
                           },
-                          data: { action: \'add_edit_program\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
+                          data: { action: \'add_edit_program\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
                           success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_program'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); if(\''.$pid.'\' == \''.$activepid.'\'){ $(\'#activepidname\').html(\''.$name.'\'); } }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
                           });">Save Program</button>
                           </form>
@@ -143,7 +143,7 @@ global $CFG;
             $fields .= '<input type="hidden" name="callbackinfo" class="fields callbackinfo" value="'.$aid.'" />';
 
             $form = '<div id="billing_overrides'.$identifier.'" title="'.$title.'" style="display:none;">
-                		<form name="billing_overrides'.$identifier.'">
+                		<form name="'.$formname.'_form'.$identifier.'">
                             '.$fields.'
                             <table style="width:100%;">
                                 <tr><td><label for="bill_by">Override Type</label></td><td>'.make_select_from_object("bill_by",$bill_by_array,"value","display","fields",$bill_by).'</td></tr>
@@ -164,7 +164,7 @@ global $CFG;
                           error: function(x, t, m) {
                             $(button).button(\'option\', \'disabled\', false);
                           },
-                          data: { action: \'billing_overrides\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
+                          data: { action: \'billing_overrides\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
                           success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#billing_overrides'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
                           });">Save Override</button>
                           </form>
@@ -185,7 +185,7 @@ global $CFG;
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="billing" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
 
             $form = '<div id="add_edit_payment'.$identifier.'" title="'.$title.'" style="display:none;">
-                		<form name="add_edit_payment_form'.$identifier.'">
+                        <form name="'.$formname.'_form'.$identifier.'">
                             '.$fields.'
                             <div style="text-align:center;color:red">An amount less than 0 is considered a fee.</div>
                             <table style="width:100%;">
@@ -200,7 +200,7 @@ global $CFG;
                           error: function(x, t, m) {
                             $(button).button(\'option\', \'disabled\', false);
                           },
-                          data: { action: \'add_edit_payment\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
+                          data: { action: \'add_edit_payment\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
                           success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_payment'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
                           });">Save Payment</button>
                           </form>
@@ -270,7 +270,7 @@ global $CFG;
                                 '.$program_expense_form.'
                             </div>
                         </div>
-                        <form name="add_edit_expense_form'.$identifier.'">
+                        <form name="'.$formname.'_form'.$identifier.'">
                             '.$fields.'
                             <strong>Add New Donation/Expense</strong>
                             <span style="font-size: 13px;color: blue;float: right;"> Donations are positive and expenses are negative.</span>
@@ -286,7 +286,7 @@ global $CFG;
                           error: function(x, t, m) {
                             $(button).button(\'option\', \'disabled\', false);
                           },
-                          data: { action: \'add_edit_expense\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
+                          data: { action: \'add_edit_expense\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
                           success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_expense'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
                           });">Save Donation/Expense</button>
                           </form>
@@ -310,7 +310,7 @@ global $CFG;
             $meal_status_field = empty($vars["account"]["admin"]) ? '<tr><td><label for="meal_status">Meal Status</label></td><td>'.make_select_from_object("meal_status",$meal_status,"value","display","fields",$status).'</td></tr>' : '<input type="hidden" name="meal_status" class="fields meal_status" value="none" />';
 
             $form = '<div id="add_edit_account'.$identifier.'" title="'.$title.'" style="display:none;">
-                		<form name="add_edit_account_form'.$identifier.'">
+                        <form name="'.$formname.'_form'.$identifier.'">
                             '.$fields.'
                             <table>
                                 <tr><td><label for="name">Name</label></td><td><input class="fields" type="input" name="name" id="name" value="'.$name.'" /></td></tr>
@@ -324,7 +324,7 @@ global $CFG;
                           error: function(x, t, m) {
                             $(button).button(\'option\', \'disabled\', false);
                           },
-                          data: { action: \'add_edit_account\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
+                          data: { action: \'add_edit_account\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
                           success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_account'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
                           });">Save Account</button>
                           </form>
@@ -343,7 +343,7 @@ global $CFG;
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="employees" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
 
             $form = '<div id="add_edit_employee'.$identifier.'" title="'.$title.'" style="display:none;">
-                		<form name="add_edit_employee_form'.$identifier.'">
+                        <form name="'.$formname.'_form'.$identifier.'">
                             '.$fields.'
                             <table>
                                 <tr><td><label for="first">First</label></td><td><input class="fields" type="input" name="first" id="first" value="'.$first.'" /></td></tr>
@@ -358,7 +358,7 @@ global $CFG;
                           error: function(x, t, m) {
                             $(button).button(\'option\', \'disabled\', false);
                           },
-                          data: { action: \'add_edit_employee\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
+                          data: { action: \'add_edit_employee\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
                           success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_employee'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
                           });">Save</button>
                           </form>
@@ -408,26 +408,26 @@ global $CFG;
             }
 
             $form = '<div id="edit_employee_timecards'.$identifier.'" title="Pay Stubs" style="display:none;">
-        		<form name="edit_employee_timecards_form'.$identifier.'">
-                    <div style="text-align:center">
-                        <button type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                            type: \'POST\',
-                            url: \'ajax/ajax.php\',
-                            timeout: 10000,
-                            error: function(x, t, m) {
-                            $(button).button(\'option\', \'disabled\', false);
-                            },
-                            data: { action: \'save_employee_timecard\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                            success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#edit_employee_timecards'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                            });">Save
-                        </button>
-                    </div>
-                    '.$fields.'
-                    <table style="width:100%;font-size:1em;">
-                        '.$timecard_history.'
-                    </table>
-                  </form>
-                </div>';
+                        <form name="'.$formname.'_form'.$identifier.'">
+                            <div style="text-align:center">
+                                <button type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                                    type: \'POST\',
+                                    url: \'ajax/ajax.php\',
+                                    timeout: 10000,
+                                    error: function(x, t, m) {
+                                    $(button).button(\'option\', \'disabled\', false);
+                                    },
+                                    data: { action: \'save_employee_timecard\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
+                                    success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#edit_employee_timecards'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                                    });">Save
+                                </button>
+                            </div>
+                            '.$fields.'
+                            <table style="width:100%;font-size:1em;">
+                                '.$timecard_history.'
+                            </table>
+                        </form>
+                    </div>';
 
         break;
         case "edit_employee_wage_history":
@@ -483,7 +483,7 @@ global $CFG;
             }
 
             $form = '<div id="edit_employee_wage_history'.$identifier.'" title="Wage History" style="display:none;">
-                		<form name="edit_employee_wage_history_form'.$identifier.'">
+                        <form name="'.$formname.'_form'.$identifier.'">
                             '.$fields.'
                             <table style="width:100%;">
                                 '.$salary_history.'
@@ -495,7 +495,7 @@ global $CFG;
                           error: function(x, t, m) {
                             $(button).button(\'option\', \'disabled\', false);
                           },
-                          data: { action: \'save_employee_salary_history\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
+                          data: { action: \'save_employee_salary_history\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
                           success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#edit_employee_wage_history'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
                           });">Save</button>
                           </form>
@@ -527,27 +527,27 @@ global $CFG;
             $title = empty($vars["chid"]) ? "Add Child" : "Edit Child";
 
             $form = '<div id="add_edit_child'.$identifier.'" title="'.$title.'" style="display:none;">
-                        		<form name="add_edit_child_form'.$identifier.'">
-                                    '.$fields.'
-                                    <table>
-                                        <tr><td><label for="first">First</label></td><td><input class="fields autocapitalizefirst" type="input" name="first" id="first" value="'.$first.'" /></td></tr>
-                                        <tr><td><label for="last">Last</label></td><td><input class="fields autocapitalizefirst" type="input" name="last" id="last" value="'.$last.'" /></td></tr>
-                                        <tr><td><label for="sex">Sex</label></td><td><select class="fields" name="sex"><option value="Male" '.$male.'>Male</option><option value="Female" '.$female.'>Female</option></select></td></tr>
-                                        <tr><td><label for="birthdate">Birthdate</label></td><td><input class="fields" type="input" name="birthdate" id="birthdate" value="'.$birthdate.'" /></td></tr>
-                                        <tr><td><label for="grade">Grade</label></td><td><select class="fields" name="grade"><option value="7" '.$grade7.'>Infant</option><option value="8" '.$grade8.'>Pre-K</option><option value="0" '.$grade0.'>Kindergarten</option><option value="1" '.$grade1.'>1st</option><option value="2" '.$grade2.'>2nd</option><option value="3" '.$grade3.'>3rd</option><option value="4" '.$grade4.'>4th</option><option value="5" '.$grade5.'>5th</option><option value="6" '.$grade6.'>6th</option></select></td></tr>
-                                    </table>
-                                <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                                  type: \'POST\',
-                                  url: \'ajax/ajax.php\',
-                                  timeout: 10000,
-                                  error: function(x, t, m) {
-                                    $(button).button(\'option\', \'disabled\', false);
-                                  },
-                                  data: { action: \'add_edit_child\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                                  success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_child'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                                  });">Save</button>
-                                  </form>
-                            </div>';
+                        <form name="'.$formname.'_form'.$identifier.'">
+                            '.$fields.'
+                            <table>
+                                <tr><td><label for="first">First</label></td><td><input class="fields autocapitalizefirst" type="input" name="first" id="first" value="'.$first.'" /></td></tr>
+                                <tr><td><label for="last">Last</label></td><td><input class="fields autocapitalizefirst" type="input" name="last" id="last" value="'.$last.'" /></td></tr>
+                                <tr><td><label for="sex">Sex</label></td><td><select class="fields" name="sex"><option value="Male" '.$male.'>Male</option><option value="Female" '.$female.'>Female</option></select></td></tr>
+                                <tr><td><label for="birthdate">Birthdate</label></td><td><input class="fields" type="input" name="birthdate" id="birthdate" value="'.$birthdate.'" /></td></tr>
+                                <tr><td><label for="grade">Grade</label></td><td><select class="fields" name="grade"><option value="7" '.$grade7.'>Infant</option><option value="8" '.$grade8.'>Pre-K</option><option value="0" '.$grade0.'>Kindergarten</option><option value="1" '.$grade1.'>1st</option><option value="2" '.$grade2.'>2nd</option><option value="3" '.$grade3.'>3rd</option><option value="4" '.$grade4.'>4th</option><option value="5" '.$grade5.'>5th</option><option value="6" '.$grade6.'>6th</option></select></td></tr>
+                            </table>
+                            <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                timeout: 10000,
+                                error: function(x, t, m) {
+                                $(button).button(\'option\', \'disabled\', false);
+                                },
+                                data: { action: \'add_edit_child\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
+                                success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_child'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                                });">Save</button>
+                        </form>
+                    </div>';
             break;
         case "add_edit_contact":
             $first = empty($vars["contact"]) ? "" : $vars["contact"]["first"];
@@ -571,35 +571,35 @@ global $CFG;
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="accounts" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
 
             $form = '<div id="add_edit_contact'.$identifier.'" title="'.$title.'" style="display:none;">
-                    		<form name="add_edit_contact_form'.$identifier.'">
-                                '.$fields.'
-                                <table>
-                                    <tr><td><label for="first">First</label></td><td><input class="fields autocapitalizefirst" type="input" name="first" id="first" value="'.$first.'" /></td></tr>
-                                    <tr><td><label for="last">Last</label></td><td><input class="fields autocapitalizefirst" type="input" name="last" id="last" value="'.$last.'" /></td></tr>
-                                    <tr><td><label for="relation">Relation</label></td><td><input class="fields autocapitalizefirst" type="input" name="relation" id="relation" value="'.$relation.'" /></td></tr>
-                                    <tr><td><label for="primary_address">Primary Address</label></td><td><select class="fields" name="primary_address"><option value="0">No</option><option value="1" '.$primary_address.'>Yes</option></select></td></tr>
-                                    <tr><td><label for="home_address">Home Address</label></td><td><textarea style="height:60px;" class="fields" name="home_address" id="home_address" >'.$home_address.'</textarea></td></tr>
-                                    <tr><td><label for="phone1">Phone 1</label></td><td><input class="fields" type="input" name="phone1" id="phone1" value="'.$phone1.'" /></td></tr>
-                                    <tr><td><label for="phone2">Phone 2</label></td><td><input class="fields" type="input" name="phone2" id="phone2" value="'.$phone2.'" /></td></tr>
-                                    <tr><td><label for="phone3">Phone 3</label></td><td><input class="fields" type="input" name="phone3" id="phone3" value="'.$phone3.'" /></td></tr>
-                                    <tr><td><label for="employer">Employer</label></td><td><input class="fields" type="input" name="employer" id="employer" value="'.$employer.'" /></td></tr>
-                                    <tr><td><label for="employer_address">Employer Address</label></td><td><input class="fields" type="input" name="employer_address" id="employer_address" value="'.$employer_address.'" /></td></tr>
-                                    <tr><td><label for="phone4">Work Phone</label></td><td><input class="fields" type="input" name="phone4" id="phone4" value="'.$phone4.'" /></td></tr>
-                                    <tr><td><label for="hours">Hours</label></td><td><input class="fields" type="input" name="hours" id="hours" value="'.$hours.'" /></td></tr>
-                                    <tr><td><label for="emergency">Emergency Contact</label></td><td><select class="fields" name="emergency"><option value="0">No</option><option value="1" '.$emergency.'>Yes</option></select></td></tr>
-                                </table>
-                            <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                              type: \'POST\',
-                              url: \'ajax/ajax.php\',
-                              timeout: 10000,
-                              error: function(x, t, m) {
-                                    $(button).button(\'option\', \'disabled\', false);
-                                  },
-                              data: { action: \'add_edit_contact\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                              success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_contact'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                              });">Save Contact</button>
-                              </form>
-                        </div>';
+                        <form name="'.$formname.'_form'.$identifier.'">
+                            '.$fields.'
+                            <table>
+                                <tr><td><label for="first">First</label></td><td><input class="fields autocapitalizefirst" type="input" name="first" id="first" value="'.$first.'" /></td></tr>
+                                <tr><td><label for="last">Last</label></td><td><input class="fields autocapitalizefirst" type="input" name="last" id="last" value="'.$last.'" /></td></tr>
+                                <tr><td><label for="relation">Relation</label></td><td><input class="fields autocapitalizefirst" type="input" name="relation" id="relation" value="'.$relation.'" /></td></tr>
+                                <tr><td><label for="primary_address">Primary Address</label></td><td><select class="fields" name="primary_address"><option value="0">No</option><option value="1" '.$primary_address.'>Yes</option></select></td></tr>
+                                <tr><td><label for="home_address">Home Address</label></td><td><textarea style="height:60px;" class="fields" name="home_address" id="home_address" >'.$home_address.'</textarea></td></tr>
+                                <tr><td><label for="phone1">Phone 1</label></td><td><input class="fields" type="input" name="phone1" id="phone1" value="'.$phone1.'" /></td></tr>
+                                <tr><td><label for="phone2">Phone 2</label></td><td><input class="fields" type="input" name="phone2" id="phone2" value="'.$phone2.'" /></td></tr>
+                                <tr><td><label for="phone3">Phone 3</label></td><td><input class="fields" type="input" name="phone3" id="phone3" value="'.$phone3.'" /></td></tr>
+                                <tr><td><label for="employer">Employer</label></td><td><input class="fields" type="input" name="employer" id="employer" value="'.$employer.'" /></td></tr>
+                                <tr><td><label for="employer_address">Employer Address</label></td><td><input class="fields" type="input" name="employer_address" id="employer_address" value="'.$employer_address.'" /></td></tr>
+                                <tr><td><label for="phone4">Work Phone</label></td><td><input class="fields" type="input" name="phone4" id="phone4" value="'.$phone4.'" /></td></tr>
+                                <tr><td><label for="hours">Hours</label></td><td><input class="fields" type="input" name="hours" id="hours" value="'.$hours.'" /></td></tr>
+                                <tr><td><label for="emergency">Emergency Contact</label></td><td><select class="fields" name="emergency"><option value="0">No</option><option value="1" '.$emergency.'>Yes</option></select></td></tr>
+                            </table>
+                        <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                            type: \'POST\',
+                            url: \'ajax/ajax.php\',
+                            timeout: 10000,
+                            error: function(x, t, m) {
+                                $(button).button(\'option\', \'disabled\', false);
+                                },
+                            data: { action: \'add_edit_contact\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
+                            success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_contact'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                            });">Save Contact</button>
+                        </form>
+                    </div>';
             break;
         case "avatar":
             $fields = "";
@@ -610,15 +610,15 @@ global $CFG;
             $fields .= empty($vars["param1value"]) ? "" : '<input type="hidden" name="param1value" class="fields param1value" value="'.$vars["param1value"].'" />';
 
             $form = '<div id="avatar'.$identifier.'" title="Change Picture" style="display:none;">
-                    		<form class="uploader'.$identifier.'" name="avatar_form'.$identifier.'">
-                                '.$fields.'
-                                <input type="file" class="fields" name="afile" id="afile" accept="image/*"/ value="Upload File" />
-                                <input type="hidden" name="tag" class="fields tag" value="avatar" />
-                                <button class="bottom-right" type="button" onclick="uploader(\''.$identifier.'\',function(data) { if(data != \'false\'){ $(\'#avatar'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } },$(\'.fields\',\'.ui-dialog\').serializeArray())">Save</button>
-                                <br /><br />Progress:<br />
-                                <div class="progress ui-corner-all" style="display:inline-div;background:red;width:0px;text-align:center;color:grey;">0%</div>
-                            </form>
-                        </div>';
+                        <form name="'.$formname.'_form'.$identifier.'">
+                            '.$fields.'
+                            <input type="file" class="fields" name="afile" id="afile" accept="image/*"/ value="Upload File" />
+                            <input type="hidden" name="tag" class="fields tag" value="avatar" />
+                            <button class="bottom-right" type="button" onclick="uploader(\''.$identifier.'\',function(data) { if(data != \'false\'){ $(\'#avatar'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } },$(\'#'.$formname.$identifier.' .fields\').serializeArray())">Save</button>
+                            <br /><br />Progress:<br />
+                            <div class="progress ui-corner-all" style="display:inline-div;background:red;width:0px;text-align:center;color:grey;">0%</div>
+                        </form>
+                    </div>';
             break;
         case "attach_doc":
             $fields = "";
@@ -641,26 +641,26 @@ global $CFG;
             $description = empty($doc) ? "" : $doc["description"];
 
             $form = '<div id="attach_doc'.$identifier.'" title="'.$title.'" style="display:none;">
-                    		<form class="uploadera'.$identifier.'" name="attach_doc_form'.$identifier.'">
-                                '.$fields.'
-                                <input class="fields" type="file" name="afile" id="afile" accept="image/*"/ value="Upload File" />
-                                <table style="width:100%">
-                                    <tr><td><label for="tag">Tag</label></td><td><input type="text" name="tag" class="fields tag tags_editor" value="'.$selected.'" /><input name="tags_list" type="hidden" class="tags_list" value="';
-                                    if($tags = get_db_result("SELECT * FROM documents_tags WHERE tag != 'avatar' ORDER BY tag")){
-                                        $i = 0;
-                                        while($tag = fetch_row($tags)){
-                                            $form .= $i == 0 ? $tag["title"] : ",".$tag["title"];
-                                            $i++;
-                                        }
+                        <form name="'.$formname.'_form'.$identifier.'">
+                            '.$fields.'
+                            <input class="fields" type="file" name="afile" id="afile" accept="image/*"/ value="Upload File" />
+                            <table style="width:100%">
+                                <tr><td><label for="tag">Tag</label></td><td><input type="text" name="tag" class="fields tag tags_editor" value="'.$selected.'" /><input name="tags_list" type="hidden" class="tags_list" value="';
+                                if($tags = get_db_result("SELECT * FROM documents_tags WHERE tag != 'avatar' ORDER BY tag")){
+                                    $i = 0;
+                                    while($tag = fetch_row($tags)){
+                                        $form .= $i == 0 ? $tag["title"] : ",".$tag["title"];
+                                        $i++;
                                     }
-                                    $form .= '" /></td></tr>
-                                    <tr><td style="vertical-align: top;"><label for="description">Description</label></td><td><textarea class="fields" style="width:100%;height:80px;" name="description">'.$description.'</textarea></td></tr>
-                                </table>
-                                <button class="bottom-right" type="button" onclick="uploader(\'a'.$identifier.'\',function(data) { if(data != \'false\'){ $(\'#attach_doc'.$identifier.'\').dialog(\'close\'); $(\'#'.$display.'\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } },$(\'.fields\',\'.ui-dialog\').serializeArray())">Save</button>
-                                <br /><br />Progress:<br />
-                                <div class="progress ui-corner-all" style="display:inline-div;background:red;width:0px;text-align:center;color:grey;">0%</div>
-                            </form>
-                        </div>';
+                                }
+                                $form .= '" /></td></tr>
+                                <tr><td style="vertical-align: top;"><label for="description">Description</label></td><td><textarea class="fields" style="width:100%;height:80px;" name="description">'.$description.'</textarea></td></tr>
+                            </table>
+                            <button class="bottom-right" type="button" onclick="uploader(\'a'.$identifier.'\',function(data) { if(data != \'false\'){ $(\'#attach_doc'.$identifier.'\').dialog(\'close\'); $(\'#'.$display.'\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } },$(\'#'.$formname.$identifier.' .fields\').serializeArray())">Save</button>
+                            <br /><br />Progress:<br />
+                            <div class="progress ui-corner-all" style="display:inline-div;background:red;width:0px;text-align:center;color:grey;">0%</div>
+                        </form>
+                    </div>';
             break;
         case "attach_note":
             $fields = "";
@@ -688,34 +688,34 @@ global $CFG;
             $note = empty($note) ? "" : $note["note"];
 
             $form = '<div id="attach_note'.$identifier.'" title="'.$title.'" style="display:none;">
-                    		<form name="attach_note_form'.$identifier.'">
-                                '.$fields.'
-                                <table style="width:100%">
-                                    <tr><td><label for="tag">Tag</label></td><td><input type="text" name="tag" class="fields tag tags_editor" value="'.$selected.'" /><input name="tags_list" type="hidden" class="tags_list" value="';
-                                    if($tags = get_db_result("SELECT * FROM notes_tags ORDER BY tag")){
-                                        $i = 0;
-                                        while($tag = fetch_row($tags)){
-                                            $form .= $i == 0 ? $tag["title"] : ",".$tag["title"];
-                                            $i++;
-                                        }
+                        <form name="'.$formname.'_form'.$identifier.'">
+                            '.$fields.'
+                            <table style="width:100%">
+                                <tr><td><label for="tag">Tag</label></td><td><input type="text" name="tag" class="fields tag tags_editor" value="'.$selected.'" /><input name="tags_list" type="hidden" class="tags_list" value="';
+                                if($tags = get_db_result("SELECT * FROM notes_tags ORDER BY tag")){
+                                    $i = 0;
+                                    while($tag = fetch_row($tags)){
+                                        $form .= $i == 0 ? $tag["title"] : ",".$tag["title"];
+                                        $i++;
                                     }
-                                    $form .= '" /></td></tr>
-                                    <tr><td><label for="notify">Notify Parent</label></td><td>'.make_select_from_object("notify",$notify_array,"value","display","fields",$notify).'</td></tr>
-                                    <tr><td><label for="persistent">Persistent</label></td><td>'.make_select_from_object("persistent",$notify_array,"value","display","fields",$persistent).'</td></tr>
-                                    <tr><td style="vertical-align: top;"><label for="note">Note</label></td><td><textarea class="fields" style="width:100%;height:160px;" name="note">'.$note.'</textarea></td></tr>
-                                </table>
-                                <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                                  type: \'POST\',
-                                  url: \'ajax/ajax.php\',
-                                  timeout: 10000,
-                                  error: function(x, t, m) {
-                                    $(button).button(\'option\', \'disabled\', false);
-                                  },
-                                  data: { action: \'add_edit_note\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                                  success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#attach_note'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                                  });">Save</button>
-                            </form>
-                        </div>';
+                                }
+                                $form .= '" /></td></tr>
+                                <tr><td><label for="notify">Notify Parent</label></td><td>'.make_select_from_object("notify",$notify_array,"value","display","fields",$notify).'</td></tr>
+                                <tr><td><label for="persistent">Persistent</label></td><td>'.make_select_from_object("persistent",$notify_array,"value","display","fields",$persistent).'</td></tr>
+                                <tr><td style="vertical-align: top;"><label for="note">Note</label></td><td><textarea class="fields" style="width:100%;height:160px;" name="note">'.$note.'</textarea></td></tr>
+                            </table>
+                            <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                timeout: 10000,
+                                error: function(x, t, m) {
+                                $(button).button(\'option\', \'disabled\', false);
+                                },
+                                data: { action: \'add_edit_note\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
+                                success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#attach_note'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                                });">Save</button>
+                        </form>
+                    </div>';
             break;
         case "bulletin":
             $fields = "";
@@ -739,24 +739,24 @@ global $CFG;
             $note = empty($note) ? "" : $note["note"];
 
             $form = '<div id="bulletin'.$identifier.'" title="'.$title.'" style="display:none;">
-                    		<form name="bulletin_form'.$identifier.'">
-                                '.$fields.'
-                                <table style="width:100%">
-                                    <tr><td><label for="notify">Notify Parents</label></td><td>'.make_select_from_object("notify",$notify_array,"value","display","fields",$notify).'</td></tr>
-                                    <tr><td style="vertical-align: top;"><label for="note">Bulletin</label></td><td><textarea class="fields" style="width:100%;height:160px;" name="note">'.$note.'</textarea></td></tr>
-                                </table>
-                                <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                                  type: \'POST\',
-                                  url: \'ajax/ajax.php\',
-                                  timeout: 10000,
-                                  error: function(x, t, m) {
-                                    $(button).button(\'option\', \'disabled\', false);
-                                  },
-                                  data: { action: \'add_edit_bulletin\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                                  success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#bulletin'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                                  });">Save</button>
-                            </form>
-                        </div>';
+                        <form name="'.$formname.'_form'.$identifier.'">
+                            '.$fields.'
+                            <table style="width:100%">
+                                <tr><td><label for="notify">Notify Parents</label></td><td>'.make_select_from_object("notify",$notify_array,"value","display","fields",$notify).'</td></tr>
+                                <tr><td style="vertical-align: top;"><label for="note">Bulletin</label></td><td><textarea class="fields" style="width:100%;height:160px;" name="note">'.$note.'</textarea></td></tr>
+                            </table>
+                            <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                timeout: 10000,
+                                error: function(x, t, m) {
+                                $(button).button(\'option\', \'disabled\', false);
+                                },
+                                data: { action: \'add_edit_bulletin\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
+                                success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#bulletin'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                                });">Save</button>
+                        </form>
+                    </div>';
             break;
         case "update_activity":
             $fields = '<input type="hidden" name="tab" class="fields tab" value="activity" />';
@@ -776,35 +776,35 @@ global $CFG;
             $note = empty($note) ? "" : $note["note"];
 
             $form = '<div id="update_activity'.$identifier.'" title="'.$title.'" style="display:none;">
-                    		<form name="update_activity_form'.$identifier.'">
-                                '.$fields.'
-                                <table style="width:100%">
-                                    <tr><td style="vertical-align: top;"><label for="note">Note</label></td><td><textarea class="fields" style="width:100%;height:160px;" name="note">'.$note.'</textarea></td></tr>
-                                </table>
-                                <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                                  type: \'POST\',
-                                  url: \'ajax/ajax.php\',
-                                  timeout: 10000,
-                                  error: function(x, t, m) {
-                                    $(button).button(\'option\', \'disabled\', false);
-                                  },
-                                  data: { action: \'add_edit_notes\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                                  success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#update_activity'.$identifier.'\').dialog(\'close\');
-                                               $.ajax({
-                                                type: \'POST\',
-                                                url: \'ajax/ajax.php\',
-                                                data: { action: \'get_activity_list\',chid:\''.$vars["chid"].'\',month:\''.$vars["month"].'\',year:\''.$vars["year"].'\' },
-                                                success: function(data) {
-                                                        $(\'#subselect_div\').hide(\'fade\');
-                                                        $(\'#subselect_div\').html(data);
-                                                        $(\'#subselect_div\').show(\'fade\');
-                                                        refresh_all();
-                                                    }
-                                            });
-                                        }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                                  });">Save</button>
-                            </form>
-                        </div>';
+                        <form name="'.$formname.'_form'.$identifier.'">
+                            '.$fields.'
+                            <table style="width:100%">
+                                <tr><td style="vertical-align: top;"><label for="note">Note</label></td><td><textarea class="fields" style="width:100%;height:160px;" name="note">'.$note.'</textarea></td></tr>
+                            </table>
+                            <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                timeout: 10000,
+                                error: function(x, t, m) {
+                                $(button).button(\'option\', \'disabled\', false);
+                                },
+                                data: { action: \'add_edit_notes\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
+                                success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#update_activity'.$identifier.'\').dialog(\'close\');
+                                            $.ajax({
+                                            type: \'POST\',
+                                            url: \'ajax/ajax.php\',
+                                            data: { action: \'get_activity_list\',chid:\''.$vars["chid"].'\',month:\''.$vars["month"].'\',year:\''.$vars["year"].'\' },
+                                            success: function(data) {
+                                                    $(\'#subselect_div\').hide(\'fade\');
+                                                    $(\'#subselect_div\').html(data);
+                                                    $(\'#subselect_div\').show(\'fade\');
+                                                    refresh_all();
+                                                }
+                                        });
+                                    }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                                });">Save</button>
+                        </form>
+                    </div>';
             break;
         case "add_activity":
             $fields = '<input type="hidden" name="tab" class="fields tab" value="activity" />';
@@ -815,22 +815,44 @@ global $CFG;
 
             $datetime = new DateTime($vars["year"] . "-" . $vars["month"] . "-" . $vars["day"]);
             $form = '<div id="add_activity'.$identifier.'" title="Add Activity" style="display:none;">
-                    		<form name="add_activity_form'.$identifier.'">
-                                '.$fields.'
-                                <table style="width:100%">
-                                    <tr><td style="vertical-align: top;"><label for="note">Date/Time</label></td><td>
-                                    <input type="datetime-local" class="fields" id="timelog" name="timelog" value="'.$datetime->format('Y-m-d\T08:00:00').'" /></td></tr>
-                                </table>
-                                <button class="bottom-left" type="button" onclick="$(\'input[name=tag\').val(\'in\'); var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                                  type: \'POST\',
-                                  url: \'ajax/ajax.php\',
-                                  timeout: 10000,
-                                  error: function(x, t, m) {
+                        <form name="'.$formname.'_form'.$identifier.'">
+                            '.$fields.'
+                            <table style="width:100%">
+                                <tr><td style="vertical-align: top;"><label for="note">Date/Time</label></td><td>
+                                <input type="datetime-local" class="fields" id="timelog" name="timelog" value="'.$datetime->format('Y-m-d\T08:00:00').'" /></td></tr>
+                            </table>
+                            <button class="bottom-left" type="button" onclick="$(\'input[name=tag\').val(\'in\'); var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                timeout: 10000,
+                                error: function(x, t, m) {
+                                $(button).button(\'option\', \'disabled\', false);
+                                },
+                                data: { action: \'add_activity\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
+                                success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_activity'.$identifier.'\').dialog(\'close\');
+                                            $.ajax({
+                                            type: \'POST\',
+                                            url: \'ajax/ajax.php\',
+                                            data: { action: \'get_activity_list\',chid:\''.$vars["chid"].'\',month:\''.$vars["month"].'\',year:\''.$vars["year"].'\' },
+                                            success: function(data) {
+                                                    $(\'#subselect_div\').hide(\'fade\');
+                                                    $(\'#subselect_div\').html(data);
+                                                    $(\'#subselect_div\').show(\'fade\');
+                                                    refresh_all();
+                                                }
+                                        });
+                                    }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                                });">Check In</button>
+                                <button class="bottom-right" type="button" onclick="$(\'input[name=tag\').val(\'out\'); var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                timeout: 10000,
+                                error: function(x, t, m) {
                                     $(button).button(\'option\', \'disabled\', false);
-                                  },
-                                  data: { action: \'add_activity\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                                  success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_activity'.$identifier.'\').dialog(\'close\');
-                                               $.ajax({
+                                },
+                                data: { action: \'add_activity\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
+                                success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_activity'.$identifier.'\').dialog(\'close\');
+                                                $.ajax({
                                                 type: \'POST\',
                                                 url: \'ajax/ajax.php\',
                                                 data: { action: \'get_activity_list\',chid:\''.$vars["chid"].'\',month:\''.$vars["month"].'\',year:\''.$vars["year"].'\' },
@@ -842,31 +864,9 @@ global $CFG;
                                                     }
                                             });
                                         }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                                  });">Check In</button>
-                                  <button class="bottom-right" type="button" onclick="$(\'input[name=tag\').val(\'out\'); var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                                    type: \'POST\',
-                                    url: \'ajax/ajax.php\',
-                                    timeout: 10000,
-                                    error: function(x, t, m) {
-                                      $(button).button(\'option\', \'disabled\', false);
-                                    },
-                                    data: { action: \'add_activity\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                                    success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_activity'.$identifier.'\').dialog(\'close\');
-                                                 $.ajax({
-                                                  type: \'POST\',
-                                                  url: \'ajax/ajax.php\',
-                                                  data: { action: \'get_activity_list\',chid:\''.$vars["chid"].'\',month:\''.$vars["month"].'\',year:\''.$vars["year"].'\' },
-                                                  success: function(data) {
-                                                          $(\'#subselect_div\').hide(\'fade\');
-                                                          $(\'#subselect_div\').html(data);
-                                                          $(\'#subselect_div\').show(\'fade\');
-                                                          refresh_all();
-                                                      }
-                                              });
-                                          }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                                    });">Check Out</button>
-                            </form>
-                        </div>';
+                                });">Check Out</button>
+                        </form>
+                    </div>';
             break;
         case "update_employee_activity":
             $fields = '<input type="hidden" name="tab" class="fields tab" value="activity" />';
@@ -884,35 +884,126 @@ global $CFG;
             $note = empty($note) ? "" : $note["note"];
 
             $form = '<div id="update_employee_activity'.$identifier.'" title="'.$title.'" style="display:none;">
-                    		<form name="update_employee_activity_form'.$identifier.'">
-                                '.$fields.'
-                                <table style="width:100%">
-                                    <tr><td style="vertical-align: top;"><input class="fields" type="hidden" id="oldtime" name="oldtime" value="'.$activity["timelog"].'" /><label for="newtime">Time</label></td><td><textarea class="fields" style="width:100%;height:160px;" name="newtime">'.get_date("g:i a",$activity["timelog"],$CFG->timezone).'</textarea></td></tr>
-                                </table>
-                                <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                                  type: \'POST\',
-                                  url: \'ajax/ajax.php\',
-                                  timeout: 10000,
-                                  error: function(x, t, m) {
-                                    $(button).button(\'option\', \'disabled\', false);
-                                  },
-                                  data: { action: \'add_edit_employee_activity\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                                  success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#update_employee_activity'.$identifier.'\').dialog(\'close\');
-                                               $.ajax({
-                                                type: \'POST\',
-                                                url: \'ajax/ajax.php\',
-                                                data: { action: \'get_activity_list\',employeeid:\''.$vars["employeeid"].'\',month:\''.$vars["month"].'\',year:\''.$vars["year"].'\' },
-                                                success: function(data) {
-                                                        $(\'#subselect_div\').hide(\'fade\');
-                                                        $(\'#subselect_div\').html(data);
-                                                        $(\'#subselect_div\').show(\'fade\');
-                                                        refresh_all();
-                                                    }
-                                            });
-                                        }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                                  });">Save</button>
-                            </form>
-                        </div>';
+                        <form name="'.$formname.'_form'.$identifier.'">
+                            '.$fields.'
+                            <table style="width:100%">
+                                <tr><td style="vertical-align: top;"><input class="fields" type="hidden" id="oldtime" name="oldtime" value="'.$activity["timelog"].'" /><label for="newtime">Time</label></td><td><textarea class="fields" style="width:100%;height:160px;" name="newtime">'.get_date("g:i a",$activity["timelog"],$CFG->timezone).'</textarea></td></tr>
+                            </table>
+                            <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                timeout: 10000,
+                                error: function(x, t, m) {
+                                $(button).button(\'option\', \'disabled\', false);
+                                },
+                                data: { action: \'add_edit_employee_activity\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
+                                success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#update_employee_activity'.$identifier.'\').dialog(\'close\');
+                                            $.ajax({
+                                            type: \'POST\',
+                                            url: \'ajax/ajax.php\',
+                                            data: { action: \'get_activity_list\',employeeid:\''.$vars["employeeid"].'\',month:\''.$vars["month"].'\',year:\''.$vars["year"].'\' },
+                                            success: function(data) {
+                                                    $(\'#subselect_div\').hide(\'fade\');
+                                                    $(\'#subselect_div\').html(data);
+                                                    $(\'#subselect_div\').show(\'fade\');
+                                                    refresh_all();
+                                                }
+                                        });
+                                    }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                                });">Save</button>
+                        </form>
+                    </div>';
+            break;
+        case "add_update_employee_activity":
+            $fields = '<input type="hidden" name="tab" class="fields tab" value="activity" />';
+            $fields .= empty($vars["employeeid"]) ? "" : '<input type="hidden" name="employeeid" class="fields employeeid" value="'.$vars["employeeid"].'" />';
+            $fields .= empty($vars["actid"]) ? "" : '<input type="hidden" name="actid" class="fields actid" value="'.$vars["actid"].'" />';
+            $fields .= empty($vars["nid"]) ? "" : '<input type="hidden" name="nid" class="fields nid" value="'.$vars["nid"].'" />';
+            $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="employee" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
+            $title = empty($vars["nid"]) ? "Add Activity" : "Edit Activity";
+            $date = strtotime($vars["month"] . "/" . $vars["day"] . "/" . $vars["year"]);
+            $fields .= '<input type="hidden" name="date" class="fields" value="' . $date . '" />';
+            $value = "00:00";
+            $tagselector = "";
+            if (!empty($vars["actid"])) {
+                $activity = get_db_row("SELECT * FROM employee_activity WHERE actid='".$vars["actid"]."'");
+                $value = date("H:i", $activity["timelog"] + get_offset());
+                if ($activity["tag"] == "in") {
+                    $endofday = strtotime("+1 day", strtotime(date("j F Y" , $activity["timelog"])));
+                    $min = "00:01";
+                    if ($next = get_db_field("timelog", "employee_activity", "tag='out' AND employeeid='" . $activity["employeeid"] . "' AND timelog > '" . $activity["timelog"] . "' AND timelog < '" . $endofday . "'")) {
+                        $max = get_date("H:i", $next, $CFG->timezone);
+                    } else {
+                        $max = "23:59";
+                    }
+                } else { // tag is "out"
+                    $startofday = strtotime(date("j F Y" , $activity["timelog"]));
+                    $max = "23:59";
+                    if ($prev = get_db_field("timelog", "employee_activity", "tag='in' AND employeeid='" . $activity["employeeid"] . "' AND timelog < '" . $activity["timelog"] . "' AND timelog > '" . $startofday . "'")) {
+                        $min = get_date("H:i", $prev, $CFG->timezone);
+                    } else {
+                        $min = "00:01";
+                    }
+                }
+            } else { // Adding new employee sign in.
+                $min = "00:01";
+                $max = "23:59";
+                // tag type select.
+                $tagselector = '<table style="width:100%">
+                                    <tr>
+                                        <td style="vertical-align: top;">
+                                            <label for="tag">Type</label>
+                                        </td>
+                                        <td>
+                                            <select class="fields" name="tag">
+                                                <option value="in">In</option>
+                                                <option value="out">Out</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                </table>';
+            }
+
+            
+            $fields .= empty($vars["actid"]) ? $tagselector : '<input type="hidden" name="tag" class="fields tag" value="'.$activity["tag"].'" />';
+            
+            $form = '<div id="'.$formname.$identifier.'" title="'.$title.'" style="display:none;">
+                        <form name="'.$formname.'_form'.$identifier.'">
+                            '.$fields.'
+                            <table style="width:100%">
+                                <tr>
+                                    <td style="vertical-align: top;">
+                                        <label for="newtime">Time</label>
+                                    </td>
+                                    <td>
+                                        <input class="fields" name="newtime" type="time" min="' . $min . '" max="' . $max . '" value="' . $value . '" required>
+                                    </td>
+                                </tr>
+                            </table>
+                            <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                timeout: 10000,
+                                error: function(x, t, m) {
+                                $(button).button(\'option\', \'disabled\', false);
+                                },
+                                data: { action: \'add_edit_employee_activity\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
+                                success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_update_employee_activity'.$identifier.'\').dialog(\'close\');
+                                            $.ajax({
+                                            type: \'POST\',
+                                            url: \'ajax/ajax.php\',
+                                            data: { action: \'get_activity_list\',employeeid:\''.$vars["employeeid"].'\',day:\''.$vars["day"].'\',month:\''.$vars["month"].'\',year:\''.$vars["year"].'\' },
+                                            success: function(data) {
+                                                    $(\'#subselect_div\').hide(\'fade\');
+                                                    $(\'#subselect_div\').html(data);
+                                                    $(\'#subselect_div\').show(\'fade\');
+                                                    refresh_all();
+                                                }
+                                        });
+                                    }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                                });">Save</button>
+                        </form>
+                    </div>';
             break;
         case "add_edit_enrollment":
             $title = empty($vars["pid"]) ? "Enroll Child" : "Edit Enrollment";
@@ -943,25 +1034,25 @@ global $CFG;
                         }
                     });';
             $form = '<div id="add_edit_enrollment'.$identifier.'" title="'.$title.'" style="display:none;">
-                		<form name="add_edit_enrollment_form'.$identifier.'">
+                        <form name="'.$formname.'_form'.$identifier.'">
                             '.$fields.'
                             <table style="width:100%;">
                                 <tr><td><label for="days_attending">Days Attending</label></td><td>M:<input class="fields" type="checkbox" name="M" value="M" '.$M.'/> T:<input class="fields" type="checkbox" name="T" value="T" '.$T.'/> W:<input class="fields" type="checkbox" name="W" value="W" '.$W.'/> Th:<input class="fields" type="checkbox" name="Th" value="Th" '.$Th.'/> F:<input class="fields" type="checkbox" name="F" value="F" '.$F.'/></td></tr>
                                 <tr><td><label for="exempt">Pay Exempt</label></td><td><select class="fields" name="exempt"><option value="0">No</option><option value="1" '.$exempt.'>Yes</option></select></td></tr>
                             </table>
-                        <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true);
-                        $.ajax({
-                          type: \'POST\',
-                          url: \'ajax/ajax.php\',
-                          timeout: 10000,
-                          error: function(x, t, m) {
-                            $(button).button(\'option\', \'disabled\', false);
-                          },
-                          data: { action: \'toggle_enrollment\',pid:\''.$vars["pid"].'\',chid: \''.$vars["chid"].'\',values: $(\'.fields\',\'.ui-dialog\').serializeArray() },
-                          success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_enrollment'.$identifier.'\').dialog(\'destroy\').remove(); '.$refresh.'  }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                        });
-                        ">Save</button>
-                          </form>
+                            <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true);
+                            $.ajax({
+                            type: \'POST\',
+                            url: \'ajax/ajax.php\',
+                            timeout: 10000,
+                            error: function(x, t, m) {
+                                $(button).button(\'option\', \'disabled\', false);
+                            },
+                            data: { action: \'toggle_enrollment\',pid:\''.$vars["pid"].'\',chid: \''.$vars["chid"].'\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray() },
+                            success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_enrollment'.$identifier.'\').dialog(\'destroy\').remove(); '.$refresh.'  }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                            });
+                            ">Save</button>
+                        </form>
                     </div>';
             break;
         case "event_editor":
@@ -998,7 +1089,7 @@ global $CFG;
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="programs" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
 
             $form = '<div id="event_editor'.$identifier.'" title="'.$title.'" style="display:none;">
-                		<form name="event_editor_form'.$identifier.'">
+                        <form name="'.$formname.'_form'.$identifier.'">
                             '.$fields.'
                             <table class="fill_height" style="width:100%;">
                                 <tr>
@@ -1027,7 +1118,7 @@ global $CFG;
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="accounts" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
 
             $form = '<div id="add_edit_tag'.$identifier.'" title="'.$title.'" style="display:none;">
-                		<form name="add_edit_tag_form'.$identifier.'">
+                        <form name="'.$formname.'_form'.$identifier.'">
                             '.$fields.'
                             <table>
                                 <tr><td><label for="title">Title</label></td><td><input onkeyup="if(this.value.length > 0){ $(\'#tag_template'.$identifier.'\').html(ucwords(this.value)); }else if($(\'#tag\',\'form[name=add_edit_tag_form'.$identifier.']\').val().length > 0){ $(\'#tag_template'.$identifier.'\').html(ucwords($(\'#tag\',\'form[name=add_edit_tag_form'.$identifier.']\').val().replace(/_/gi,\' \'),true)); }else{ $(\'#tag_template'.$identifier.'\').html(\'Preview\'); }" class="fields" type="input" name="title" id="title" value="'.$tagtitle.'" /></td></tr>
@@ -1035,18 +1126,18 @@ global $CFG;
                                 <tr><td><label for="color">Color</label></td><td><input onkeyup="$(\'#tag_template'.$identifier.'\').css(\'background-color\',$(this).val())" class="fields" type="input" name="color" id="color'.$identifier.'_field" value="'.gethexcolor($color).'" /><input class="colorpicker fields" type="input" id="color'.$identifier.'" value="'.gethexcolor($color).'" /></td></tr>
                                 <tr><td><label for="textcolor">Textcolor</label></td><td><input onkeyup="$(\'#tag_template'.$identifier.'\').css(\'color\',$(this).val())" class="fields" type="input" name="textcolor" id="textcolor'.$identifier.'_field" value="'.gethexcolor($textcolor).'" /><input class="colorpicker fields" type="input" id="textcolor'.$identifier.'" value="'.gethexcolor($textcolor).'" /></td></tr>
                             </table><br />
-                        <div style="text-align:center">Preview:<br /><span id="tag_template'.$identifier.'" class="tag ui-corner-all" style="color:'.$textcolor.';background-color:'.$color.'">'.$tagtitle.'</span></div>
-                        <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                          type: \'POST\',
-                          url: \'ajax/ajax.php\',
-                          timeout: 10000,
-                          error: function(x, t, m) {
-                            $(button).button(\'option\', \'disabled\', false);
-                          },
-                          data: { action: \'add_edit_tag\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                          success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_tag'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                          });">Save Tag</button>
-                          </form>
+                            <div style="text-align:center">Preview:<br /><span id="tag_template'.$identifier.'" class="tag ui-corner-all" style="color:'.$textcolor.';background-color:'.$color.'">'.$tagtitle.'</span></div>
+                            <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                timeout: 10000,
+                                error: function(x, t, m) {
+                                    $(button).button(\'option\', \'disabled\', false);
+                                },
+                                data: { action: \'add_edit_tag\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
+                                success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_tag'.$identifier.'\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                            });">Save Tag</button>
+                        </form>
                     </div>';
             break;
         case "create_invoices":
@@ -1064,24 +1155,24 @@ global $CFG;
             $sql = empty($vars["aid"]) ? "" : "AND aid='".$vars["aid"]."'";
             $weeks_sql = "SELECT (DATE_FORMAT(CONVERT_TZ(FROM_UNIXTIME(fromdate-".get_offset()."), @@session.time_zone,'UTC'),'%M %D %Y') ) as display, fromdate FROM billing WHERE pid='$activepid' $sql GROUP BY fromdate ORDER BY fromdate DESC";
             $form = '<div id="create_invoices'.$identifier.'" title="Recreate Invoices" style="display:none;">
-                		<form name="create_invoices_form'.$identifier.'">
+                        <form name="'.$formname.'_form'.$identifier.'">
                             '.$fields.'
                             <table>
                                 <tr><td><label for="startweek">Start processing from:</label></td><td>'.make_select("startweek",get_db_result($weeks_sql),"fromdate","display","fields",$startweek,"",true,"1","","Beginning").'</td></tr>
                                 <tr><td><label for="refresh">Remake Existing Invoices</label></td><td>'.make_select_from_object("refresh",$refresh,"value","display","fields", "1").'</td></tr>
                                 <tr><td><label for="enrollment">Remember Past Enrollment Settings</label></td><td>'.make_select_from_object("enrollment",$refresh,"value","display","fields","0").'</td></tr>
                             </table><br />
-                        <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                          type: \'POST\',
-                          url: \'ajax/ajax.php\',
-                          timeout: 10000,
-                          error: function(x, t, m) {
-                            $(button).button(\'option\', \'disabled\', false);
-                          },
-                          data: { action: \'ajax_refresh_all_invoices\',values: $(\'.fields\',\'.ui-dialog\').serializeArray()},
-                          success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#create_invoices'.$identifier.'\').dialog(\'close\'); $(\'#info_div\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                          });">Recreate Invoices</button>
-                          </form>
+                            <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                timeout: 10000,
+                                error: function(x, t, m) {
+                                    $(button).button(\'option\', \'disabled\', false);
+                                },
+                                data: { action: \'ajax_refresh_all_invoices\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
+                                success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#create_invoices'.$identifier.'\').dialog(\'close\'); $(\'#info_div\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                            });">Recreate Invoices</button>
+                        </form>
                     </div>';
             break;
     }

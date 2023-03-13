@@ -216,7 +216,6 @@ function draw_calendar($month,$year,$vars=false){
                     $SQL = "SELECT * FROM notes n JOIN employee_activity a ON a.actid=n.actid JOIN events_tags t ON a.tag = t.tag WHERE n.tag NOT IN (SELECT tag FROM notes_required) AND n.employeeid='".$vars["employeeid"]."' AND n.timelog >= $fromtime AND n.timelog <= $totime ORDER BY n.timelog";
                 }
 
-                //echo "$list_day " . $SQL . "<br />";
             break;
             case "notes":
                 if(!empty($vars["aid"])){
@@ -295,7 +294,7 @@ function draw_calendar($month,$year,$vars=false){
                         </a>';
                 } else if ($type == "employeeid") {
                     $identifier = $vars["type"]."_".$row[$id];
-                    $content .= get_form("update_employee_activity",array("month" => $month, "year" => $year, "employeeid" => $row["employeeid"],"actid" => $actid,"nid" => $nid,"callback" => "employee"),$identifier);
+                    $content .= get_form("add_update_employee_activity",array("day" => $list_day, "month" => $month, "year" => $year, "employeeid" => $row["employeeid"],"actid" => $actid,"nid" => $nid,"callback" => "employee"),$identifier);
 
                     $delete_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this \'+$(\'a#a-'.$actid.'\').attr(\'data\')+\' activity?\', \'Yes\', \'No\',
                     function(){
@@ -320,7 +319,7 @@ function draw_calendar($month,$year,$vars=false){
                     },function(){});';
 
                     $content .= '
-                        <a style="padding:2px;" class="inline-button ui-corner-all" href="javascript: CreateDialog(\'update_employee_activity_'.$identifier.'\',300,400)">
+                        <a style="padding:2px;" class="inline-button ui-corner-all" href="javascript: CreateDialog(\'add_update_employee_activity_'.$identifier.'\',300,400)">
                             '.get_icon('table_edit').'
                         </a>
                         <a style="padding:2px;" class="inline-button ui-corner-all" id="a-'.$actid.'" data="'.$row["title"].'" href="javascript: '.$delete_action.'">
@@ -346,6 +345,15 @@ function draw_calendar($month,$year,$vars=false){
 
         $dayadd = '<div class="day-add">
                         <a style="" href="javascript: CreateDialog(\'add_activity_'.$identifier.'\',300,400)">
+                            +
+                        </a>
+                   </div>';
+    } else if ($type == "employeeid" && !empty($vars["employeeid"]) && $days_in_this_week > 1 && $days_in_this_week < 7) { 
+        $identifier = $list_day."_".$month."_".$year;
+        $content .= get_form("add_update_employee_activity",array("day" => $list_day, "month" => $month, "year" => $year, "employeeid" => $vars["employeeid"],"callback" => "employee"),$identifier);
+
+        $dayadd = '<div class="day-add">
+                        <a style="" href="javascript: CreateDialog(\'add_update_employee_activity_'.$identifier.'\',300,400)">
                             +
                         </a>
                    </div>';

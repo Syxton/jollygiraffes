@@ -988,6 +988,17 @@ td.calendar-day-np {
 	display: inline-block;
     margin: 0 10px;
 }
+.refresh_timecard img{
+	height: 15px;
+	width: 15px;
+}
+.refresh_timecard {
+	text-align: center;
+	display: block;
+}
+.refresh_timecard:hover {
+	cursor: pointer;
+}
 /* tablet devices (tablets, 850px and down) */
 @media only screen and (max-width: 850px) {
 	.main_account_actions {

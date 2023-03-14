@@ -367,20 +367,23 @@ global $CFG;
         case "edit_employee_timecards":
             $employeeid = $vars["employee"]["employeeid"];
             $fields = "";
-            $fields .= empty($vars["employee"]["employeeid"]) ? "" : '<input type="hidden" name="employeeid" class="fields employeeid" value="'.$vars["employee"]["employeeid"].'" />';
+            $fields .= empty($employeeid) ? "" : '<input type="hidden" name="employeeid" class="fields employeeid" value="'.$employeeid.'" />';
             $fields .= empty($vars["recover_param"]) ? "" : '<input type="hidden" name="recover" class="fields recover" value="'.$vars["recover_param"].'" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="employees" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
 
             $timecard_history = '';
             if($timecards = get_db_result("SELECT * FROM employee_timecard WHERE employeeid='$employeeid' ORDER BY fromdate DESC LIMIT 52")){
                     $timecard_history = '<tr>
-                                            <td style="width:33%;">
+                                            <td style="width: 80px;">
                                                 Week of
                                             </td>
-                                            <td style="width:25%;">
+                                            <td style="width: 25%;">
                                                 Wage
                                             </td>
-                                            <td style="width:25%;">
+                                            <td style="width: 80px; text-align: center;">
+                                                Refresh
+                                            </td>
+                                            <td style="width: 25%;">
                                                 Hours
                                             </td>
                                             <td>
@@ -388,17 +391,29 @@ global $CFG;
                                             </td>
                                         </tr>';
                 while($timecard = fetch_row($timecards)){
+                    $refresh_button = '<span class="refresh_timecard" onclick="$.ajax({
+                        type: \'POST\',
+                        dataType: \'json\',
+                        url: \'ajax/ajax.php\',
+                        timeout: 10000,
+                        data: { action: \'refresh_hours\',values: $(\'.fields.id_'.$timecard["id"].', #edit_employee_timecards'.$identifier.' .employeeid\').serializeArray()},
+                        success: function(data) { if(data != \'false\'){ $(\'#hours.id_'.$timecard["id"].'\').val(data[\'hours\']); $(\'#calculate_'.$timecard["id"].'\').html(data[\'calculate\']); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                        });">'.get_icon("refresh").'
+                    </span>';
                     $hours = empty($timecard["hours_override"]) ? $timecard["hours"] : $timecard["hours_override"];
                     $timecard_history .= '<tr class="wage_'.$timecard["id"].'">
                                             <td>
-                                                <input type="hidden" class="fields" name="id" id="id" value="'.$timecard["id"].'" />
+                                                <input type="hidden" class="fields id_'.$timecard["id"].'" name="id" id="id" value="'.$timecard["id"].'" />
                                                 '.get_date('m/d/Y',$timecard["fromdate"]).'
                                             </td>
                                             <td>
                                                 $'.$timecard["wage"].'/hr
                                             </td>
                                             <td>
-                                                <input class="fields" name="hours" id="hours" style="width:75px;" type="text" value="'.$hours.'" onchange="var calc = $(this).val() * '.$timecard["wage"].'; $(\'#calculate_'.$timecard["id"].'\').html(calc.toFixed(2))" />
+                                                '.$refresh_button.'
+                                            </td>
+                                            <td>
+                                                <input class="fields id_'.$timecard["id"].'" name="hours" id="hours" style="width:75px;" type="text" value="'.$hours.'" onchange="var calc = $(this).val() * '.$timecard["wage"].'; $(\'#calculate_'.$timecard["id"].'\').html(calc.toFixed(2))" />
                                             </td>
                                             <td>
                                                 $<span id="calculate_'.$timecard["id"].'">'.number_format($timecard["wage"] * $hours,2).'</span>
@@ -868,52 +883,6 @@ global $CFG;
                         </form>
                     </div>';
             break;
-        case "update_employee_activity":
-            $fields = '<input type="hidden" name="tab" class="fields tab" value="activity" />';
-            $fields .= empty($vars["employeeid"]) ? "" : '<input type="hidden" name="employeeid" class="fields employeeid" value="'.$vars["employeeid"].'" />';
-            $fields .= empty($vars["actid"]) ? "" : '<input type="hidden" name="actid" class="fields actid" value="'.$vars["actid"].'" />';
-            $fields .= empty($vars["nid"]) ? "" : '<input type="hidden" name="nid" class="fields nid" value="'.$vars["nid"].'" />';
-            $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="employee" />' : '<input type="hidden" name="callback" class="fields callback" value="'.$vars["callback"].'" />';
-            $title = empty($vars["nid"]) ? "Add Activity" : "Edit Activity";
-
-            if(!empty($vars["actid"])){
-                $activity = get_db_row("SELECT * FROM employee_activity WHERE actid='".$vars["actid"]."'");
-            }
-
-            $fields .= empty($note["tag"]) ? "" : '<input type="hidden" name="tag" class="fields tag" value="'.$note["tag"].'" />';
-            $note = empty($note) ? "" : $note["note"];
-
-            $form = '<div id="update_employee_activity'.$identifier.'" title="'.$title.'" style="display:none;">
-                        <form name="'.$formname.'_form'.$identifier.'">
-                            '.$fields.'
-                            <table style="width:100%">
-                                <tr><td style="vertical-align: top;"><input class="fields" type="hidden" id="oldtime" name="oldtime" value="'.$activity["timelog"].'" /><label for="newtime">Time</label></td><td><textarea class="fields" style="width:100%;height:160px;" name="newtime">'.get_date("g:i a",$activity["timelog"],$CFG->timezone).'</textarea></td></tr>
-                            </table>
-                            <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                                type: \'POST\',
-                                url: \'ajax/ajax.php\',
-                                timeout: 10000,
-                                error: function(x, t, m) {
-                                $(button).button(\'option\', \'disabled\', false);
-                                },
-                                data: { action: \'add_edit_employee_activity\',values: $(\'#'.$formname.$identifier.' .fields\').serializeArray()},
-                                success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#update_employee_activity'.$identifier.'\').dialog(\'close\');
-                                            $.ajax({
-                                            type: \'POST\',
-                                            url: \'ajax/ajax.php\',
-                                            data: { action: \'get_activity_list\',employeeid:\''.$vars["employeeid"].'\',month:\''.$vars["month"].'\',year:\''.$vars["year"].'\' },
-                                            success: function(data) {
-                                                    $(\'#subselect_div\').hide(\'fade\');
-                                                    $(\'#subselect_div\').html(data);
-                                                    $(\'#subselect_div\').show(\'fade\');
-                                                    refresh_all();
-                                                }
-                                        });
-                                    }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                                });">Save</button>
-                        </form>
-                    </div>';
-            break;
         case "add_update_employee_activity":
             $fields = '<input type="hidden" name="tab" class="fields tab" value="activity" />';
             $fields .= empty($vars["employeeid"]) ? "" : '<input type="hidden" name="employeeid" class="fields employeeid" value="'.$vars["employeeid"].'" />';
@@ -924,30 +893,13 @@ global $CFG;
             $date = strtotime($vars["month"] . "/" . $vars["day"] . "/" . $vars["year"]);
             $fields .= '<input type="hidden" name="date" class="fields" value="' . $date . '" />';
             $value = "00:00";
+            $min = "00:01";
+            $max = "23:59";
             $tagselector = "";
             if (!empty($vars["actid"])) {
                 $activity = get_db_row("SELECT * FROM employee_activity WHERE actid='".$vars["actid"]."'");
                 $value = date("H:i", $activity["timelog"] + get_offset());
-                if ($activity["tag"] == "in") {
-                    $endofday = strtotime("+1 day", strtotime(date("j F Y" , $activity["timelog"])));
-                    $min = "00:01";
-                    if ($next = get_db_field("timelog", "employee_activity", "tag='out' AND employeeid='" . $activity["employeeid"] . "' AND timelog > '" . $activity["timelog"] . "' AND timelog < '" . $endofday . "'")) {
-                        $max = get_date("H:i", $next, $CFG->timezone);
-                    } else {
-                        $max = "23:59";
-                    }
-                } else { // tag is "out"
-                    $startofday = strtotime(date("j F Y" , $activity["timelog"]));
-                    $max = "23:59";
-                    if ($prev = get_db_field("timelog", "employee_activity", "tag='in' AND employeeid='" . $activity["employeeid"] . "' AND timelog < '" . $activity["timelog"] . "' AND timelog > '" . $startofday . "'")) {
-                        $min = get_date("H:i", $prev, $CFG->timezone);
-                    } else {
-                        $min = "00:01";
-                    }
-                }
             } else { // Adding new employee sign in.
-                $min = "00:01";
-                $max = "23:59";
                 // tag type select.
                 $tagselector = '<table style="width:100%">
                                     <tr>

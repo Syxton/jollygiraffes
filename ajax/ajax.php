@@ -1419,10 +1419,31 @@ function add_edit_employee_activity() {
     $callback   = empty($callback) ? false : $callback;
     $pid = get_pid();
 
-    if (!empty($employeeid) && !empty($newtime) && !empty($date) && !empty($actid) && !empty($nid)) { // EDIT
+    if (!empty($newtime) && !empty($date)) {
         $newdatetime      = strtotime($newtime, $date) - get_offset();
         $readabletime = get_date("l, F j, Y \a\\t g:i a", $newdatetime);
+    } else {
+        return "false";
+    }
 
+    $activity = get_db_row("SELECT * FROM employee_activity WHERE actid='".$vars["actid"]."'");
+    if ($tag == "in") {
+        $endofday = strtotime("+1 day", strtotime(date("j F Y" , $newdatetime)));
+        $min = "00:01";
+        if (!$next = get_db_field("timelog", "employee_activity", "tag='out' AND employeeid='" . $employeeid . "' AND timelog > '" . $newdatetime . "' AND timelog < '" . $endofday . "'")) {
+            echo "false";
+            die;
+        }
+    } else { // out.
+        $startofday = strtotime(date("j F Y" , $newdatetime));
+        $max = "23:59";
+        if (!$prev = get_db_field("timelog", "employee_activity", "tag='in' AND employeeid='" . $employeeid . "' AND timelog < '" . $newdatetime . "' AND timelog > '" . $startofday . "'")) {
+            echo "false";
+            die;
+        }
+    }
+
+    if (!empty($employeeid) && !empty($actid) && !empty($nid)) { // EDIT
         $employee   = get_db_row("SELECT * FROM employee WHERE employeeid='$employeeid'");
         $note       = get_db_row("SELECT * FROM notes WHERE nid='$nid'");
         $note       = $employee["first"] . " " . $employee["last"] . ": Signed " . $note["tag"] . " at $readabletime";
@@ -1435,10 +1456,7 @@ function add_edit_employee_activity() {
         } else {
             echo "false";
         }
-    } else if (!empty($newtime) && !empty($date) && !empty($employeeid)) { // ADD
-        $newdatetime  = strtotime($newdatetime, $date) - get_offset();
-        $readabletime = get_date("l, F j, Y \a\\t g:i a", $newdatetime);
-
+    } else if (!empty($employeeid)) { // ADD
         $employee   = get_db_row("SELECT * FROM employee WHERE employeeid='$employeeid'");
         $note       = get_db_row("SELECT * FROM notes WHERE tag='$tag' AND pid='$pid'");
         $note       = $employee["first"] . " " . $employee["last"] . ": Signed " .$tag . " at $readabletime";
@@ -1456,6 +1474,34 @@ function add_edit_employee_activity() {
         }
     } else {
         echo "false";
+    }
+}
+
+function refresh_hours() {
+    global $CFG, $MYVARS;
+    $fields  = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
+    $updated = array();
+    foreach ($fields as $field) {
+        switch ($field["name"]) {
+            case "employeeid":
+            case "id":
+            case "hours":
+            case "callback":
+                ${$field["name"]} = dbescape($field["value"]);
+                break;
+        }
+
+        if (!empty($id) && !empty($employeeid) && !empty($hours) && is_numeric($hours)) {
+            $timecard = get_db_row("SELECT * FROM employee_timecard WHERE id='$id'");
+            $endofweek = strtotime("next Sunday", $startofweek);
+            $wage = get_wage($employeeid, get_timestamp());
+            $hours = hours_worked($employeeid, $timecard["fromdate"], $timecard["todate"]);
+
+            echo json_encode(array(
+                "hours" => number_format($hours, 2),
+                "calculate" => number_format($timecard["wage"] * $hours, 2),
+            ));
+        }
     }
 }
 

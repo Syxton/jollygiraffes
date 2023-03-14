@@ -363,7 +363,7 @@ function draw_calendar($month,$year,$vars=false){
 
     $calendar .= $dayadd;
     /* add in the day number */
-    $calendar .= '<div class="day-number">'.$list_day.'</div>';
+    $calendar .= '<div class="show_mobile day-word">'.date("D", strtotime("$month/$list_day/$year")).'</div><div class="day-number">'.$list_day.'</div>';
     $calendar .= $content;
     $calendar .= '</td>';
     if ($running_day == 6):

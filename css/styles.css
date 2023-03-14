@@ -27,7 +27,7 @@
 
 body,
 html {
-	height: 99.9%;
+	height: 100vh;
     margin: 0;
 	font-family: Arial, Helvetica, sans-serif;
 	font-size: .9em;
@@ -101,7 +101,7 @@ h3 {
 }
 
 .main_level {
-	height: 100%;
+	height: 100vh;
 	position: relative;
 	background-size: cover;
 }
@@ -113,9 +113,8 @@ h3 {
 }
 
 .admin_menu {
-	height: 5vh;
-    min-height: 45px;
-	width: 100vw;
+	height: clamp(90px,20vmin,100px);
+	margin-top: 5px;
 	text-align: center;
 }
 
@@ -144,7 +143,7 @@ h3 {
 	color: white;
 	padding: 10px;
 	font-weight: bold;
-	font-size: 3vmin;
+	font-size: clamp(15px, 4vmin, 23px);
 	white-space: break-spaces;
 }
 
@@ -170,7 +169,7 @@ h3 {
 	font-weight: normal;
 	display: inline-block;
     width: calc(50vw - 70px);
-    white-space: pre-wrap;
+    white-space: normal;
 }
 
 .list_box {
@@ -187,7 +186,7 @@ h3 {
 
 .list_box_item_left {
 	display: inline-block;
-	vertical-align: middle;
+	vertical-align: top;
 	width: calc(70% - 15px);
 	white-space: normal;
 }
@@ -198,7 +197,7 @@ h3 {
 	position: relative;
 	text-align: right;
 	background: none;
-	font-size: 2vmin;
+	font-size: clamp(10px, 4vmin, 17px);
 	vertical-align: middle;
 }
 
@@ -223,7 +222,7 @@ h3 {
 
 .infobox {
 	border-top: 2px solid black;
-	height: 46.5%;
+	height: calc(50% - 20px);
 }
 
 .info_tabbar {
@@ -234,11 +233,11 @@ h3 {
 }
 
 .attending {
-	background-color: #FAF3CC !important;
+	background-color: #9591ff3b !important;
 }
 
 .unexpected {
-	background-color: #F8907C !important;
+	background-color: #00000029 !important;
 }
 
 .notify {
@@ -304,6 +303,12 @@ h3 {
 	background: darkgray;
 	color: white !important;
 	padding: 4px 8px 5px 6px;
+	margin: 4px;
+}
+
+.calendar-day .inline-button {
+	margin: 0px;
+	border: 1px solid darkslategray;
 }
 
 .inline-button a {
@@ -349,7 +354,6 @@ h3 {
 	border: none;
 	margin: 2px;
 	background-color: whitesmoke;
-	float: left;
 }
 
 .child .ui-button-text {
@@ -760,7 +764,10 @@ div.day-number {
 	width: 20px;
 	text-align: center;
 }
-
+div.day-word {
+    float: left;
+    font-weight: bolder;
+}
 div.day-add {
     background: green;
     padding: 2px;
@@ -869,14 +876,14 @@ td.calendar-day-np {
     position: absolute;
     top: 0;
     right: 0;
-    font-size: 2vmax;
+    font-size: clamp(15px, 5vmin, 30px);
 }
 
 .topleft_button {
     position: absolute;
     top: 0;
     left: 0;
-    font-size: 2vmax;
+    font-size: clamp(15px, 5vmin, 30px);
 }
 
 .small_spacer {
@@ -892,25 +899,26 @@ td.calendar-day-np {
 }
 
 .go_home {
-	height: 5vmax;
+	height: clamp(25px, 15vmin, 60px)
 }
 
 .alphabet_filter .keypad_buttons {
-    font-size: 1.5vmax;
+    font-size: clamp(10px, 3vmin, 15px);
 }
 
 .alphabet_label {
 	display:inline-block;
 	width:80px;
-	font-size: 1vw;
+	font-size: clamp(12px, 3vmin, 15px);
 }
 
 .admin_menu .keypad_buttons {
-    font-size: calc(60% + 10px);
+    font-size: clamp(15px, 3vmin, 22px);
+	margin: 2px;
 }
 
 .select_buttons_div {
-	top: 6vmax;
+	top: clamp(30px, 10vmin, 60px);
 }
 .optional_questions {
 	margin:0px 10px;
@@ -955,9 +963,6 @@ td.calendar-day-np {
 	right: unset;
 	background-color: #00000088;
 }
-#subselect_div {
-	min-height: 80vh;
-}
 .contact_select_at_checkout {
 	float: left;
 	width: 60%
@@ -969,7 +974,21 @@ td.calendar-day-np {
 .show_mobile, .show_tablet {
 	display: none;
 }
-/* Extra small devices (phones, 600px and down) */
+.list_box_item_full .list_title {
+	font-size: clamp(15px, 3vmin, 25px);
+}
+.invoice_week div, .invoice_payments div, .invoice_bills div{
+	white-space: normal;
+}
+.week_receipt {
+	margin: 5px;
+	vertical-align: top;
+}
+.week_receipt span {
+	display: inline-block;
+    margin: 0 10px;
+}
+/* tablet devices (tablets, 850px and down) */
 @media only screen and (max-width: 850px) {
 	.main_account_actions {
 		width: 100%;
@@ -987,9 +1006,6 @@ td.calendar-day-np {
 	}
 	.show_enrolled {
 		width: 100%; 
-	}
-	.admin_menu .keypad_buttons {
-		font-size: calc(25% + 10px);
 	}
 	.calendar-day-head .abb_full {
 		display: none;
@@ -1013,11 +1029,6 @@ td.calendar-day-np {
 
 /* Extra small devices (phones, 600px and down) */
 @media only screen and (max-width: 600px) {
-	.ui-dialog {
-		max-width: 400px;
-		width: 100% !important;
-		zoom: 0.8;
-	}
 	.employee_button, .admin_button, .topleft_button {
 		zoom: 1;
 	}
@@ -1047,7 +1058,8 @@ td.calendar-day-np {
 		height: 6.5vmax;
 	}
 	.select_buttons, .submit_buttons {
-		font-size: 3.5vmin;
+		font-size: clamp(15px, 4vmin, 20px);
+    	margin: 2px;
 	}
 	.select_buttons_div {
 		position: fixed;
@@ -1056,11 +1068,7 @@ td.calendar-day-np {
 		max-width: 100%;
 	}
 	.admin_menu .keypad_buttons {
-		font-size: calc(20% + 10px);
 		margin: 2px;
-	}
-	.admin_menu {
-		height: 9vh;
 	}
 	.contact_select_at_checkout {
 		width: 30%;
@@ -1085,7 +1093,6 @@ td.calendar-day-np {
 		padding: 10px 10px 0px;
 	}
 	.list_box_item_full .list_title {
-		font-size: 5vmin;
 		white-space: break-spaces;
 	}
 	.scroll-pane .list_buttons {
@@ -1154,7 +1161,6 @@ td.calendar-day-np {
 	.slider-wrap {
 		width: 15px !important;
 	}
-	
 	.ui-slider-handle {
 		width: 10px !important;
 		margin-left: 4px !important;
@@ -1168,6 +1174,11 @@ td.calendar-day-np {
 	.document_list_item .list_box {
 		padding: 3px;
 	}
+	.document_list_item td {
+		display: flex;
+		width: 100%;
+		white-space: normal;
+	}
 	.invoice_week, .invoice_payments, .invoice_bills {
 		padding: 3px !important;
 		font-size: .8em !important;
@@ -1177,14 +1188,35 @@ td.calendar-day-np {
 		width: 100% !important;
 		white-space: pre-wrap;
 	}
+	.invoice_week span, .invoice_payments span, .invoice_bills span{
+		float: none !important;
+	}
+	.calendar td {
+		display: table;
+		width: 99%;
+	}
+	.calendar-day-head, .calendar-day-np {
+		display: none !important;
+	}
+	table.calendar {
+		border: none;
+	}
 }
 
-/* Extra small devices (phones, 400px and down) */
-@media only screen and (max-width: 400px) {
+/* Extra small devices (phones, 360px and down) */
+@media only screen and (max-width: 360px) {
 	.ui-dialog {
 		width: 100% !important;
 		zoom: 1 !important;
 		left: 0 !important;
 		top: 0 !important;
+	}
+}
+
+/* Extra small devices (phones, 290px and down) */
+@media only screen and (max-width: 290px) {
+	.keypad_button_big {
+		width: 55px;
+		height: 55px;
 	}
 }

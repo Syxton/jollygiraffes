@@ -640,7 +640,7 @@ function get_admin_page($type = false, $id = false) {
                       data: { action: \'get_admin_billing_form\', pid: \'' . $activepid . '\' },
                       success: function(data) { $(\'#admin_display\').hide(\'fade\',null,null,function(){ $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); });  }
                       });">Billing</button></span>';
-    $returnme .= '</div><div id="admin_display" class="admin_display">';
+    $returnme .= '</div><div id="admin_display" class="admin_display fill_height">';
     $returnme .= $form;
     $returnme .= '</div>';
 
@@ -2262,8 +2262,8 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                           });
                                       }
                                       });">' . $exempt_title . '</button>';
-                                $exempt_button = !strstr($perchild_invoice["receipt"], "[Exempt]") ? "<span style='float:right;white-space: normal;'>$exempt</span>" : "";
-                                $returnme .= '<div style="margin:5px">' . $perchild_invoice["receipt"] . "$exempt_show $exempt_button </div>";
+                                $exempt_button = !strstr($perchild_invoice["receipt"], "[Exempt]") ? "$exempt" : "";
+                                $returnme .= '<div class="week_receipt"><span>' . $perchild_invoice["receipt"] . $exempt_show . "</span><span>$exempt_button</span></div>";
                             }
                         }
                         $returnme .= '</div></div>';
@@ -2291,7 +2291,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                     while ($result = fetch_row($results)) {
                         if (!$result["bill"]) { // Payment or Fee
                             if ($result["amount"] < 0) { // Fee
-                                $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkRed;padding: 5px;color: white;">
+                                $returnme .= '<div class="ui-corner-all list_box invoice_bills" style="background-color:darkRed;padding: 5px;color: white;">
                                                     <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%;text-align:right"><strong>Fee:</strong> $' . number_format(abs($result["amount"]), 2) . '</td></tr></table></a></div>
                                                     <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
 
@@ -2342,7 +2342,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                              </div>
                                            </div>';
                             } else { // Payment
-                                $returnme .= '<div class="ui-corner-all list_box" style="background-color:darkCyan;padding: 5px;color: white;">
+                                $returnme .= '<div class="ui-corner-all list_box invoice_payments" style="background-color:darkCyan;padding: 5px;color: white;">
                                                     <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%;text-align:right"><strong>Payment:</strong> $' . number_format($result["amount"], 2) . '</td></tr></table></a></div>
                                                     <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
 
@@ -2394,7 +2394,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                            </div>';
                             }
                         } else { // Bill
-                            $returnme .= '<div class="ui-corner-all list_box" style="padding: 5px;color: white;">
+                            $returnme .= '<div class="ui-corner-all list_box invoice_week" style="padding: 5px;color: white;">
                                             <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">'.get_icon('plusminus').' </td><td style="width:50%">Week of <span class="hide_mobile">' . date('F \t\h\e jS, Y', $result["fromdate"]) . '</span><span class="show_mobile">' . date('m/d/Y', $result["fromdate"]) . '</span></td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($result["amount"], 2) . '</td></tr></table></a></div>
                                             <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                             $SQL = "SELECT * FROM billing_perchild WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND fromdate = '" . $result["fromdate"] . "' ORDER BY id";
@@ -2416,8 +2416,8 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                               });
                                           }
                                           });">' . $exempt_title . '</button>';
-                                    $exempt_button = !strstr($perchild_invoice["receipt"], "[Exempt]") ? "<span style='float:right;white-space: normal;'>$exempt</span>" : "";
-                                    $returnme .= '<div style="margin:5px">' . $perchild_invoice["receipt"] . "$exempt_show $exempt_button </div>";
+                                    $exempt_button = !strstr($perchild_invoice["receipt"], "[Exempt]") ? "<span>$exempt</span>" : "";
+                                    $returnme .= '<div class="week_receipt"><span>' . $perchild_invoice["receipt"] . $exempt_show . "</span><span>$exempt_button</span></div>";
                                 }
                             }
                             $returnme .= '</div></div>';
@@ -2644,12 +2644,12 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                 $returnme .= $recover ? '<br /><span class="list_links">' . $delete_button . '</span></div>' : '<br /><span class="list_links">' . $moreinfo . $edit_button . $enroll_button . $delete_button . '</span></div>';
                 $returnme .= '</div></div>';
             }
-            $returnme .= '</div><div style="clear:both;"></div>';
+            $returnme .= '</div>';
         }
 
         //Account Contacts
         if ($contacts = get_db_result("SELECT * FROM contacts WHERE aid='$aid' AND deleted='$deleted' ORDER BY emergency,last,first")) {
-            $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding-left: 10px;">Contacts:</div><div id="contacts" class="scroll-pane infobox fill_height">';
+            $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding-left: 10px;">Contacts:</div><div id="contacts" class="scroll-pane infobox">';
             while ($contact = fetch_row($contacts)) {
                 $action        = '$.ajax({
                           type: \'POST\',
@@ -2753,7 +2753,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                           });">Reports</button>
                       </div>';
 
-        $returnme .= '<div id="subselect_div" class="scroll-pane infobox">' . $info . '</div>';
+        $returnme .= '<div id="subselect_div" class="scroll-pane infobox fill_height">' . $info . '</div>';
     } elseif ($cid) { //Contacts
         $docs_selected = $notes_selected = $activity_selected = $reports_selected = "";
         $tabkey        = empty($MYVARS->GET["values"]) ? false : array_search('tab', $MYVARS->GET["values"]);
@@ -3370,7 +3370,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
                                 success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
                             });
                         }
-                    });"><div class="list_box_item_full"><span class="list_title" style="font-size: 3vmin;">' . $program["name"] . '</span></div></div>';
+                    });"><div class="list_box_item_full"><span class="list_title">' . $program["name"] . '</span></div></div>';
     if ($accounts = get_db_result("SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid')) ORDER BY name")) {
         $i = 0;
         while ($account = fetch_row($accounts)) {

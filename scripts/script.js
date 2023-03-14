@@ -41,6 +41,10 @@ function refresh_all() {
         $(this).next().toggle('blind', function() {
            $(".scroll-pane").sbscroller("refresh");
         });
+        setTimeout(function() {
+            smart_scrollbars();
+        },
+        500);
         return false;
     }).next().hide();
 
@@ -119,6 +123,15 @@ function refresh_all() {
         var cp_value = ucfirst($(this).val(), false);
         $(this).val(cp_value);
     });
+
+    setTimeout(function() {
+        fill_height_width();
+        fill_height_width_once();
+        $(".scroll-pane").not(":has(.scroll-content)").sbscroller();
+        $(".scroll-pane").sbscroller("refresh");
+        smart_scrollbars();
+    },
+    100);
 }
 
 function refresh_tags_editor() {

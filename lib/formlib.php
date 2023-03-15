@@ -892,7 +892,7 @@ global $CFG;
             $title = empty($vars["nid"]) ? "Add Activity" : "Edit Activity";
             $date = strtotime($vars["month"] . "/" . $vars["day"] . "/" . $vars["year"]);
             $fields .= '<input type="hidden" name="date" class="fields" value="' . $date . '" />';
-            $value = "00:00";
+            $value = date("H:i", get_timestamp() + get_offset());
             $min = "00:01";
             $max = "23:59";
             $tagselector = "";
@@ -901,10 +901,10 @@ global $CFG;
                 $value = date("H:i", $activity["timelog"] + get_offset());
             } else { // Adding new employee sign in.
                 // tag type select.
-                $tagselector = '<table style="width:100%">
+                $tagselector = '<table style="width:100%;zoom:1.5;">
                                     <tr>
-                                        <td style="vertical-align: top;">
-                                            <label for="tag">Type</label>
+                                        <td style="width:35%;text-align:right;font-weight:bold;">
+                                            <label for="tag">Type: </label>
                                         </td>
                                         <td>
                                             <select class="fields" name="tag">
@@ -922,10 +922,10 @@ global $CFG;
             $form = '<div id="'.$formname.$identifier.'" title="'.$title.'" style="display:none;">
                         <form name="'.$formname.'_form'.$identifier.'">
                             '.$fields.'
-                            <table style="width:100%">
+                            <table style="width:100%;zoom:1.5;">
                                 <tr>
-                                    <td style="vertical-align: top;">
-                                        <label for="newtime">Time</label>
+                                    <td style="width:35%;text-align:right;font-weight:bold;">
+                                        <label for="newtime">Time: </label>
                                     </td>
                                     <td>
                                         <input class="fields" name="newtime" type="time" min="' . $min . '" max="' . $max . '" value="' . $value . '" required>

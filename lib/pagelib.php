@@ -272,7 +272,7 @@ function get_employee_button($employeeid, $class = "", $style = "", $action = ""
     $status = get_employee_status($employeeid);
     return '<button class="child button slider-item-text ' . $class . ' emp_' . $row["employeeid"] . ' slider-item ui-corner-all" style="' . $style . 'background-size: cover;" onclick="$(\'#selectedemployee\').val(\'' . $row["employeeid"] . '\');' . $action . '">
                 <span class="ui-corner-all employee_time_status">' . $status . '</span>
-                <span class="ui-corner-all employee_name">' . $name . '</span>
+                <span class="ui-corner-all employee_button_name">' . $name . '</span>
             </button>';
 }
 

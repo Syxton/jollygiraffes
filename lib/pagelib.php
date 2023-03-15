@@ -271,8 +271,8 @@ function get_employee_button($employeeid, $class = "", $style = "", $action = ""
     $name   = '<span class="slider-item-text" style="' . $top . '">' . $row["first"] . '<br />' . $row["last"] . '</span>';
     $status = get_employee_status($employeeid);
     return '<button class="child button slider-item-text ' . $class . ' emp_' . $row["employeeid"] . ' slider-item ui-corner-all" style="' . $style . 'background-size: cover;" onclick="$(\'#selectedemployee\').val(\'' . $row["employeeid"] . '\');' . $action . '">
-                <span class="ui-corner-all" style="font-size:9px;width: 100%;left: 0;top: 0;position: absolute;background:rgba(0, 0, 0, 0.35);display: block;">' . $status . '</span>
-                <span class="ui-corner-all" style="width: 100%;left: 0;bottom: 0;position: absolute;background:rgba(0, 0, 0, 0.35);display: block;">' . $name . '</span>
+                <span class="ui-corner-all employee_time_status">' . $status . '</span>
+                <span class="ui-corner-all employee_name">' . $name . '</span>
             </button>';
 }
 

@@ -1600,7 +1600,7 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
     $recover_param = $recover ? 'true' : '';
 
     // Expand button.
-    $returnme .= '<button title="Expand View" class="image_button" type="button" onclick="$(\'.container_actions,.container_info,.container_list\').toggleClass(\'expanded\'); refresh_all();">' . get_icon('expand') . '</button>';
+    $returnme .= '<button title="Expand View" class="hide_mobile image_button" type="button" onclick="$(\'.container_actions,.container_info,.container_list\').toggleClass(\'expanded\'); refresh_all();">' . get_icon('expand') . '</button>';
 
     if ($pid) { //Program actions
         $identifier = "pid_$pid";
@@ -1957,7 +1957,7 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
     $identifier = time() . "pid_$pid" . "_$aid";
 
     // Expand button.
-    $returnme .= '<button title="Expand View" class="image_button" type="button" onclick="$(\'.container_actions,.container_info,.container_list\').toggleClass(\'expanded\'); refresh_all();">' . get_icon('expand') . '</button>';
+    $returnme .= '<button title="Expand View" class="hide_mobile image_button" type="button" onclick="$(\'.container_actions,.container_info,.container_list\').toggleClass(\'expanded\'); refresh_all();">' . get_icon('expand') . '</button>';
 
     if (!empty($pid)) {
         //view invoices group
@@ -3438,7 +3438,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
                                         success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
                                     });
                                 }
-                            });"><div class="list_box_item_left account_name"><span class="list_title">' . $account["name"] . '</span></div><div class="list_box_item_right billing_info"><div class="child_count">Children: ' . $kid_count . '<br /><span class="' . $balanceclass . '"><span class="hide_mobile">Balance: </span>$' . $account_balance . '</span></div></div></div>';
+                            });"><div class="list_box_item_left account_name"><span class="list_title">' . $account["name"] . '</span></div><div class="list_box_item_right billing_info"><div class="child_count">Children: ' . $kid_count . '<br /><span class="' . $balanceclass . '">Balance: $' . $account_balance . '</span></div></div></div>';
             $i++;
         }
     }
@@ -3816,7 +3816,7 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
                                                                                               url: \'ajax/ajax.php\',
                                                                                               data: { action: \'get_admin_billing_form\', aid:\'' . $account["aid"] . '\' ,pid: \'' . $pid . '\' },
                                                                                               success: function(data) { $(\'#admin_display\').hide(\'fade\',null,null,function(){ $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); });  }
-                                                                                          });$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not($(\'#admin_menu_billing\')).toggleClass(\'selected_button\',false);"><span class="hide_mobile">Balance: </span>$' . $account_balance . '</a></div></div></div>';
+                                                                                          });$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not($(\'#admin_menu_billing\')).toggleClass(\'selected_button\',false);">Balance: $' . $account_balance . '</a></div></div></div>';
         }
     }
     $returnme .= '</div>';

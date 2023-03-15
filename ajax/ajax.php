@@ -1427,17 +1427,16 @@ function add_edit_employee_activity() {
     }
 
     $activity = get_db_row("SELECT * FROM employee_activity WHERE actid='".$vars["actid"]."'");
+    $startofday = strtotime(date("j F Y" , $newdatetime));
+    $endofday = strtotime("+1 day", strtotime(date("j F Y" , $newdatetime)));
+    $todaysql = "timelog < '" . $endofday . "' AND timelog > '" . $startofday . "'";
     if ($tag == "in") {
-        $endofday = strtotime("+1 day", strtotime(date("j F Y" , $newdatetime)));
-        $min = "00:01";
-        if (!$next = get_db_field("timelog", "employee_activity", "tag='out' AND employeeid='" . $employeeid . "' AND timelog > '" . $newdatetime . "' AND timelog < '" . $endofday . "'")) {
+        if ($signout = get_db_field("timelog", "employee_activity", "tag='out' AND employeeid='" . $employeeid . "' AND timelog <= '" . $newdatetime . "' AND $todaysql")) {
             echo "false";
             die;
         }
     } else { // out.
-        $startofday = strtotime(date("j F Y" , $newdatetime));
-        $max = "23:59";
-        if (!$prev = get_db_field("timelog", "employee_activity", "tag='in' AND employeeid='" . $employeeid . "' AND timelog < '" . $newdatetime . "' AND timelog > '" . $startofday . "'")) {
+        if ($signin = get_db_field("timelog", "employee_activity", "tag='in' AND employeeid='" . $employeeid . "' AND timelog >= '" . $newdatetime . "' AND $todaysql")) {
             echo "false";
             die;
         }

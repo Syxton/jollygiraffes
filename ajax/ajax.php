@@ -11,7 +11,7 @@ include('header.php');
 
 callfunction();
 
-function employee_timesheet() {
+function employee_timesheet($thisweekpay = false) {
     global $CFG, $MYVARS;
     $returnme = go_home_button('Exit');
 
@@ -38,7 +38,13 @@ function employee_timesheet() {
                 $out .= $tmp;
             }
         }
-        $returnme .= get_numpad("", false, "employee", "#display_level", 'employee_numpad') . '<input type="hidden" id="selectedemployee" /><div class="container_list ui-corner-all fill_height" style="width: 49%;border:none"><div class="ui-corner-all list_box" style="width:initial;color: white;text-align: center;font-size: 20px;">Sign In</div>' . $out . '</div>
+
+        $showpaystub = "";
+        if ($thisweekpay) {
+            $showpaystub = '<div class="paystub">Pay Stub: $' . $thisweekpay . '</div>';
+        }
+
+        $returnme .= get_numpad("", false, "employee", "#display_level", 'employee_numpad') . '<input type="hidden" id="selectedemployee" />' . $showpaystub . '<div class="container_list ui-corner-all fill_height" style="width: 49%;border:none"><div class="ui-corner-all list_box" style="width:initial;color: white;text-align: center;font-size: 20px;">Sign In</div>' . $out . '</div>
                         <div class="container_list ui-corner-all fill_height" style="background: transparent; width: 1%;border:none"></div>
                         <div class="container_list ui-corner-all fill_height" style="width: 49%;border:none"><div class="ui-corner-all list_box" style="width:initial;color: white;text-align: center;font-size: 20px;">Sign Out</div>' . $in . '</div>';
     }
@@ -52,12 +58,14 @@ function check_in_out_employee() {
     $employee     = get_db_row("SELECT * FROM employee WHERE employeeid='$employeeid'");
     $time         = get_timestamp();
     $readabletime = get_date("l, F j, Y \a\\t g:i a", display_time($time));
+    $thisweekpay = false;
 
     if (is_working($employeeid)) { //check out
         $event = get_db_row("SELECT * FROM events WHERE tag='out'");
         $actid = execute_db_sql("INSERT INTO employee_activity (employeeid,evid,tag,timelog) VALUES('$employeeid','" . $event["evid"] . "','" . $event["tag"] . "',$time) ");
         $note  = $employee["first"] . " " . $employee["last"] . ": Signed out at $readabletime";
         execute_db_sql("INSERT INTO notes (actid,employeeid,tag,note,data,timelog) VALUES('$actid','$employeeid','" . $event["tag"] . "','$note',1,$time) ");
+        $thisweekpay = get_wages_for_this_week($employeeid);
     } else { //check in
         $event = get_db_row("SELECT * FROM events WHERE tag='in'");
         $actid = execute_db_sql("INSERT INTO employee_activity (employeeid,evid,tag,timelog) VALUES('$employeeid','" . $event["evid"] . "','" . $event["tag"] . "',$time) ");
@@ -65,7 +73,7 @@ function check_in_out_employee() {
         execute_db_sql("INSERT INTO notes (actid,employeeid,tag,note,data,timelog) VALUES('$actid','$employeeid','" . $event["tag"] . "','$note',1,$time) ");
     }
 
-    echo employee_timesheet();
+    echo employee_timesheet($thisweekpay);
 }
 
 function get_check_in_out_form() {

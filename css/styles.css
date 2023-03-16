@@ -1025,6 +1025,15 @@ td.calendar-day-np {
 	background:rgba(0, 0, 0, 0.35);
 	display: block;
 }
+.paystub {
+	text-align: center;
+    background-color: lightgrey;
+    padding: 10px;
+    font-size: 2em;
+    margin: 5px;
+    border: 1px solid grey;
+}
+
 /* tablet devices (tablets, 850px and down) */
 @media only screen and (max-width: 850px) {
 	.main_account_actions {

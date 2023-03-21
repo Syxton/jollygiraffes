@@ -123,7 +123,7 @@ switch($report){
         }
     break;
     case "employee_paid":
-        $SQL = "SELECT * FROM employee WHERE employeeid IN (SELECT employeeid FROM employee_timecard WHERE hours > 0 AND fromdate >= $fromnum AND todate <= $tonum ) AND employeeid='$id'";
+        $SQL = "SELECT * FROM employee WHERE employeeid IN (SELECT employeeid FROM employee_timecard WHERE (hours > 0 || hours_override > 0) AND fromdate >= $fromnum AND todate <= $tonum ) AND employeeid='$id'";
     break;
     case "all_tax_papers":
         if($type == "aid"){
@@ -387,18 +387,20 @@ switch($report){
         if($employees = get_db_result($SQL)){
             while($employee = fetch_row($employees)){
                 $name = get_name(array("type" => "employeeid","id" => $employee["employeeid"]));
-                $SQL = "SELECT * FROM employee_timecard WHERE hours > 0 AND employeeid='".$employee["employeeid"]."' AND fromdate >= $fromnum AND todate <= $tonum ORDER BY fromdate ASC";
+                $SQL = "SELECT * FROM employee_timecard WHERE (hours > 0 || hours_override > 0) AND employeeid='".$employee["employeeid"]."' AND fromdate >= $fromnum AND todate <= $tonum ORDER BY fromdate ASC";
                 $sum = 0;
-                if($payments = get_db_result($SQL)){
+                if ($payments = get_db_result($SQL)) {
                     $returnme .= '
                     <div style="float:left;">
                         <div style="font-size:120%;"><strong>Employee: '.$name.'</strong></div>
                         <div><strong>Dates:</strong> '.$fromtostring.'</div>
                     ';
                     $names = array();
-                    while($payment = fetch_row($payments)){
-                        $sum += ($payment["wage"] * $payment["hours"]);
-                        $names[] = array("field1name" => "Week of", "field1value" => date('m/d/Y',$payment["fromdate"]), "field2name" => "Hours", "field2value" => ''.number_format($payment["hours"],2), "field3name" => "Wage", "field3value" => "$".$payment["wage"]."/hr","field4name" => "Paid", "field4value" => '$'.number_format(($payment["wage"] * $payment["hours"]),2));
+                    while ($payment = fetch_row($payments)) {
+                        $hours = empty($payment["hours_override"]) ? $payment["hours"] : $payment["hours_override"];
+                        $pay = $payment["wage"] * $hours;
+                        $sum += $pay;
+                        $names[] = array("field1name" => "Week of", "field1value" => date('m/d/Y',$payment["fromdate"]), "field2name" => "Hours", "field2value" => ''.number_format($hours, 2), "field3name" => "Wage", "field3value" => "$".$payment["wage"]."/hr","field4name" => "Paid", "field4value" => '$'.number_format($pay, 2));
                     }
 
                     $returnme .= '<div><strong>Total Paid: $'.number_format($sum,2).'</strong></div>

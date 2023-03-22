@@ -625,7 +625,7 @@ global $CFG;
             $fields .= empty($vars["param1value"]) ? "" : '<input type="hidden" name="param1value" class="fields param1value" value="'.$vars["param1value"].'" />';
 
             $form = '<div id="avatar'.$identifier.'" title="Change Picture" style="display:none;">
-                        <form name="'.$formname.'_form'.$identifier.'">
+                        <form class="uploader'.$identifier.'" name="avatar_form'.$identifier.'">
                             '.$fields.'
                             <input type="file" class="fields" name="afile" id="afile" accept="image/*"/ value="Upload File" />
                             <input type="hidden" name="tag" class="fields tag" value="avatar" />

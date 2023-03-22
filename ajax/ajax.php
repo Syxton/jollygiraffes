@@ -3545,14 +3545,14 @@ function get_admin_employees_form($return = false, $employeeid = false, $recover
     $returnme .= '';
 
     $deleted = $recover ? "1" : "0";
-    $SQL     = "SELECT * FROM employee WHERE deleted = '$deleted' ORDER BY last,first";
+    $SQL     = "SELECT * FROM employee WHERE deleted = '$deleted' ORDER BY last, first";
 
     if ($employees = get_db_result($SQL)) {
         while ($employee = fetch_row($employees)) {
             $employeeid     = empty($employeeid) ? $employee["employeeid"] : $employeeid;
-            $selected_class = $employeeid && $employeeid == $employee["employeeid"] ? "selected_button" : "";
+            $selected_class = $employeeid == $employee["employeeid"] ? "selected_button" : "";
             $deleted_param  = $recover ? ',recover: \'true\'' : '';
-            $thisweekpay = get_wages_for_this_week($employeeid);
+            $thisweekpay = get_wages_for_this_week($employee["employeeid"]);
             $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                             $.ajax({
                                 type: \'POST\',

@@ -3360,7 +3360,7 @@ function get_activity_list($return = false, $aid = null, $chid = null, $cid = nu
 function get_admin_children_form($return = false, $chid = false, $recover = false) {
     global $MYVARS;
     $chid     = !empty($chid) ? $chid : (empty($MYVARS->GET["chid"]) ? false : $MYVARS->GET["chid"]);
-    $returnme = '<div class="container_list scroll-pane ui-corner-all fill_height">';
+    $returnme = '<div class="container_list scroll-pane ui-corner-all">';
     $returnme .= '
             <div class="document_list_item ui-corner-all" style="text-align:center">
                 <span><strong>Enrolled Children</strong></span>

@@ -1214,16 +1214,6 @@ td.calendar-day-np {
 	.show_mobile {
 		display: initial;
 	}
-	.slider-wrap {
-		width: 15px !important;
-	}
-	.ui-slider-handle {
-		width: 10px !important;
-		margin-left: 4px !important;
-	}
-	.scroll-content {
-		padding-left: 13px !important;
-	}
 	.ui-button {
 		padding: 2px;
 	}

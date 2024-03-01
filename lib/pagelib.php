@@ -15,7 +15,7 @@ $PAGELIB = true;
 $MYVARS = new stdClass();
 
 //TURN OFF MAGICQUOTES
-if (get_magic_quotes_gpc()) {
+if (function_exists("get_magic_quotes_gpc")) {
     $process = array(
         &$_GET,
         &$_POST,

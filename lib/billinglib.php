@@ -197,7 +197,7 @@ function make_account_invoice($pid,$aid,$invoiceweek=false){
 
 function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$lastid="0",$bill="",$attendance="",$exempt='unknown',$billonly=false){
     $discount = "";
-    $discount_rule = empty($program["discount_rule"]) || $program["discount_rule"] < $program["multiple_discount"] ? "(bill >= ".$program["multiple_discount"]."" : "(bill >= ".$program["discount_rule"].")";
+    $discount_rule = empty($program["discount_rule"]) || $program["discount_rule"] < $program["multiple_discount"] ? "(bill >= ".$program["multiple_discount"].")" : "(bill >= ".$program["discount_rule"].")";
     $exempt = $exempt == "unknown" ? get_db_field("exempt","enrollments","chid='$chid' AND pid='".$program["pid"]."'") : $exempt;
     $days_expected = get_db_field("days_attending","enrollments","chid='$chid' AND pid='".$program["pid"]."'");
     //SQL that finds other children on the account that would qualify this child for a discount

@@ -96,12 +96,12 @@ global $CFG;
                     ';
             break;
         case "billing_overrides":
-            $perday = empty($vars["override"]["perday"]) && $vars["override"]["perday"] !== "0" ? "" : $vars["override"]["perday"];
-            $fulltime = empty($vars["override"]["fulltime"]) && $vars["override"]["fulltime"] !== "0" ? "" : $vars["override"]["fulltime"];
-            $minimumactive = empty($vars["override"]["minimumactive"]) && $vars["override"]["minimumactive"] !== "0" ? "" : $vars["override"]["minimumactive"];
-            $minimuminactive = empty($vars["override"]["minimuminactive"]) && $vars["override"]["minimuminactive"] !== "0" ? "" : $vars["override"]["minimuminactive"];
-            $vacation = empty($vars["override"]["vacation"]) && $vars["override"]["vacation"] !== "0" ? "" : $vars["override"]["vacation"];
-            $multiple_discount = empty($vars["override"]["multiple_discount"]) && $vars["override"]["multiple_discount"] !== "0" ? "" : $vars["override"]["multiple_discount"];
+            $perday = !isset($vars["override"]["perday"]) || (empty($vars["override"]["perday"]) && $vars["override"]["perday"] !== "0") ? "" : $vars["override"]["perday"];
+            $fulltime = !isset($vars["override"]["fulltime"]) || (empty($vars["override"]["fulltime"]) && $vars["override"]["fulltime"] !== "0") ? "" : $vars["override"]["fulltime"];
+            $minimumactive = !isset($vars["override"]["minimumactive"]) || (empty($vars["override"]["minimumactive"]) && $vars["override"]["minimumactive"] !== "0") ? "" : $vars["override"]["minimumactive"];
+            $minimuminactive = !isset($vars["override"]["minimuminactive"]) || (empty($vars["override"]["minimuminactive"]) && $vars["override"]["minimuminactive"] !== "0") ? "" : $vars["override"]["minimuminactive"];
+            $vacation = !isset($vars["override"]["vacation"]) || (empty($vars["override"]["vacation"]) && $vars["override"]["vacation"] !== "0") ? "" : $vars["override"]["vacation"];
+            $multiple_discount = !isset($vars["override"]["multiple_discount"]) || (empty($vars["override"]["multiple_discount"]) && $vars["override"]["multiple_discount"] !== "0") ? "" : $vars["override"]["multiple_discount"];
             $consider_full = empty($vars["override"]["consider_full"]) ? "" : $vars["override"]["consider_full"];
             $bill_by = empty($vars["override"]["bill_by"]) ? "none" : $vars["override"]["bill_by"];
             $payahead = empty($vars["override"]["payahead"]) ? "none" : $vars["override"]["payahead"];

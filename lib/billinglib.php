@@ -318,7 +318,7 @@ global $CFG;
 
         if ($attendance > 0) {
             if ($attendance >= $program["consider_full"]) {
-                $bill = $programe["fulltime"];
+                $bill = $program["fulltime"];
             } else {
                 $bill = $program["minimumactive"] > 0 && ($bill < $program["minimumactive"]) ? $program["minimumactive"] : $bill;
             }

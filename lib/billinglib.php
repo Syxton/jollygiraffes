@@ -243,7 +243,7 @@ function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$l
 
         if ($billonly) { return $bill; }
             $SQL = "INSERT INTO billing_perchild (pid,chid,fromdate,todate,bill,receipt,exempt,days_attending) VALUES('".$program["pid"]."','$chid','$invoiceweek','$endofweek','$bill','$receipt','$exempt','$billed_by')";
-        if (!get_db_row("SELECT fromdate FROM billing_perchild WHERE pid=''".$program["pid"]."'' AND chid='$chid' AND fromdate='$invoiceweek'")){
+        if (!get_db_row("SELECT fromdate FROM billing_perchild WHERE pid='".$program["pid"]."' AND chid='$chid' AND fromdate='$invoiceweek'")){
             execute_db_sql($SQL);
         }
     } else { //enrollment considered part-time
@@ -267,7 +267,7 @@ function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$l
 
         if($billonly){ return $bill; }
         $SQL = "INSERT INTO billing_perchild (pid,chid,fromdate,todate,bill,receipt,exempt,days_attending) VALUES('".$program["pid"]."','$chid','$invoiceweek','$endofweek','$bill','$receipt','$exempt','$billed_by')";
-        if(!get_db_row("SELECT fromdate FROM billing_perchild WHERE pid=''".$program["pid"]."'' AND chid='$chid' AND fromdate='$invoiceweek'")){
+        if(!get_db_row("SELECT fromdate FROM billing_perchild WHERE pid='".$program["pid"]."' AND chid='$chid' AND fromdate='$invoiceweek'")){
             execute_db_sql($SQL);
         }
     }

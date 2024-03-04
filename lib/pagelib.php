@@ -259,7 +259,7 @@ function get_home_page() {
 }
 
 function get_admin_button() {
-    return get_numpad("", true, "", "#display_level", 'admin_numpad1') . '<div class="top-right"><button class="admin_button topright_button" onclick="if(typeof(autoback) != \'undefined\'){ clearTimeout(autoback); } numpad(\'admin_numpad1\');">Admin</button></div>';
+    return get_numpad("", true, "", "#display_level", 'admin_numpad1') . '<div class="top-right"><button class="admin_button topright_button" onclick="if (typeof(autoback) != \'undefined\') { clearTimeout(autoback); } numpad(\'admin_numpad1\');">Admin</button></div>';
 }
 
 function get_employee_button($employeeid, $class = "", $style = "", $action = "") {
@@ -302,7 +302,7 @@ function get_employee_timeclock_button() {
 
 function get_numpad($aid = "\'\'", $admin = "false", $type = "\'\'", $display = "#display_level", $id = "numpad") {
     $admin_text   = empty($admin) ? 'Enter your Password' : 'Administrator Password';
-    $buttonaction = 'if($(this).prevAll(\'input:first\').val().length < 4){ $(this).prevAll(\'input:first\').val($(this).prevAll(\'input:first\').val() + $(\'.keypad:first\',this).html())} if($(this).prevAll(\'input:first\').val().length == 4){ $(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', false); }else{ $(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', true); }';
+    $buttonaction = 'if ($(this).prevAll(\'input:first\').val().length < 4) { $(this).prevAll(\'input:first\').val($(this).prevAll(\'input:first\').val() + $(\'.keypad:first\',this).html())} if ($(this).prevAll(\'input:first\').val().length == 4) { $(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', false); }else{ $(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', true); }';
     return '<div id="' . $id . '" title="' . $admin_text . '" style="display:none;text-align:center;padding:.5em .5em;">
             <label for="password">Password</label>
               <input size="4" maxlength="4" type="password" disabled name="' . $id . '_password" id="' . $id . '_password" value="" class="text ui-widget-content ui-corner-all" style="text-align: center;font-size:3em;width:225px;padding:0px 10px;" />
@@ -325,7 +325,7 @@ function get_numpad($aid = "\'\'", $admin = "false", $type = "\'\'", $display = 
                 $(submitbutton).button(\'option\', \'disabled\', false);
               },
               data: { action: \'validate\',type:\'' . $type . '\',values: $(\'.notes_values\').serializeArray(),rnid: $(\'.rnid\').serializeArray(),cid: $(\'.contact input.cid\',\'.ui-selected\').serializeArray(),chid: $(\'.child input.chid\').serializeArray(), employeeid: $(\'#selectedemployee\').val(), aid: \'' . $aid . '\', admin: \'' . $admin . '\', password: $(\'#' . $id . '_password:input\',\'.ui-dialog\').val() },
-              success: function(data) { $(submitbutton).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'.' . $id . 'keypad_submit\').closest(\'#' . $id . '\').dialog(\'close\'); $(\'' . $display . '\').html(data); refresh_all(); }else{ $(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', true); $(\'.' . $id . 'keypad_submit\').prevAll(\'input:first\').val(\'\'); $(\'.' . $id . 'keypad_submit\').closest(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+              success: function(data) { $(submitbutton).button(\'option\', \'disabled\', false); if (data != \'false\') { $(\'.' . $id . 'keypad_submit\').closest(\'#' . $id . '\').dialog(\'close\'); $(\'' . $display . '\').html(data); refresh_all(); }else{ $(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', true); $(\'.' . $id . 'keypad_submit\').prevAll(\'input:first\').val(\'\'); $(\'.' . $id . 'keypad_submit\').closest(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
               });">Submit</button>
         </div>';
 }
@@ -386,7 +386,7 @@ function get_icon($icon) {
 }
 
 function go_home_button($button_text = 'Back') {
-    return '<div class="go_home"><button class="topleft_button" onclick="if(typeof(autoback) != \'undefined\'){ clearTimeout(autoback); }
+    return '<div class="go_home"><button class="topleft_button" onclick="if (typeof(autoback) != \'undefined\') { clearTimeout(autoback); }
             location.reload();
             ">' . $button_text . '</button></div>';
 }
@@ -488,10 +488,10 @@ function get_required_notes_header($tag) {
             $notes .= '<span style="display:inline-block;padding:10px 0px;width:' . (70 / $note_count) . '%;text-align:center;">';
             switch ($row["question_type"]) {
                 case "Yes,No":
-                    $notes .= '<button style="font-size: 12px;" onclick="$(\'.' . $row["rnid"] . '.notes_values\').each(function(){ $(this).toggleSwitch({toggle:\'0\'}); })"><span>All Yes</span></button><button style="font-size: 12px;" onclick="$(\'.' . $row["rnid"] . '.notes_values\').each(function(){ $(this).toggleSwitch({toggle:\'1\'}); })"><span>All No</span></button>';
+                    $notes .= '<button style="font-size: 12px;" onclick="$(\'.' . $row["rnid"] . '.notes_values\').each(function() { $(this).toggleSwitch({toggle:\'0\'}); })"><span>All Yes</span></button><button style="font-size: 12px;" onclick="$(\'.' . $row["rnid"] . '.notes_values\').each(function() { $(this).toggleSwitch({toggle:\'1\'}); })"><span>All No</span></button>';
                     break;
                 case "No,Yes":
-                    $notes .= '<button style="font-size: 12px;" onclick="$(\'.' . $row["rnid"] . '.notes_values\').each(function(){ $(this).toggleSwitch({toggle:\'0\'}); })"><span>All No</span></button><button style="font-size: 12px;" onclick="$(\'.' . $row["rnid"] . '.notes_values\').each(function(){ $(this).toggleSwitch({toggle:\'1\'}); })"><span>All Yes</span></button>';
+                    $notes .= '<button style="font-size: 12px;" onclick="$(\'.' . $row["rnid"] . '.notes_values\').each(function() { $(this).toggleSwitch({toggle:\'0\'}); })"><span>All No</span></button><button style="font-size: 12px;" onclick="$(\'.' . $row["rnid"] . '.notes_values\').each(function() { $(this).toggleSwitch({toggle:\'1\'}); })"><span>All Yes</span></button>';
                     break;
             }
             $notes .= "</span>";
@@ -1229,18 +1229,17 @@ function check_and_run_upgrades() {
     }
 
        $thisversion = 2020022000;
-       if($version < $thisversion){ //# = new version number.  If this is the first...start at 1
+       if ($version < $thisversion) { //# = new version number.  If this is the first...start at 1
            $SQL = "ALTER TABLE `programs` ADD `fein` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '' AFTER `payahead`";
-           if(execute_db_sql($SQL)) //if successful upgrade
-           {
+           if (execute_db_sql($SQL)) { //if successful upgrade
                execute_db_sql("UPDATE version SET version='$thisversion'");
            }
        }
 
     //    $thisversion = YYYYMMDD;
-    //    if($version < $thisversion){ //# = new version number.  If this is the first...start at 1
+    //    if ($version < $thisversion) { //# = new version number.  If this is the first...start at 1
     //        $SQL = "";
-    //        if(execute_db_sql($SQL)) //if successful upgrade
+    //        if (execute_db_sql($SQL)) //if successful upgrade
     //        {
     //            execute_db_sql("UPDATE version SET version='$thisversion'");
     //        }

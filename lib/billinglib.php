@@ -7,7 +7,7 @@
 * Revision: 0.0.9
 ***************************************************************************/
 
-if(!isset($LIBHEADER)) include('header.php');
+if (!isset($LIBHEADER)) include('header.php');
 $BILLINGLIB = true;
 
 function account_balance($pid, $aid, $running_balance = false, $year = false) {
@@ -33,7 +33,7 @@ function account_balance($pid, $aid, $running_balance = false, $year = false) {
 }
 
 function apply_overrides($program, $pid, $aid) {
-    if($override = get_db_row("SELECT * FROM billing_override WHERE pid='$pid' AND aid='$aid'")) { // account override is present
+    if ($override = get_db_row("SELECT * FROM billing_override WHERE pid='$pid' AND aid='$aid'")) { // account override is present
         foreach($program as $key => $value) {
             if (isset($override[$key])) {
                 $program[$key] = $override[$key];
@@ -111,7 +111,7 @@ global $CFG;
                                     $bill = $program["fulltime"];
                                 }
                                 $attendance .= $attendance > 0 ? ($attendance == 1 ? " day ($days)" : " days ($days)") : " days";
-                                if(!$perchild){
+                                if (!$perchild) {
                                     $perchildbill = save_child_invoice($program,$chid,$invoiceweek,$endofweek,$enrollment,$lastid,$bill,$attendance,"unknown",true);
                                 }
                             } else { //Did not attend, see if there is a minimum.
@@ -141,22 +141,22 @@ global $CFG;
     return number_format($totalbill, 2);
 }
 
-function make_account_invoice($pid,$aid,$invoiceweek=false){
+function make_account_invoice($pid,$aid,$invoiceweek=false) {
     $returnme = "";
     $invoicesql = $invoiceweek ? " AND fromdate = '$invoiceweek' " : "";
     //done with children, total each account now
     $SQL = "SELECT * FROM billing_perchild WHERE pid='$pid' AND chid IN (SELECT chid FROM children WHERE aid='$aid') $invoicesql ORDER BY fromdate";
-    if($child_invoices = get_db_result($SQL)){
+    if ($child_invoices = get_db_result($SQL)) {
         $sameweek = $bill = 0;
         $receipt = "";
-        while($invoice = fetch_row($child_invoices)){  //Loop through each week
+        while ($invoice = fetch_row($child_invoices)) {  //Loop through each week
             $fromdate = $invoice["fromdate"];
             $todate = $invoice["todate"];
              //Does this invoice need to be made?
-            if($fromdate != $sameweek){ //start of a new week
-                if($sameweek !== 0){ //not the first week, so you need to end the last week.
+            if ($fromdate != $sameweek) { //start of a new week
+                if ($sameweek !== 0) { //not the first week, so you need to end the last week.
                     $receipt .= '<div><strong>Week Total: $'.number_format($bill,2).'</strong></div>';
-                    if(!get_db_row("SELECT * FROM billing WHERE pid='$pid' AND aid='$aid' AND fromdate='$oldfromdate'")){
+                    if (!get_db_row("SELECT * FROM billing WHERE pid='$pid' AND aid='$aid' AND fromdate='$oldfromdate'")) {
                         $SQL = "INSERT INTO billing (pid,aid,fromdate,todate,owed,receipt) VALUES ('$pid','$aid','$oldfromdate','$oldtodate','$bill','$receipt')";
                         execute_db_sql($SQL);
                         $returnme .= "<div><strong>Week of " . get_date('F \t\h\e jS Y',$oldfromdate)."</strong><div>".$receipt."</div></div><br />";
@@ -169,7 +169,7 @@ function make_account_invoice($pid,$aid,$invoiceweek=false){
 
                 //Start week
                 $receipt .=  empty($invoice["exempt"]) ? "<div>".$invoice["receipt"]."</div>" : "<div>".$invoice["receipt"]." - Exempt $0</div>";
-            }else{ //Same week continuing
+            } else { //Same week continuing
                 //Add to bill
                 $bill +=  empty($invoice["exempt"]) ? $invoice["bill"] : 0;
                 $receipt .=  empty($invoice["exempt"]) ? "<div>".$invoice["receipt"]."</div>" : "<div>".$invoice["receipt"]." - Exempt $0</div>";
@@ -180,9 +180,9 @@ function make_account_invoice($pid,$aid,$invoiceweek=false){
             $sameweek = $fromdate;
         }
 
-        if($sameweek !== 0){ //not the first week, so you need to end the last week.
+        if ($sameweek !== 0) { //not the first week, so you need to end the last week.
             $receipt .= '<div><strong>Week Total: $'.number_format($bill,2).'</strong></div>';
-            if(!get_db_row("SELECT * FROM billing WHERE pid='$pid' AND aid='$aid' AND fromdate='$oldfromdate'")){
+            if (!get_db_row("SELECT * FROM billing WHERE pid='$pid' AND aid='$aid' AND fromdate='$oldfromdate'")) {
                 $SQL = "INSERT INTO billing (pid,aid,fromdate,todate,owed,receipt) VALUES ('$pid','$aid','$oldfromdate','$oldtodate','$bill','$receipt')";
                 execute_db_sql($SQL);
                 $returnme .= "<div><strong>Week of " . get_date('F \t\h\e jS Y',$oldfromdate)."</strong><div>".$receipt."</div></div><br />";
@@ -195,7 +195,7 @@ function make_account_invoice($pid,$aid,$invoiceweek=false){
     return $returnme;
 }
 
-function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$lastid="0",$bill="",$attendance="",$exempt='unknown',$billonly=false){
+function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$lastid="0",$bill="",$attendance="",$exempt='unknown',$billonly=false) {
     $discount = "";
     $discount_rule = empty($program["discount_rule"]) || $program["discount_rule"] < $program["multiple_discount"] ? "(bill >= ".$program["multiple_discount"].")" : "(bill >= ".$program["discount_rule"].")";
     $exempt = $exempt == "unknown" ? get_db_field("exempt","enrollments","chid='$chid' AND pid='".$program["pid"]."'") : $exempt;
@@ -243,7 +243,7 @@ function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$l
 
         if ($billonly) { return $bill; }
             $SQL = "INSERT INTO billing_perchild (pid,chid,fromdate,todate,bill,receipt,exempt,days_attending) VALUES('".$program["pid"]."','$chid','$invoiceweek','$endofweek','$bill','$receipt','$exempt','$billed_by')";
-        if (!get_db_row("SELECT fromdate FROM billing_perchild WHERE pid='".$program["pid"]."' AND chid='$chid' AND fromdate='$invoiceweek'")){
+        if (!get_db_row("SELECT fromdate FROM billing_perchild WHERE pid='".$program["pid"]."' AND chid='$chid' AND fromdate='$invoiceweek'")) {
             execute_db_sql($SQL);
         }
     } else { //enrollment considered part-time
@@ -265,16 +265,16 @@ function save_child_invoice($program,$chid,$invoiceweek,$endofweek,$billed_by,$l
             $receipt = empty($attendance) ? get_name(array("type"=>"chid","id"=>$chid))." - Did Not Attend [Minimum Rate]: $".number_format($bill,2): get_name(array("type"=>"chid","id"=>$chid))." - [".$minimum."Part-time Rate] $discount Attended $attendance: $".number_format($bill,2);
         }
 
-        if($billonly){ return $bill; }
+        if ($billonly) { return $bill; }
         $SQL = "INSERT INTO billing_perchild (pid,chid,fromdate,todate,bill,receipt,exempt,days_attending) VALUES('".$program["pid"]."','$chid','$invoiceweek','$endofweek','$bill','$receipt','$exempt','$billed_by')";
-        if(!get_db_row("SELECT fromdate FROM billing_perchild WHERE pid='".$program["pid"]."' AND chid='$chid' AND fromdate='$invoiceweek'")){
+        if (!get_db_row("SELECT fromdate FROM billing_perchild WHERE pid='".$program["pid"]."' AND chid='$chid' AND fromdate='$invoiceweek'")) {
             execute_db_sql($SQL);
         }
     }
 }
 
 //Makes Child invoice per week
-function make_child_invoice($pid,$chid,$invoiceweek,$refresh=false,$lastid='0',$honor_past_enrollment=true){
+function make_child_invoice($pid,$chid,$invoiceweek,$refresh=false,$lastid='0',$honor_past_enrollment=true) {
 global $CFG;
     $discount = ""; $override = false;
     $program = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
@@ -286,19 +286,19 @@ global $CFG;
     $exempt = $honor_past_enrollment && $perchild ? $perchild["exempt"] : get_db_field("exempt","enrollments","chid='$chid' AND pid='$pid'");
 
     //you want to remember past settings and there is a history recorded
-    if(!empty($honor_past_enrollment) && !empty($perchild)){
+    if (!empty($honor_past_enrollment) && !empty($perchild)) {
         $bill_by = $perchild["days_attending"];  //bill according to the days attended
-    }elseif($overrides = apply_overrides($program, $pid, $aid)){ //account override is present
+    } elseif ($overrides = apply_overrides($program, $pid, $aid)) { //account override is present
         $program = $overrides;
         $bill_by = $program["bill_by"];
-    }elseif($program["bill_by"] == "enrollment"){ //there is no history or you don't want to remember the past and the program is now set to enrollment billing
+    } elseif ($program["bill_by"] == "enrollment") { //there is no history or you don't want to remember the past and the program is now set to enrollment billing
         $bill_by = get_db_field("days_attending","enrollments","chid='$chid' AND pid='$pid'"); //Get the days attending.
-    }else{ //only other choice is that there is no history and the program is set to attendance billing.  This will be built next.
+    } else { //only other choice is that there is no history and the program is set to attendance billing.  This will be built next.
         //Create a week's enrollment based on attendance instead of the program enrollment settings
         $bill_by = "";
-        if($days_attending = get_db_result("SELECT DAYOFWEEK(CONVERT_TZ(FROM_UNIXTIME(timelog),'".get_date('P',time(),$CFG->servertz)."','".get_date('P',time(),$CFG->timezone)."')) as daynum, CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'".get_date('P',time(),$CFG->servertz)."','".get_date('P',time(),$CFG->timezone)."'))) as order_day FROM activity WHERE tag='in' AND pid='$pid' AND chid='$chid' AND timelog >= $invoiceweek AND timelog < $endofweek GROUP BY order_day ORDER BY order_day")){
+        if ($days_attending = get_db_result("SELECT DAYOFWEEK(CONVERT_TZ(FROM_UNIXTIME(timelog),'".get_date('P',time(),$CFG->servertz)."','".get_date('P',time(),$CFG->timezone)."')) as daynum, CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'".get_date('P',time(),$CFG->servertz)."','".get_date('P',time(),$CFG->timezone)."'))) as order_day FROM activity WHERE tag='in' AND pid='$pid' AND chid='$chid' AND timelog >= $invoiceweek AND timelog < $endofweek GROUP BY order_day ORDER BY order_day")) {
             $days = array("","S","M","T","W","Th","F","Sa");
-            while($attend = fetch_row($days_attending)){
+            while ($attend = fetch_row($days_attending)) {
                 $bill_by .= empty($bill_by) ? $days[$attend["daynum"]] : ','.$days[$attend["daynum"]];
             }
         }
@@ -306,10 +306,10 @@ global $CFG;
 
     //OLD $bill_by = $honor_past_enrollment && $perchild ? $perchild["days_attending"] : ($program["bill_by"] == "enrollment" ? get_db_field("days_attending","enrollments","chid='$chid' AND pid='$pid'") : "attendance");
 
-    if($activities = get_db_result("SELECT * FROM activity WHERE tag='in' AND pid='$pid' AND chid='$chid' AND timelog >= $invoiceweek AND timelog < $endofweek ORDER BY timelog")){
+    if ($activities = get_db_result("SELECT * FROM activity WHERE tag='in' AND pid='$pid' AND chid='$chid' AND timelog >= $invoiceweek AND timelog < $endofweek ORDER BY timelog")) {
         $sameday = $bill = $attendance = 0;
         $days = "";
-        while($activity = fetch_row($activities)){
+        while ($activity = fetch_row($activities)) {
             $bill += date("m/d/Y",display_time($activity["timelog"])) == $sameday ? 0 : $program["perday"];
             $attendance += date("m/d/Y",display_time($activity["timelog"])) == $sameday ? "0" : "1";
             $days .= date("m/d/Y",display_time($activity["timelog"])) == $sameday ? "" : ($days == "" ? date("D",display_time($activity["timelog"])) : " ".date("D",display_time($activity["timelog"])));
@@ -328,53 +328,53 @@ global $CFG;
 
         $attendance .= $attendance > 0 ? ($attendance == 1 ? " day ($days)" : " days ($days)") : " days";
 
-        if($refresh){ execute_db_sql("DELETE FROM billing_perchild WHERE pid='$pid' AND chid='$chid' AND fromdate = '$invoiceweek'"); }
+        if ($refresh) { execute_db_sql("DELETE FROM billing_perchild WHERE pid='$pid' AND chid='$chid' AND fromdate = '$invoiceweek'"); }
 
-        if(!$perchild){
+        if (!$perchild) {
             save_child_invoice($program,$chid,$invoiceweek,$endofweek,$bill_by,$lastid,$bill,$attendance);
-        }elseif($refresh){
+        } elseif ($refresh) {
             save_child_invoice($program,$chid,$invoiceweek,$endofweek,$bill_by,$lastid,$bill,$attendance,$exempt);
         }
-    }else{ //Did not attend, see if there is a minimuminactive rate.
+    } else { //Did not attend, see if there is a minimuminactive rate.
         $bill = $program["minimuminactive"] > "0" ? $program["minimuminactive"] : "0";
-        if($refresh){ execute_db_sql("DELETE FROM billing_perchild WHERE pid='$pid' AND chid='$chid' AND fromdate = '$invoiceweek'"); }
+        if ($refresh) { execute_db_sql("DELETE FROM billing_perchild WHERE pid='$pid' AND chid='$chid' AND fromdate = '$invoiceweek'"); }
 
-        if(!$perchild){
+        if (!$perchild) {
             save_child_invoice($program,$chid,$invoiceweek,$endofweek,$bill_by,$lastid,$bill);
-        }elseif($refresh){
+        } elseif ($refresh) {
             save_child_invoice($program,$chid,$invoiceweek,$endofweek,$bill_by,$lastid,$bill,"",$exempt);
         }
     }
 }
 
-function create_invoices($return = false, $pid = null, $aid = null, $refreshall = false, $startweek = "0", $honor_past_enrollment = true){
+function create_invoices($return = false, $pid = null, $aid = null, $refreshall = false, $startweek = "0", $honor_past_enrollment = true) {
 global $CFG, $MYVARS;
     $pid = $pid !== null ? $pid : (empty($MYVARS->GET["pid"]) ? get_pid() : $MYVARS->GET["pid"]);
     $aid = $aid !== null ? $aid : (empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"]);
     $returnme = "";
 
     $program = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
-    if(empty($aid)){ //All accounts enrolled in program
-        if(!empty($refreshall)){
+    if (empty($aid)) { //All accounts enrolled in program
+        if (!empty($refreshall)) {
             execute_db_sql("DELETE FROM billing WHERE pid='$pid' AND fromdate >= $startweek");
         }
         $SQL = "SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid')) ORDER BY name";
-    }else{ //Only selected account
-        if(!empty($refreshall)){
+    } else { //Only selected account
+        if (!empty($refreshall)) {
             execute_db_sql("DELETE FROM billing WHERE pid='$pid' AND aid='$aid' AND fromdate >= $startweek");
         }
         $SQL = "SELECT * FROM accounts WHERE aid='$aid'";
     }
 
     //Employees section
-    if($employees = get_db_result("SELECT * FROM employee")){
-        while($employee = fetch_row($employees)){
-            if($firstin = get_db_field("MIN(timelog)","employee_activity","employeeid='".$employee["employeeid"]."' AND tag='in'")){
+    if ($employees = get_db_result("SELECT * FROM employee")) {
+        while ($employee = fetch_row($employees)) {
+            if ($firstin = get_db_field("MIN(timelog)","employee_activity","employeeid='".$employee["employeeid"]."' AND tag='in'")) {
                 $firstin = empty($startweek) ? $firstin : ($firstin < $startweek ? $startweek : $firstin);
-                if(!empty($firstin)){
-                    if(date('N',$firstin) == "7"){ //is already a sunday
+                if (!empty($firstin)) {
+                    if (date('N',$firstin) == "7") { //is already a sunday
                         $firstweek = strtotime(date('m/d/Y',$firstin));
-                    }else{
+                    } else {
                         $firstweek = strtotime("previous Sunday UTC",$firstin);
                     }
 
@@ -385,7 +385,7 @@ global $CFG, $MYVARS;
                     //go to the end of that Saturday
                     $runtill = strtotime("+1 day -1 second",$runtill);
 
-                    while($invoiceweek < $runtill){
+                    while ($invoiceweek < $runtill) {
                         closeout_workdays($employee["employeeid"],$invoiceweek,$refreshall);
                         //Go to next week
                         $invoiceweek = strtotime("+1 week",$invoiceweek);
@@ -396,18 +396,18 @@ global $CFG, $MYVARS;
     }
 
     $lastid = !empty($refreshall) ? get_db_field("MAX(id)","billing_perchild","id>0") : '0';
-    if($accounts = get_db_result($SQL)){
-        while($account = fetch_row($accounts)){
+    if ($accounts = get_db_result($SQL)) {
+        while ($account = fetch_row($accounts)) {
             $SQL = "SELECT * FROM children WHERE aid='".$account["aid"]."' AND chid IN (SELECT chid FROM enrollments WHERE pid='$pid') AND chid IN (SELECT chid FROM activity WHERE pid='$pid' AND tag='in') ORDER BY last,first";
-            if($children = get_db_result($SQL)){
-                while($child = fetch_row($children)){
+            if ($children = get_db_result($SQL)) {
+                while ($child = fetch_row($children)) {
                     //Child has signed in so he may be billed
-                    if($firstin = get_db_field("MIN(timelog)","activity","pid='$pid' AND chid='".$child["chid"]."' AND tag='in'")){
+                    if ($firstin = get_db_field("MIN(timelog)","activity","pid='$pid' AND chid='".$child["chid"]."' AND tag='in'")) {
                         $firstin = empty($startweek) ? $firstin : ($firstin < $startweek ? $startweek : $firstin);
-                        if(!empty($firstin)){
-                            if(date('N',$firstin) == "7"){ //is already a sunday
+                        if (!empty($firstin)) {
+                            if (date('N',$firstin) == "7") { //is already a sunday
                                 $firstweek = strtotime(date('m/d/Y',$firstin));
-                            }else{
+                            } else {
                                 $firstweek = strtotime("previous Sunday UTC",$firstin);
                             }
 
@@ -418,7 +418,7 @@ global $CFG, $MYVARS;
                             //go to the end of that Saturday
                             $runtill = strtotime("+1 day -1 second",$runtill);
 
-                            while($invoiceweek < $runtill){
+                            while ($invoiceweek < $runtill) {
                                 make_child_invoice($pid,$child["chid"],$invoiceweek,$refreshall,$lastid,$honor_past_enrollment);
                                 //Go to next week
                                 $invoiceweek = strtotime("+1 week",$invoiceweek);
@@ -431,28 +431,28 @@ global $CFG, $MYVARS;
         }
     }
 
-    if($returnme == ""){
+    if ($returnme == "") {
         $returnme .= '<div>None</div>';
     }
 
     $returnme = '<div style="display:table-cell;font-weight: bold;font-size: 120%;padding: 10px;">Invoices Created:</div><div class="scroll-pane fill_height"><div style="padding:10px;">' . $returnme . '</div></div>';
 
-    if($return){
+    if ($return) {
         return $returnme;
-    }else{
+    } else {
         echo $returnme;
     }
 }
 
-function get_enrollment_method($pid,$aid=false,$chid=false){
+function get_enrollment_method($pid,$aid=false,$chid=false) {
     $program = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
     //you want to remember past settings and there is a history recorded
-    if(!empty($aid)){
-        if($override = get_db_row("SELECT * FROM billing_override WHERE pid='$pid' AND aid='$aid'")){ //account override is present
+    if (!empty($aid)) {
+        if ($override = get_db_row("SELECT * FROM billing_override WHERE pid='$pid' AND aid='$aid'")) { //account override is present
             $program["bill_by"] = $override["bill_by"];
         }
-    }elseif(!empty($chid)){
-        if($override = get_db_row("SELECT * FROM billing_override WHERE pid='$pid' AND aid IN (SELECT aid FROM children WHERE chid='$chid')")){ //account override is present
+    } elseif (!empty($chid)) {
+        if ($override = get_db_row("SELECT * FROM billing_override WHERE pid='$pid' AND aid IN (SELECT aid FROM children WHERE chid='$chid')")) { //account override is present
             $program["bill_by"] = $override["bill_by"];
         }
     }

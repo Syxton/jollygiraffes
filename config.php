@@ -10,10 +10,10 @@ $CFG->streetaddress = '';
 $CFG->logo 	= 'logo.png';
 
 //Database connection variables
-$CFG->dbtype    = ''; //mysql or mysqli
+$CFG->dbtype    = 'mysqli'; //mysql or mysqli
 $CFG->dbhost    = 'localhost';
-$CFG->dbname    = '';
-$CFG->dbuser    = '';
+$CFG->dbname    = 'hh';
+$CFG->dbuser    = 'root';
 $CFG->dbpass    = '';
 
 //Directory variables
@@ -27,8 +27,8 @@ $CFG->dirroot   = $CFG->docroot;
 $CFG->userfilespath = substr($CFG->docroot,0,strrpos($CFG->docroot,'/'));
 
 //Cookie variables in seconds
-$CFG->timezone = '';
-$CFG->servertz = '';
+$CFG->timezone = 'America/Indiana/Indianapolis';
+$CFG->servertz = 'America/Indiana/Indianapolis';
 date_default_timezone_set('UTC');
 
 //Google Analytics id

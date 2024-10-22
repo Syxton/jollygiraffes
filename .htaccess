@@ -1,6 +1,0 @@
-AuthUserFile /xampp/htdocs/personal/hh/.htpasswd 
-AuthName HH 
-AuthType Basic
-<Limit GET>
-require valid-user
-</Limit>

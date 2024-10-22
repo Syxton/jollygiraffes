@@ -12,7 +12,7 @@ $CFG->logo 	= 'logo.png';
 //Database connection variables
 $CFG->dbtype    = 'mysqli'; //mysql or mysqli
 $CFG->dbhost    = 'localhost';
-$CFG->dbname    = 'hh';
+$CFG->dbname    = 'jollygiraffes';
 $CFG->dbuser    = 'root';
 $CFG->dbpass    = '';
 

@@ -268,7 +268,8 @@ h3 {
 	margin-bottom: 5px;
 	display: flex;
 }
-.container_actions button {
+.container_actions button,
+.container_actions form {
 	display: contents;
     margin: auto;
 }
@@ -1051,7 +1052,7 @@ td.calendar-day-np {
 		text-align: center;
 	}
 	.show_enrolled {
-		width: 100%; 
+		width: 100%;
 	}
 	.calendar-day-head .abb_full {
 		display: none;

@@ -553,34 +553,34 @@ function get_children_button($chid, $class = "", $style = "", $action = "", $pic
 
 function make_or_get_tag($tag, $type = "documents") {
     switch ($type) {
-        case "documents":
-            if ($tags = get_db_row("SELECT * FROM documents_tags WHERE tag='$tag' OR title='$tag'")) {
-                return $tags["tag"];
-            } else { //New
-                $title = $tag;
-                $tag   = str_replace(" ", "_", strtolower($tag));
-                execute_db_sql("INSERT INTO documents_tags (tag,title) VALUES('$tag','$title')");
-                return $tag;
-            }
-            break;
-        case "notes":
-            if ($tags = get_db_row("SELECT * FROM notes_tags WHERE tag='$tag' OR title='$tag'")) {
-                return $tags["tag"];
-            } else { //New
-                $title = $tag;
-                $tag   = str_replace(" ", "_", strtolower($tag));
-                execute_db_sql("INSERT INTO notes_tags (tag,title) VALUES('$tag','$title')");
-                return $tag;
-            }
-        case "events":
-            if ($tags = get_db_row("SELECT * FROM events_tags WHERE tag='$tag' OR title='$tag'")) {
-                return $tags["tag"];
-            } else { //New
-                $title = $tag;
-                $tag   = str_replace(" ", "_", strtolower($tag));
-                execute_db_sql("INSERT INTO events_tags (tag,title) VALUES('$tag','$title')");
-                return $tag;
-            }
+    case "documents":
+        if ($tags = get_db_row("SELECT * FROM documents_tags WHERE tag='$tag' OR title='$tag'")) {
+            return $tags["tag"];
+        } else { //New
+            $title = $tag;
+            $tag   = str_replace(" ", "_", strtolower($tag));
+            execute_db_sql("INSERT INTO documents_tags (tag,title) VALUES('$tag','$title')");
+            return $tag;
+        }
+        break;
+    case "notes":
+        if ($tags = get_db_row("SELECT * FROM notes_tags WHERE tag='$tag' OR title='$tag'")) {
+            return $tags["tag"];
+        } else { //New
+            $title = $tag;
+            $tag   = str_replace(" ", "_", strtolower($tag));
+            execute_db_sql("INSERT INTO notes_tags (tag,title) VALUES('$tag','$title')");
+            return $tag;
+        }
+    case "events":
+        if ($tags = get_db_row("SELECT * FROM events_tags WHERE tag='$tag' OR title='$tag'")) {
+            return $tags["tag"];
+        } else { //New
+            $title = $tag;
+            $tag   = str_replace(" ", "_", strtolower($tag));
+            execute_db_sql("INSERT INTO events_tags (tag,title) VALUES('$tag','$title')");
+            return $tag;
+        }
     }
 }
 

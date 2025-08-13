@@ -135,31 +135,35 @@ function refresh_all() {
 }
 
 function refresh_tags_editor() {
-    $('.tags_editor').each(function() {
-        if ($(this).hasClass('ui-autocomplete-input')) {
-
-            var $input = $(this).autocomplete({
-                source: $(this).siblings('.tags_list').val().split(","),
-                minLength: 0
+    $('.tags_editor').each(function () {
+        var $input = $(this);
+        if ($input.hasClass('ui-autocomplete-input')) {
+            $input.autocomplete({
+                source: $input.siblings('.tags_list').val().split(","),
+                minLength: 0,
+                appendTo: $input.closest("form"),
             });
-            $(this).next('.tags_select')
-                .click(function() {
+            $input.next('.tags_select')
+                .on("click", function(event) {
                     // close if already visible
+                    event.preventDefault();
                     if ($input.autocomplete("widget").is(":visible")) {
-                        $input.autocomplete("close");
                         return;
                     }
                     $(this).blur();
-                    $input.autocomplete("search", "");
                     $input.focus();
+                    $('#' + $input.attr("id")).autocomplete("search", "");
+                    return;
                 });
         } else {
-            var $input = $(this).autocomplete({
-                source: $(this).siblings('.tags_list').val().split(","),
-                minLength: 0
+            var $input = $(this);
+            $input.autocomplete({
+                source: $input.siblings('.tags_list').val().split(","),
+                minLength: 0,
+                appendTo: $input.closest("form"),
             }).addClass("ui-widget ui-widget-content ui-corner-left");
 
-            $("<button type='button'>&nbsp;</button>")
+            $("<button id='tags_list_button_" + $input.attr("id") + "' type='button'>&nbsp;</button>")
                 .attr("tabIndex", -1)
                 .attr("title", "Show All Items")
                 .insertAfter($input)
@@ -169,18 +173,18 @@ function refresh_tags_editor() {
                 })
                 .removeClass("ui-corner-all")
                 .addClass("tags_select ui-corner-right ui-button-icon")
-                .click(function() {
+                .on("click", function(event) {
                     // close if already visible
+                    event.preventDefault();
                     if ($input.autocomplete("widget").is(":visible")) {
                         $input.autocomplete("close");
                         return;
                     }
-                    $(this).blur();
-                    $input.autocomplete("search", "");
-                    $input.focus();
+                    $('#' + $input.attr("id")).autocomplete("search", "");
                 });
         }
     });
+    return;
 }
 
 function fill_height_width() {

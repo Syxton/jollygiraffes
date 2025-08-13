@@ -139,12 +139,13 @@ h3 {
 }
 
 .list_title {
-	display: inline-block;
+	display: inline-flex;
 	color: white;
 	padding: 10px;
 	font-weight: bold;
 	font-size: clamp(15px, 4vmin, 23px);
 	white-space: break-spaces;
+	align-items: center;
 }
 
 .child+.list_title {
@@ -408,10 +409,11 @@ h3 {
 
 .tag {
 	border: 1px solid silver;
-	font-size: 12px;
-	padding: 4px 6px 4px;
-	display: inline-block;
-	margin: 2px;
+    font-size: 12px;
+    padding: 4px 6px 4px;
+    display: inline-block;
+    margin: 2px;
+    white-space: nowrap;
 }
 
 .required_note {
@@ -806,9 +808,13 @@ td.calendar-day-np {
 	height: 80px;
 }
 
+.fields {
+    padding: .4em;
+}
+
 .ui-autocomplete-input {
 	margin: 0;
-	padding: 0.48em 0 0.47em 0.45em;
+	padding: 0.4em;
 }
 
 .image_button .ui-button-text {

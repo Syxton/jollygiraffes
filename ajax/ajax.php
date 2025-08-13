@@ -842,6 +842,7 @@ function add_edit_tag() {
 
     $callback = empty($callback) ? false : $callback;
 
+    $tag = empty($tag) ? $update : $tag;
     if (!empty($tag)) {
         $tag       = strtolower(str_replace(' ', '_', $tag));
         $title     = empty($title) ? ucwords(str_replace('_', ' ', $tag)) : ucwords($title);
@@ -2534,20 +2535,22 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
     $returnme = "";
 
     if ($pid) { //Program enrollment
-        //Program Children
+        // Program Children
         if ($children = get_db_result("SELECT * FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid') AND deleted=0 ORDER BY last,first")) {
             $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding-left: 10px;">Children:</div><div id="children" class="scroll-pane infobox fill_height">';
             while ($child = fetch_row($children)) {
                 $identifier = time() . "child_" . $child["chid"];
                 $enrolled   = is_enrolled($pid, $child["chid"]);
 
-                $action             = '$.ajax({
+                $action = '$.ajax({
                           type: \'POST\',
                           url: \'ajax/ajax.php\',
                           data: { action: \'get_admin_children_form\', chid: \'' . $child["chid"] . '\' },
                           success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
                           });';
-                $enroll_action      = $enrolled ? 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to unenroll \'+$(\'a#a-' . $child["chid"] . '\').attr(\'data\')+\'?\', \'Yes\', \'No\', function(){ $.ajax({
+
+
+                $enroll_action = $enrolled ? 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to unenroll \'+$(\'a#a-' . $child["chid"] . '\').attr(\'data\')+\'?\', \'Yes\', \'No\', function(){ $.ajax({
                           type: \'POST\',
                           url: \'ajax/ajax.php\',
                           data: { action: \'toggle_enrollment\',pid:\'' . $pid . '\',chid: \'' . $child["chid"] . '\' },
@@ -2568,7 +2571,6 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                             });
                           }
                           });},function(){});' : 'CreateDialog(\'add_edit_enrollment_' . $identifier . '\',200,400)';
-                $edit_enroll_action = $enrolled ? 'CreateDialog(\'add_edit_enrollment_' . $identifier . '\',200,400)' : '';
 
                 //Checked In info
                 $checked_in = ($activepid == $pid) && $enrolled && is_checked_in($child["chid"]) ? get_icon('status_online') : (($activepid == $pid) && $enrolled ? get_icon('status_offline') : "");
@@ -2576,52 +2578,96 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                 //More Info Button
                 $moreinfo = ($activepid == $pid) && $enrolled ? ' <a href="javascript: void(0);" onclick="' . $action . ' $(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not($(\'#admin_menu_children\')).toggleClass(\'selected_button\',false);"><span class="inline-button ui-corner-all">' . get_icon('magnifier_zoom_in') . '</span></a>' : '';
 
-                //Enrollment Button
-                $enroll_button = $enrolled ? ' <a href="javascript: void(0);" onclick="' . $edit_enroll_action . '"><span class="inline-button ui-corner-all">' . get_icon('report_edit') . ' Edit Enrollment</span></a> <a id="a-' . $child["chid"] . '" data="' . $child["first"] . ' ' . $child["last"] . '" href="javascript: void(0);" onclick="' . $enroll_action . '"><span class="caution inline-button ui-corner-all">' . get_icon('report_delete') . ' Unenroll</span></a>' : ' <a id="a-' . $child["chid"] . '" data="' . $child["first"] . ' ' . $child["last"] . '" href="javascript: void(0);" onclick="' . $enroll_action . '"><span class="inline-button ui-corner-all">' . get_icon('user_add') . ' Enroll</span></a>';
-                $returnme .= $enrolled ? get_form("add_edit_enrollment", array(
-                    "eid" => "$enrolled",
-                    "callback" => "programs",
-                    "aid" => $child["aid"],
-                    "pid" => $pid,
-                    "chid" => $child["chid"]
-                ), $identifier) : get_form("add_edit_enrollment", array(
-                    "callback" => "accounts",
-                    "aid" => $aid,
-                    "pid" => $pid,
-                    "chid" => $child["chid"]
-                ), $identifier);
+                $params = ["pid" => $pid, "chid" => $child["chid"]];
+
+                if ($enrolled) {
+                    $edit_enroll_action = $enrolled ? '' : '';
+                    // Enrollment Button
+                    $enroll_button = '
+                    &nbsp;
+                    <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_enrollment_' . $identifier . '\', 200, 400)">
+                        <span class="inline-button ui-corner-all">
+                        ' . get_icon('report_edit') . ' Edit Enrollment
+                        </span>
+                    </a>
+                    &nbsp;
+                    <a id="a-' . $child["chid"] . '" data="' . $child["first"] . ' ' . $child["last"] . '" href="javascript: void(0);" onclick="' . $enroll_action . '">
+                        <span class="caution inline-button ui-corner-all">
+                        ' . get_icon('report_delete') . ' Unenroll
+                        </span>
+                    </a>';
+                    $params["callback"] = "programs";
+                    $params["eid"] = (string) $enrolled;
+                    $params["aid"] = $child["aid"];
+                } else {
+                    // Enrollment Button
+                    $enroll_button = '
+                    &nbsp;
+                    <a id="a-' . $child["chid"] . '" data="' . $child["first"] . ' ' . $child["last"] . '" href="javascript: void(0);" onclick="' . $enroll_action . '">
+                        <span class="inline-button ui-corner-all">
+                        ' . get_icon('user_add') . ' Enroll
+                        </span>
+                    </a>';
+                    $params["callback"] = "accounts";
+                    $params["pid"] = $pid;
+                    $params["aid"] = $aid;
+                }
+
+                $returnme .= get_form("add_edit_enrollment", $params, $identifier);
 
                 //Edit Child Button
-                $returnme .= get_form("add_edit_child", array(
-                    "pid" => $pid,
-                    "callback" => "programs",
-                    "child" => $child
-                ), $identifier);
-                $edit_button = ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_child_' . $identifier . '\',300,400)"><span class="inline-button ui-corner-all">' . get_icon('wrench') . ' Edit</span></a>';
+                $returnme .= get_form(
+                    "add_edit_child",
+                    [
+                        "pid" => $pid,
+                        "callback" => "programs",
+                        "child" => $child,
+                    ],
+                    $identifier
+                );
+
+                $edit_button = '
+                &nbsp;
+                <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_child_' . $identifier . '\',300,400)">
+                    <span class="inline-button ui-corner-all">
+                    ' . get_icon('wrench') . ' Edit
+                    </span>
+                </a>';
 
                 $notifications = get_notifications($pid, $child["chid"], false, true) ? 'style="background: darkred;"' : '';
-                $returnme .= '<div class="ui-corner-all list_box" ' . $notifications . '><div class="list_box_item_full">' . get_children_button($child["chid"], "", "margin: 10px;float:none;height:50px;width:50px;", false, true, false) . '<div class="list_title" style="width:98%;"><span class="hide_mobile">' . $checked_in . ' </span>' . $child["first"] . ' ' . $child["last"];
-                $returnme .= $recover ? '</div>' : '<br /><span class="list_links">' . $moreinfo . $edit_button . $enroll_button . '</span></div>';
-                $returnme .= '</div></div>';
+                $buttons = $recover ? '' : '<br /><span class="list_links">' . $moreinfo . $edit_button . $enroll_button . '</span>';
+                $returnme .= '
+                    <div class="ui-corner-all list_box" ' . $notifications . '>
+                        <div class="list_box_item_full">
+                        ' . get_children_button($child["chid"], "", "margin: 10px;float:none;height:50px;width:50px;", false, true, false) . '
+                            <div class="list_title" style="width:98%;">
+                                <span class="hide_mobile">
+                                ' . $checked_in . '
+                                </span>
+                                ' . $child["first"] . ' ' . $child["last"] . '
+                                ' . $buttons . '
+                            </div>
+                        </div>
+                    </div>';
             }
             $returnme .= '</div><div style="clear:both;"></div>';
         }
-    } elseif ($aid) { //Account info
+    } elseif ($aid) { // Account info
         $deleted = $recover ? "1" : "0";
-        //Account Children
+        // Account Children
         if ($children = get_db_result("SELECT * FROM children WHERE aid='$aid' AND deleted='$deleted' ORDER BY last,first")) {
             $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding-left: 10px;">Children:</div><div id="children" class="scroll-pane infobox">';
             while ($child = fetch_row($children)) {
                 $identifier = time() . "child_" . $child["chid"];
                 $enrolled   = is_enrolled($activepid, $child["chid"]);
 
-                $action             = '$.ajax({
+                $action = '$.ajax({
                           type: \'POST\',
                           url: \'ajax/ajax.php\',
                           data: { action: \'get_admin_children_form\', chid: \'' . $child["chid"] . '\' },
                           success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
                           });';
-                $enroll_action      = $enrolled ? 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to unenroll \'+$(\'a#a-' . $child["chid"] . '\').attr(\'data\')+\'?\', \'Yes\', \'No\', function(){ $.ajax({
+                $enroll_action = $enrolled ? 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to unenroll \'+$(\'a#a-' . $child["chid"] . '\').attr(\'data\')+\'?\', \'Yes\', \'No\', function(){ $.ajax({
                           type: \'POST\',
                           url: \'ajax/ajax.php\',
                           data: { action: \'toggle_enrollment\',pid:\'' . $activepid . '\',chid: \'' . $child["chid"] . '\' },
@@ -2658,7 +2704,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                           }
                           });},function(){});';
                 //Checked In info
-                $checked_in         = $activepid && $enrolled && is_checked_in($child["chid"]) ? get_icon('status_online') : ($activepid && $enrolled && empty($recover) ? get_icon('status_offline') : "");
+                $checked_in = $activepid && $enrolled && is_checked_in($child["chid"]) ? get_icon('status_online') : ($activepid && $enrolled && empty($recover) ? get_icon('status_offline') : "");
 
                 //More Info Button
                 $moreinfo = $activepid && $enrolled ? ' <a href="javascript: void(0);" onclick="' . $action . ' $(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not($(\'#admin_menu_children\')).toggleClass(\'selected_button\',false);"><span class="inline-button ui-corner-all">' . get_icon('magnifier_zoom_in') . '</span></a>' : '';
@@ -3672,16 +3718,21 @@ function get_tags_info($return = false, $tagtype = null, $tag = null) {
                         });
                       }
                       });},function(){});';
-            //Edit Tag Button
-            $returnme .= get_form("add_edit_tag", array(
-                "tagtype" => $tagtype,
-                "callback" => "tags",
-                "tagrow" => $tagrow
-            ), $identifier);
+
+            // Edit Tag Button
+            $returnme .= get_form(
+                "add_edit_tag",
+                [
+                    "tagtype" => $tagtype,
+                    "callback" => "tags",
+                    "tagrow" => $tagrow,
+                ],
+                $identifier
+            );
             $edit_button   = ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_tag_' . $identifier . '\',300,400)"><span class="inline-button ui-corner-all">' . get_icon('wrench') . ' Edit</span></a>';
             $delete_button = get_db_row("SELECT * FROM $tagtype WHERE tag='" . $tagrow["tag"] . "'") ? '' : ' <a href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . get_icon('bin_closed') . ' Delete</span></a>';
 
-            $returnme .= '<div class="ui-corner-all list_box"><div class="list_title" style="padding:5px;display:block;"><span id="tag_template' . $identifier . '" class="tag ui-corner-all" style="color:' . $tagrow["textcolor"] . ';background-color:' . $tagrow["color"] . '">' . $tagrow["title"] . '</span>';
+            $returnme .= '<div class="ui-corner-all list_box"><div class="list_title"><span id="tag_template' . $identifier . '" class="tag ui-corner-all" style="color:' . $tagrow["textcolor"] . ';background-color:' . $tagrow["color"] . '">' . $tagrow["title"] . '</span>';
             $returnme .= ' <span class="list_links" style="float:right;">' . $edit_button . $delete_button . '</span></div>';
             $returnme .= '</div><div style="clear:both;"></div>';
         }
@@ -3701,9 +3752,13 @@ function get_admin_enrollment_form($return = false, $pid = false) {
     $pid        = $pid ? $pid : (empty($MYVARS->GET["pid"]) ? $activepid : $MYVARS->GET["pid"]);
     $returnme   = '<div class="container_list scroll-pane ui-corner-all"><div class="ui-corner-all list_box">';
     $identifier = time() . "add_program";
-    $returnme .= get_form("add_edit_program", array(
-        "callback" => "programs"
-    ), $identifier);
+    $returnme .= get_form(
+        "add_edit_program",
+        [
+            "callback" => "programs",
+        ],
+        $identifier
+    );
     $returnme .= '<div class="list_box_item_full" style="text-align:center"><button type="button" class="list_buttons" onclick="CreateDialog(\'add_edit_program_' . $identifier . '\',450,500)">Create Program</button></div>';
 
     $returnme .= '</div>';

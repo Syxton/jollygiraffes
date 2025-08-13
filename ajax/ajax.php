@@ -2537,7 +2537,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
     if ($pid) { //Program enrollment
         // Program Children
         if ($children = get_db_result("SELECT * FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid') AND deleted=0 ORDER BY last,first")) {
-            $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding-left: 10px;">Children:</div><div id="children" class="scroll-pane infobox fill_height">';
+            $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px;">Children:</div><div id="children" class="scroll-pane infobox fill_height">';
             while ($child = fetch_row($children)) {
                 $identifier = time() . "child_" . $child["chid"];
                 $enrolled   = is_enrolled($pid, $child["chid"]);
@@ -2656,7 +2656,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
         $deleted = $recover ? "1" : "0";
         // Account Children
         if ($children = get_db_result("SELECT * FROM children WHERE aid='$aid' AND deleted='$deleted' ORDER BY last,first")) {
-            $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding-left: 10px;">Children:</div><div id="children" class="scroll-pane infobox">';
+            $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px;">Children:</div><div id="children" class="scroll-pane infobox">';
             while ($child = fetch_row($children)) {
                 $identifier = time() . "child_" . $child["chid"];
                 $enrolled   = is_enrolled($activepid, $child["chid"]);
@@ -2748,7 +2748,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
 
         //Account Contacts
         if ($contacts = get_db_result("SELECT * FROM contacts WHERE aid='$aid' AND deleted='$deleted' ORDER BY emergency,last,first")) {
-            $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding-left: 10px;">Contacts:</div><div id="contacts" class="scroll-pane infobox">';
+            $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px;">Contacts:</div><div id="contacts" class="scroll-pane infobox">';
             while ($contact = fetch_row($contacts)) {
                 $action        = '$.ajax({
                           type: \'POST\',
@@ -3701,7 +3701,7 @@ function get_tags_info($return = false, $tagtype = null, $tag = null) {
     //Tags
     $SQL      = "SELECT * FROM $tagtype" . "_tags WHERE tag != 'avatar' ORDER BY title";
     if ($tags = get_db_result($SQL)) {
-        $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding-left: 10px;">Tags:</div><div id="tags" class="scroll-pane infobox fill_height">';
+        $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px;">Tags:</div><div id="tags" class="scroll-pane infobox fill_height">';
         while ($tagrow = fetch_row($tags)) {
             $identifier = time() . "note_$tagtype" . "_" . $tagrow["tag"];
 

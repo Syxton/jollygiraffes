@@ -2640,7 +2640,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                     <div class="ui-corner-all list_box" ' . $notifications . '>
                         <div class="list_box_item_full">
                         ' . get_children_button($child["chid"], "", "margin: 10px;float:none;height:50px;width:50px;", false, true, false) . '
-                            <div class="list_title" style="width:98%;">
+                            <div class="list_title" style="width:98%;white-space:nowrap;">
                                 <span class="hide_mobile">
                                 ' . $checked_in . '
                                 </span>

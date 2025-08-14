@@ -216,3 +216,7 @@ pip-log.txt
 config.php
 *.htpasswd
 .htaccess
+ruleset.xml
+composer.json
+composer.lock
+/vendor

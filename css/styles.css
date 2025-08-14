@@ -1031,6 +1031,12 @@ td.calendar-day, td.calendar-day-np {
     font-size: clamp(15px, 3vmin, 25px);
 }
 
+.list_title.leftselector {
+    white-space:normal;
+    display: flex;
+    justify-content: space-between;
+}
+
 .invoice_week div, .invoice_payments div, .invoice_bills div {
     white-space: normal;
 }

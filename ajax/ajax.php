@@ -612,11 +612,9 @@ function get_notifications($pid, $chid = false, $aid = false, $separate = false,
             // save bulletins and compare so duplicates are not shown
             if ($tagonly) {
                 $notify .= '
-                <div class="notify">
-                    <span class="tag ui-corner-all" style="color:' . $tag["textcolor"] . ';background-color:' . $tag["color"] . '">
+                <span class="tag ui-corner-all" style="display:inline-block;color:' . $tag["textcolor"] . ';background-color:' . $tag["color"] . '">
                     ' . $tag["title"] . '
-                    </span>
-                </div>';
+                </span>';
             } else {
                 $notify .= '
                 <div class="notify">
@@ -634,7 +632,12 @@ function get_notifications($pid, $chid = false, $aid = false, $separate = false,
     } else {
         return false;
     }
-    return $notify;
+
+    if ($tagonly) {
+        return '<span style="display:inline-flex;flex-direction: row-reverse;flex-wrap: wrap;">' . $notify . '</span>';
+    } else {
+        return $notify;
+    }
 }
 
 function get_contact_name($cid) {
@@ -2773,17 +2776,19 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                 </a>';
 
                 $notifications = get_notifications($pid, $child["chid"], false, true, true);
-                $buttons = $recover ? '' : '<br /><span class="list_links">' . $moreinfo . $edit_button . $enroll_button . '</span>';
+                $buttons = $recover ? '' : '<span class="list_links" style="display:inline-flex;width:auto;">' . $moreinfo . $edit_button . $enroll_button . '</span>';
                 $returnme .= '
                     <div class="ui-corner-all list_box">
                         <div class="list_box_item_full">
-                        ' . get_children_button($child["chid"], "", "margin: 10px;float:none;height:50px;width:50px;", false, true, false) . '
-                            <div class="list_title" style="width:98%;white-space:nowrap;">
-                                <span class="hide_mobile">
-                                ' . $checked_in . '
-                                </span>
-                                ' . $child["first"] . ' ' . $child["last"] . '
-                                ' . $buttons . '
+                            <div class="list_title" style="display:flex;flex-wrap: nowrap;white-space: normal;">
+                                ' . get_children_button($child["chid"], "", "margin: 10px;float:none;height:50px;width:50px;", false, true, false) . '
+                                <div style="display:inline-block;">
+                                    <span class="hide_mobile">
+                                    ' . $checked_in . '
+                                    </span>
+                                    ' . $child["first"] . ' ' . $child["last"] . '
+                                    ' . $buttons . '
+                                </div>
                                 ' . $notifications . '
                             </div>
                         </div>
@@ -2877,10 +2882,24 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                 ], $identifier);
                 $edit_button = ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_child_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all">' . get_icon('wrench') . ' Edit</span></a>';
 
-                $notifications = get_notifications($activepid, $child["chid"], $aid, true) ? 'style="background: darkred;"' : '';
-                $returnme .= '<div class="ui-corner-all list_box" ' . $notifications . '><div class="list_box_item_full">' . get_children_button($child["chid"], "", "margin: 10px;float:none;height:50px;width:50px;", false, true, false) . '<div class="list_title" style="width:98%;"><span class="hide_mobile">' . $checked_in . ' </span>' . $child["first"] . ' ' . $child["last"];
-                $returnme .= $recover ? '<br /><span class="list_links">' . $delete_button . '</span></div>' : '<br /><span class="list_links">' . $moreinfo . $edit_button . $enroll_button . $delete_button . '</span></div>';
-                $returnme .= '</div></div>';
+                $notifications = get_notifications($activepid, $child["chid"], $aid, true, true);
+                $buttons = $recover ? '<span class="list_links" style="display:inline-flex;width:auto;">' . $delete_button . '</span>' : '<span class="list_links" style="display:inline-flex;width:auto;">' . $moreinfo . $edit_button . $enroll_button . $delete_button . '</span>';
+                $returnme .= '
+                    <div class="ui-corner-all list_box">
+                        <div class="list_box_item_full">
+                            <div class="list_title" style="display:flex;flex-wrap: nowrap;white-space: normal;">
+                                ' . get_children_button($child["chid"], "", "margin: 10px;float:none;height:50px;width:50px;", false, true, false) . '
+                                <div style="display:inline-block;">
+                                    <span class="hide_mobile">
+                                        ' . $checked_in . '
+                                    </span>
+                                    ' . $child["first"] . ' ' . $child["last"] . '
+                                    ' . $buttons . '
+                                </div>
+                                ' . $notifications . '
+                            </div>
+                        </div>
+                    </div>';
             }
             $returnme .= '</div>';
         }
@@ -3083,6 +3102,7 @@ function delete_tag() {
 
     if (!empty($tagtype) && !empty($tag)) {
         execute_db_sql("DELETE FROM $tagtype" . "_tags WHERE tag='$tag'");
+        execute_db_sql("DELETE FROM $tagtype WHERE tag='$tag'");
     }
 }
 
@@ -3554,8 +3574,11 @@ function get_admin_children_form($return = false, $chid = false, $recover = fals
             $chid           = empty($chid) ? $child["chid"] : $chid;
             $selected_class = $chid && $chid == $child["chid"] ? "selected_button" : "";
             $checked_in     = $recover ? '' : (is_checked_in($child["chid"]) ? get_icon('status_online') : get_icon('status_offline'));
-            $notifications  = get_notifications(get_pid(), $child["chid"], false, true) ? 'style="background: darkred;"' : '';
-            $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" ' . $notifications . ' onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+            $notifications  = get_notifications(get_pid(), $child["chid"], false, true, true);
+            $returnme .= '
+                <div class="ui-corner-all list_box selectablelist ' . $selected_class . '"
+                    onclick="$(this).addClass(\'selected_button\',true);
+                            $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                             $.ajax({
                                 type: \'POST\',
                                 url: \'ajax/ajax.php\',
@@ -3569,7 +3592,19 @@ function get_admin_children_form($return = false, $chid = false, $recover = fals
                                         success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
                                     } );
                                 }
-                            });"><div class="list_box_item_full"><span class="list_title"><span class="hide_mobile">' . $checked_in . ' </span>' . $child["last"] . ", " . $child["first"] . '</span></div></div>';
+                            });">
+                    <div class="list_box_item_full">
+                        <span class="list_title leftselector">
+                            <span class="hide_mobile" style="padding: 5px;">
+                                ' . $checked_in . '
+                            </span>
+                            <span style="width: 100%">
+                                ' . $child["last"] . ", " . $child["first"] . '
+                            </span>
+                            ' . $notifications . '
+                        </span>
+                    </div>
+                </div>';
         }
     } else {
         $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_full"><span class="list_title">None Enrolled</span></div></div>';
@@ -3842,19 +3877,31 @@ function get_tags_info($return = false, $tagtype = null, $tag = null) {
         while ($tagrow = fetch_row($tags)) {
             $identifier = time() . "note_$tagtype" . "_" . $tagrow["tag"];
 
-            $delete_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this tag?\', \'Yes\', \'No\', function(){ $.ajax({
-                      type: \'POST\',
-                      url: \'ajax/ajax.php\',
-                      data: { action: \'delete_tag\', tagtype: \'' . $tagtype . '\',tag: \'' . $tagrow["tag"] . '\' } ,
-                      success: function(data) {
+            $delete_action = "CreateConfirm('dialog-confirm', 'Are you sure you want to delete this tag?', 'Yes', 'No', function() {
+                $.ajax({
+                    type: 'POST',
+                    url: 'ajax/ajax.php',
+                    data: {
+                        action: 'delete_tag',
+                        tagtype: '$tagtype',
+                        tag: '" . $tagrow["tag"] . "'
+                    },
+                    success: function(data) {
                         $.ajax({
-                            type: \'POST\',
-                            url: \'ajax/ajax.php\',
-                            data: { action: \'get_admin_tags_form\', tagtype: \'' . $tagtype . '\' } ,
-                            success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                        } );
-                      }
-                      });},function(){});';
+                            type: 'POST',
+                            url: 'ajax/ajax.php',
+                            data: {
+                                action: 'get_admin_tags_form',
+                                tagtype: '$tagtype'
+                            },
+                            success: function(data) {
+                                $('#admin_display').html(data);
+                                refresh_all();
+                            }
+                        });
+                    }
+                });
+            },function(){});";
 
             // Edit Tag Button
             $returnme .= get_form(
@@ -3867,7 +3914,7 @@ function get_tags_info($return = false, $tagtype = null, $tag = null) {
                 $identifier
             );
             $edit_button   = ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_tag_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all">' . get_icon('wrench') . ' Edit</span></a>';
-            $delete_button = get_db_row("SELECT * FROM $tagtype WHERE tag='" . $tagrow["tag"] . "'") ? '' : ' <a href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . get_icon('bin_closed') . ' Delete</span></a>';
+            $delete_button = ' <a href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . get_icon('bin_closed') . ' Delete</span></a>';
 
             $returnme .= '<div class="ui-corner-all list_box"><div class="list_title"><span id="tag_template' . $identifier . '" class="tag ui-corner-all" style="color:' . $tagrow["textcolor"] . ';background-color:' . $tagrow["color"] . '">' . $tagrow["title"] . '</span>';
             $returnme .= ' <span class="list_links" style="float:right;">' . $edit_button . $delete_button . '</span></div>';

@@ -1,4 +1,5 @@
 <?php
+
 /***************************************************************************
 * help.php - Help library
 * -------------------------------------------------------------------------
@@ -6,9 +7,11 @@
 * Date: 8/16/2013
 * Revision: 0.1.1
 ***************************************************************************/
- 
+
 unset($HELP);
-if(!isset($LIBHEADER)){ include('header.php'); }
+if (!isset($LIBHEADER)) {
+    include('header.php');
+}
 
 $HELP = new stdClass();
 
@@ -35,14 +38,15 @@ $HELP->input_lname = "Please use your full last name, not just an initial.";
 $HELP->new_category = "Please type the name of the new forum category.";
 
 function get_help($help){
-global $CFG, $HELP;
-    $lang = explode(":",$help);
-    if(isset($lang[2])){
-        include($CFG->dirroot . '/addons/'.$lang[1]."/".$lang[2]."/lang.php");
-        return $HELP->$lang[0];        
-    }elseif(isset($lang[1])){
-        include($CFG->dirroot . '/features/'.$lang[1]."/lang.php");
+    global $CFG, $HELP;
+    $lang = explode(":", $help);
+    if (isset($lang[2])) {
+        include($CFG->dirroot . '/addons/' . $lang[1] . "/" . $lang[2] . "/lang.php");
         return $HELP->$lang[0];
-    }else{ return $HELP->$help; }
+    } elseif (isset($lang[1])) {
+        include($CFG->dirroot . '/features/' . $lang[1] . "/lang.php");
+        return $HELP->$lang[0];
+    } else {
+        return $HELP->$help;
+    }
 }
-?>

@@ -417,6 +417,13 @@ h3 {
     white-space: nowrap;
 }
 
+.tag-description {
+    padding: 15px;
+    background: gainsboro;
+    border-radius: 5px;
+    display: block;
+}
+
 .required_note {
     border: 1px solid silver;
     font-size: 12px;
@@ -1034,7 +1041,6 @@ td.calendar-day, td.calendar-day-np {
 .list_title.leftselector {
     white-space:normal;
     display: flex;
-    justify-content: space-between;
 }
 
 .invoice_week div, .invoice_payments div, .invoice_bills div {

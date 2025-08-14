@@ -1,4 +1,5 @@
 <?php
+
 /***************************************************************************
 * fileviewer.php - Main backend ajax script.  Usually sends off to feature libraries.
 * -------------------------------------------------------------------------
@@ -22,63 +23,63 @@ $returnme = '<div style="left: 47.5%;position: fixed;display: block;top: 0;z-ind
 
 $returnme .= '<script type="text/javascript">';
 
-if(!empty($did)){
+if (!empty($did)) {
     $documents = get_db_result("SELECT * FROM documents WHERE did='$did'");
-    if(!empty($document["chid"])){
+    if (!empty($document["chid"])) {
         $folder = "children/" . $document["chid"];
-    }elseif(!empty($document["cid"])){
+    } elseif (!empty($document["cid"])) {
         $folder = "contacts/" . $document["cid"];
-    }elseif(!empty($document["actid"])){
+    } elseif (!empty($document["actid"])) {
         $folder = "activities/" . $document["actid"];
-    }elseif(!empty($document["aid"])){
-        $folder = "accounts/" . $document["aid"];   
-    }    
-}else{
-    if(!empty($chid)){
+    } elseif (!empty($document["aid"])) {
+        $folder = "accounts/" . $document["aid"];
+    }
+} else {
+    if (!empty($chid)) {
         $folder = "children/" . $chid;
         $documents = get_db_result("SELECT * FROM documents WHERE tag!='avatar' AND chid='$chid' ORDER BY timelog DESC");
-    }elseif(!empty($cid)){
+    } elseif (!empty($cid)) {
         $folder = "contacts/" . $cid;
         $documents = get_db_result("SELECT * FROM documents WHERE tag!='avatar' AND cid='$cid' ORDER BY timelog DESC");
-    }elseif(!empty($actid)){
+    } elseif (!empty($actid)) {
         $folder = "activities/" . $actid;
         $documents = get_db_result("SELECT * FROM documents WHERE tag!='avatar' AND actid='$actid' ORDER BY timelog DESC");
-    }elseif(!empty($aid)){
+    } elseif (!empty($aid)) {
         $folder = "accounts/" . $aid;
-        $documents = get_db_result("SELECT * FROM documents WHERE tag!='avatar' AND aid='$aid' ORDER BY timelog DESC");   
-    }     
+        $documents = get_db_result("SELECT * FROM documents WHERE tag!='avatar' AND aid='$aid' ORDER BY timelog DESC");
+    }
 }
 
-if($documents){
-    while($document = fetch_row($documents)){
+if ($documents) {
+    while ($document = fetch_row($documents)) {
         $returnme .= '
         $(function () {
           var img = new Image();
-          
+
           // wrap our new image in jQuery, then:
           $(img)
             // once the image has loaded, execute this code
             .load(function () {
-              // set the image hidden by default    
+              // set the image hidden by default
               $(this).hide();
               $(this).addClass(\'doc\');
               // with the holding div #loader, apply:
-              $(\'#printthis\').append(\'<div id="doc_'.$document["did"].'" class="image_wrapper ui-corner-all"></div><br /><br />\');
-              $(\'#doc_'.$document["did"].'\').append(this);
-              $(\'#doc_'.$document["did"].'\').append(\'<div class="image_caption ui-corner-all">'.$document["description"].'</div>\');     
+              $(\'#printthis\').append(\'<div id="doc_' . $document["did"] . '" class="image_wrapper ui-corner-all"></div><br /><br />\');
+              $(\'#doc_' . $document["did"] . '\').append(this);
+              $(\'#doc_' . $document["did"] . '\').append(\'<div class="image_caption ui-corner-all">' . $document["description"] . '</div>\');
               // fade our image in to create a nice effect
               $(this).fadeIn(500,function(){ resize_modal(); });
             })
-            
+
             // if there was an error loading the image, react accordingly
             .error(function () {
               // notify the user that the image could not be loaded
             })
-            
+
             // *finally*, set the src attribute of the new image to our image
-            .attr(\'src\', \''.$CFG->wwwroot.'/files/'.$folder.'/'.$document["filename"].'\');
+            .attr(\'src\', \'' . $CFG->wwwroot . '/files/' . $folder . '/' . $document["filename"] . '\');
         });
-        ';        
+        ';
     }
 }
 
@@ -87,4 +88,3 @@ if($documents){
 $returnme .= 'refresh_all();</script></div>';
 
 echo $returnme;
-?>

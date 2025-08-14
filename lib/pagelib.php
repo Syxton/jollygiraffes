@@ -1,4 +1,5 @@
 <?php
+
 /***************************************************************************
  * pagelib.php - Page function library
  * -------------------------------------------------------------------------
@@ -16,12 +17,12 @@ $MYVARS = new stdClass();
 
 //TURN OFF MAGICQUOTES
 if (function_exists("get_magic_quotes_gpc")) {
-    $process = array(
+    $process = [
         &$_GET,
         &$_POST,
         &$_COOKIE,
         &$_REQUEST
-    );
+    ];
     while (list($key, $val) = each($process)) {
         foreach ($val as $k => $v) {
             unset($process[$key][$k]);
@@ -46,9 +47,9 @@ function callfunction() {
             $action = $MYVARS->GET["action"];
             $action(); //Go to the function that was called.
         } else {
-            echo get_page_error_message("no_function", array(
+            echo get_page_error_message("no_function", [
                 $MYVARS->GET["action"]
-            ));
+            ]);
         }
     }
 }
@@ -417,15 +418,15 @@ function get_name($vars) {
             case "actid":
                 $activity = get_db_row("SELECT * FROM activity WHERE actid='" . $vars["id"] . "'");
                 if (!empty($activity["chid"])) {
-                    $name = get_name(array(
+                    $name = get_name([
                         "type" => "chid",
                         "id" => $activity["chid"]
-                    ));
+                    ]);
                 } elseif (!empty($activity["cid"])) {
-                    $name = get_name(array(
+                    $name = get_name([
                         "type" => "cid",
                         "id" => $activity["chid"]
-                    ));
+                    ]);
                 }
                 break;
         }
@@ -439,12 +440,12 @@ function get_tag($vars) {
         switch ($vars["type"]) {
             case "notes":
                 if ($vars["tag"] == "bulletin") {
-                    $tag = array(
+                    $tag = [
                         "tag" => "bulletin",
                         "title" => "Bulletin",
                         "color" => "orange",
                         "textcolor" => "black"
-                    );
+                    ];
                 } else {
                     $tag = get_db_row("SELECT * FROM notes_tags WHERE tag='" . $vars["tag"] . "'");
                 }
@@ -471,10 +472,10 @@ function get_note_type_array() {
     $noyes->id   = "No,Yes";
     $noyes->name = "No/Yes";
 
-    return array(
+    return [
         $yesno,
         $noyes
-    );
+    ];
 }
 
 function get_required_notes_header($tag) {
@@ -536,7 +537,6 @@ function get_children_button($chid, $class = "", $style = "", $action = "", $pic
             execute_db_sql("DELETE FROM documents WHERE tag='avatar' AND chid='" . $row["chid"] . "'");
             $class .= 'blank_pic';
         }
-
     } else {
         $class .= 'blank_pic';
     }
@@ -553,34 +553,34 @@ function get_children_button($chid, $class = "", $style = "", $action = "", $pic
 
 function make_or_get_tag($tag, $type = "documents") {
     switch ($type) {
-    case "documents":
-        if ($tags = get_db_row("SELECT * FROM documents_tags WHERE tag='$tag' OR title='$tag'")) {
-            return $tags["tag"];
-        } else { //New
-            $title = $tag;
-            $tag   = str_replace(" ", "_", strtolower($tag));
-            execute_db_sql("INSERT INTO documents_tags (tag,title) VALUES('$tag','$title')");
-            return $tag;
-        }
-        break;
-    case "notes":
-        if ($tags = get_db_row("SELECT * FROM notes_tags WHERE tag='$tag' OR title='$tag'")) {
-            return $tags["tag"];
-        } else { //New
-            $title = $tag;
-            $tag   = str_replace(" ", "_", strtolower($tag));
-            execute_db_sql("INSERT INTO notes_tags (tag,title) VALUES('$tag','$title')");
-            return $tag;
-        }
-    case "events":
-        if ($tags = get_db_row("SELECT * FROM events_tags WHERE tag='$tag' OR title='$tag'")) {
-            return $tags["tag"];
-        } else { //New
-            $title = $tag;
-            $tag   = str_replace(" ", "_", strtolower($tag));
-            execute_db_sql("INSERT INTO events_tags (tag,title) VALUES('$tag','$title')");
-            return $tag;
-        }
+        case "documents":
+            if ($tags = get_db_row("SELECT * FROM documents_tags WHERE tag='$tag' OR title='$tag'")) {
+                return $tags["tag"];
+            } else { //New
+                $title = $tag;
+                $tag   = str_replace(" ", "_", strtolower($tag));
+                execute_db_sql("INSERT INTO documents_tags (tag,title) VALUES('$tag','$title')");
+                return $tag;
+            }
+            break;
+        case "notes":
+            if ($tags = get_db_row("SELECT * FROM notes_tags WHERE tag='$tag' OR title='$tag'")) {
+                return $tags["tag"];
+            } else { //New
+                $title = $tag;
+                $tag   = str_replace(" ", "_", strtolower($tag));
+                execute_db_sql("INSERT INTO notes_tags (tag,title) VALUES('$tag','$title')");
+                return $tag;
+            }
+        case "events":
+            if ($tags = get_db_row("SELECT * FROM events_tags WHERE tag='$tag' OR title='$tag'")) {
+                return $tags["tag"];
+            } else { //New
+                $title = $tag;
+                $tag   = str_replace(" ", "_", strtolower($tag));
+                execute_db_sql("INSERT INTO events_tags (tag,title) VALUES('$tag','$title')");
+                return $tag;
+            }
     }
 }
 
@@ -602,7 +602,7 @@ function get_note_text($row, $setting) {
 //  GetColor  returns  an  associative  array  with  the  red,  green  and  blue
 //  values  of  the  desired  color
 function gethexcolor($colorname) {
-    $colors = array(
+    $colors = [
         'aliceblue' => 'F0F8FF',
         'antiquewhite' => 'FAEBD7',
         'aqua' => '00FFFF',
@@ -750,7 +750,7 @@ function gethexcolor($colorname) {
         'whitesmoke' => 'F5F5F5',
         'yellow' => 'FFFF00',
         'yellowgreen' => '9ACD32'
-    );
+    ];
 
     if (!empty($colors[$colorname])) {
         return '#' . $colors[$colorname];
@@ -907,7 +907,6 @@ function closeout_thisweek() {
             }
         }
     }
-
 }
 
 function get_wage($employeeid, $time) {
@@ -1229,12 +1228,12 @@ function check_and_run_upgrades() {
     }
 
        $thisversion = 2020022000;
-       if ($version < $thisversion) { //# = new version number.  If this is the first...start at 1
-           $SQL = "ALTER TABLE `programs` ADD `fein` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '' AFTER `payahead`";
-           if (execute_db_sql($SQL)) { //if successful upgrade
-               execute_db_sql("UPDATE version SET version='$thisversion'");
-           }
-       }
+    if ($version < $thisversion) { //# = new version number.  If this is the first...start at 1
+        $SQL = "ALTER TABLE `programs` ADD `fein` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '' AFTER `payahead`";
+        if (execute_db_sql($SQL)) { //if successful upgrade
+            execute_db_sql("UPDATE version SET version='$thisversion'");
+        }
+    }
 
     //    $thisversion = YYYYMMDD;
     //    if ($version < $thisversion) { //# = new version number.  If this is the first...start at 1
@@ -1245,4 +1244,3 @@ function check_and_run_upgrades() {
     //        }
     //    }
 }
-?>

@@ -3238,18 +3238,26 @@ function get_documents_list($return = false, $aid = null, $chid = null, $cid = n
                 "param1value" => $$type
             ], $identifier);
             $returnme .= '
-                <div class="last_update ui-corner-all">Last Update: ' . date('F j, Y g:i a', display_time($document["timelog"])) . '</div><div class="document_list_item ui-corner-all">
+                <div class="last_update ui-corner-all">
+                    Last Update: ' . date('F j, Y g:i a', display_time($document["timelog"])) . '
+                </div>
+                <div class="document_list_item ui-corner-all">
                     <div style="margin-top:10px;">
-                        <span class="tag ui-corner-all" style="color:' . $tag["textcolor"] . ';background-color:' . $tag["color"] . '">' . $tag["title"] . '</span> ' . $document["description"] . '<br />
+                        <span class="tag ui-corner-all" style="color:' . $tag["textcolor"] . ';background-color:' . $tag["color"] . '">
+                            ' . $tag["title"] . '
+                        </span>
+                        <span class="tag-description">
+                            ' . $document["description"] . '
+                        </span>
                         <span class="list_links"><a href="ajax/fileviewer.php?did=' . $document["did"] . '" class="nyroModal"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Document</span></a> <a href="javascript: void(0);" onclick="CreateDialog(\'attach_doc_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all">' . get_icon('table_edit') . ' Update Document</span></a> <a id="a-' . $document["did"] . '" data="' . $document["tag"] . '" href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . get_icon('bin_closed') . ' Delete Document</span></a></span>
                     </div>
                 </div>';
         }
     } else {
         $returnme .= '
-                <div class="document_list_item ui-corner-all" style="text-align:center">
+            <div class="document_list_item ui-corner-all" style="text-align:center">
                 None
-                </div>';
+            </div>';
     }
 
     if ($return) {
@@ -3285,9 +3293,13 @@ function get_notes_list($return = false, $aid = null, $chid = null, $cid = null,
     if ($notes = get_db_result($SQL)) {
         // View All button
         $returnme .= '
-                <div class="document_list_item ui-corner-all" style="text-align:center">
-                    <a href="ajax/reports.php?report=allnotes&type=' . $type . '&id=' . $id . '" class="nyroModal"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View All</span></a>
-                </div>';
+            <div class="document_list_item ui-corner-all" style="text-align:center">
+                <a href="ajax/reports.php?report=allnotes&type=' . $type . '&id=' . $id . '" class="nyroModal">
+                    <span class="inline-button ui-corner-all">
+                        ' . get_icon('magnifier') . ' View All
+                    </span>
+                </a>
+            </div>';
         while ($note = fetch_row($notes)) {
             $delete_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this \'+$(\'a#a-' . $note["nid"] . '\').attr(\'data\')+\' note?\', \'Yes\', \'No\',
             function() { $.ajax({
@@ -3318,18 +3330,26 @@ function get_notes_list($return = false, $aid = null, $chid = null, $cid = null,
                 "param1value" => $$type
             ], $identifier);
             $returnme .= '
-                <div class="last_update ui-corner-all">Last Update: ' . date('F j, Y g:i a', display_time($note["timelog"])) . '</div><div class="document_list_item ui-corner-all">
+                <div class="last_update ui-corner-all">
+                    Last Update: ' . date('F j, Y g:i a', display_time($note["timelog"])) . '
+                </div>
+                <div class="document_list_item ui-corner-all">
                     <div style="margin-top:10px;">
-                        <span class="tag ui-corner-all" style="color:' . $tag["textcolor"] . ';background-color:' . $tag["color"] . '">' . $tag["title"] . '</span> ' . $note["note"] . '<br />
+                        <span class="tag ui-corner-all" style="color:' . $tag["textcolor"] . ';background-color:' . $tag["color"] . '">
+                            ' . $tag["title"] . '
+                        </span>
+                        <span class="tag-description">
+                            ' . $note["note"] . '
+                        </span>
                         <span class="list_links"><a href="javascript: void(0);" onclick="CreateDialog(\'attach_note_' . $identifier . '\', 360, 400)"><span class="inline-button ui-corner-all">' . get_icon('table_edit') . ' Update Note</span></a> <a id="a-' . $note["nid"] . '" data="' . $note["tag"] . '" href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . get_icon('bin_closed') . ' Delete Note</span></a></span>
                     </div>
                 </div>';
         }
     } else {
         $returnme .= '
-                <div class="document_list_item ui-corner-all" style="text-align:center">
+            <div class="document_list_item ui-corner-all" style="text-align:center">
                 None
-                </div>';
+            </div>';
     }
 
     if ($return) {
@@ -3598,7 +3618,7 @@ function get_admin_children_form($return = false, $chid = false, $recover = fals
                             <span class="hide_mobile" style="padding: 5px;">
                                 ' . $checked_in . '
                             </span>
-                            <span style="width: 100%">
+                            <span style="width: 90%;min-width: 220px;max-width: 70%;">
                                 ' . $child["last"] . ", " . $child["first"] . '
                             </span>
                             ' . $notifications . '

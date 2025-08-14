@@ -76,16 +76,22 @@ function check_in_out_employee() {
 
     if (is_working($employeeid)) { // check out
         $event = get_db_row("SELECT * FROM events WHERE tag='out'");
-        $actid = execute_db_sql("INSERT INTO employee_activity (employeeid, evid, tag, timelog) VALUES('$employeeid', '" . $event["evid"] . "', '" . $event["tag"] . "', $time) ");
+        $SQL = "INSERT INTO employee_activity (employeeid, evid, tag, timelog)
+                VALUES ('$employeeid', '" . $event["evid"] . "', '" . $event["tag"] . "', $time)";
+        $actid = execute_db_sql($SQL);
         $note  = $employee["first"] . " " . $employee["last"] . ": Signed out at $readabletime";
-        execute_db_sql("INSERT INTO notes (actid, employeeid, tag, note, data, timelog) VALUES('$actid', '$employeeid', '" . $event["tag"] . "', '$note', 1, $time) ");
         $thisweekpay = get_wages_for_this_week($employeeid);
     } else { // check in
         $event = get_db_row("SELECT * FROM events WHERE tag='in'");
-        $actid = execute_db_sql("INSERT INTO employee_activity (employeeid, evid, tag, timelog) VALUES('$employeeid', '" . $event["evid"] . "', '" . $event["tag"] . "', $time) ");
+        $SQL = "INSERT INTO employee_activity (employeeid, evid, tag, timelog)
+                VALUES ('$employeeid', '" . $event["evid"] . "', '" . $event["tag"] . "', $time)";
+        $actid = execute_db_sql($SQL);
         $note  = $employee["first"] . " " . $employee["last"] . ": Signed in at: $readabletime";
-        execute_db_sql("INSERT INTO notes (actid, employeeid, tag, note, data, timelog) VALUES('$actid', '$employeeid', '" . $event["tag"] . "', '$note', 1, $time) ");
     }
+
+    $SQL = "INSERT INTO notes (actid, employeeid, tag, note, data, timelog)
+            VALUES ('$actid', '$employeeid', '" . $event["tag"] . "', '$note', 1, $time)";
+    execute_db_sql($SQL);
 
     echo employee_timesheet($thisweekpay);
 }
@@ -93,185 +99,221 @@ function check_in_out_employee() {
 function get_check_in_out_form() {
     global $CFG, $MYVARS;
     $type        = $MYVARS->GET["type"];
-    $returnme    = $alphabet = $children = '';
     $lastinitial = false;
     $pid         = get_pid();
-    $returnme .= go_home_button();
-    $returnme .= '
-    <input type="hidden" id="askme" value="1" />
-    <div id="dialog-confirm" title="Confirm" style="display:none;">
-        <p>
-            <span class="ui-icon ui-icon-alert" style="margin-right: auto;margin-left: auto;"></span>
-            <label>
-                Check for other children on this account?
-            </label>
-        </p>
-    </div>';
 
     // Get all active children
-    $SQL = "SELECT * FROM children WHERE deleted=0 AND chid IN (SELECT chid FROM enrollments WHERE deleted=0 AND pid='$pid') ORDER BY last,first";
+    $SQL = "SELECT *
+            FROM children
+            WHERE deleted = 0
+            AND chid IN (
+                SELECT chid
+                FROM enrollments
+                WHERE deleted = 0
+                AND pid = '$pid'
+            )
+            ORDER BY last, first";
     if ($result = get_db_result($SQL)) {
-        $alphabet .= '<div class="fill_width_middle alphabet_filter" style="margin:0px 10px;padding:5px;white-space:nowrap;"><div class="label alphabet_label"">Last Initial: </div><div style="white-space:normal;"><button class="keypad_buttons selected_button ui-corner-all" onclick="$(\'.keypad_buttons\').toggleClass(\'selected_button\', true); $(\'.keypad_buttons\').not(this).toggleClass(\'selected_button\', false); $(\'.child_wrapper\').show(\'fade\'); $(\'.scroll-pane\').sbscroller(\'refresh\');">Show All</button>';
-        $children .= '<div style="clear:both;"></div><div class="container_main scroll-pane ui-corner-all fill_height_middle">';
+        $letters = $children = '';
         while ($row = fetch_row($result)) {
-            $checked_in = is_checked_in($row["chid"]);
+            $aid = $row["aid"];
+            $chid = $row["chid"];
+            $checked_in = is_checked_in($chid);
             if (($type == "in" && !$checked_in) || ($type == "out" && $checked_in)) {
                 $letter = strtoupper(substr($row["last"], 0, 1));
-                $alphabet .= !$lastinitial || ($lastinitial != substr($row["last"], 0, 1)) ? '<button class="keypad_buttons ui-corner-all" onclick="$(\'.keypad_buttons\').toggleClass(\'selected_button\', true); $(\'.keypad_buttons\').not(this).toggleClass(\'selected_button\', false); $(\'.child_wrapper\').children().not(\'.letter_' . $letter . '\').parent().hide(); $(\'.letter_' . $letter . '\').parent(\'.child_wrapper\').show(\'fade\'); $(\'.scroll-pane\').sbscroller(\'refresh\');">' . strtoupper(substr($row["last"], 0, 1)) . '</button>' : '';
-                $action = 'if($(\'.chid_' . $row["chid"] . '.checked_pic\').length > 0){
-                            if ($(\'#askme\').val()==1 && $(\'.account_' . $row["aid"] . '.checked_pic\').not(\'.chid_' . $row["chid"] . '\').length > 1) {
-                                CreateConfirm(\'dialog-confirm\',\'Deselect all other children from this account?\',\'Yes\',\'No\',
+                if (!$lastinitial || ($lastinitial != substr($row["last"], 0, 1))) {
+                    $letters .= "
+                        <button class=\"keypad_buttons ui-corner-all\"
+                            onclick=\"$('.keypad_buttons').toggleClass('selected_button', true);
+                                    $('.keypad_buttons').not(this).toggleClass('selected_button', false);
+                                    $('.child_wrapper').children().not('.letter_$letter').parent().hide();
+                                    $('.letter_$letter').parent('.child_wrapper').show(\'fade\');
+                                    $('.scroll-pane').sbscroller('refresh');\">
+                            " . strtoupper(substr($row["last"], 0, 1)) . "
+                        </button>";
+                }
+
+                $action = "if($('.chid_$chid.checked_pic').length > 0) {
+                            if ($('#askme').val()==1 && $('.account_$aid.checked_pic').not('.chid_$chid').length > 1) {
+                                CreateConfirm('dialog-confirm', 'Deselect all other children from this account?', 'Yes', 'No',
                                     function() {
-                                        $(\'.account_' . $row["aid"] . '.checked_pic\').toggleClass(\'checked_pic\', false);
-                                        if ($(\'.checked_pic\').length) {
-                                            $(\'.submit_buttons\').button(\'enable\');
+                                        $('.account_$aid.checked_pic').toggleClass('checked_pic', false);
+                                        if ($('.checked_pic').length) {
+                                            $('.submit_buttons').button('enable');
                                         } else {
-                                            $(\'.submit_buttons\').button(\'disable\');
+                                            $('.submit_buttons').button('disable');
                                         }
                                     } ,
                                     function() {
-                                        $(\'#askme\').val(\'0\');
-                                        $(\'.chid_' . $row["chid"] . '\').toggleClass(\'checked_pic\', false);
-                                        if ($(\'.checked_pic\').length > 0) {
-                                            $(\'.submit_buttons\').button(\'enable\');
+                                        $('#askme').val('0');
+                                        $('.chid_$chid').toggleClass('checked_pic', false);
+                                        if ($('.checked_pic').length > 0) {
+                                            $('.submit_buttons').button('enable');
                                         } else {
-                                            $(\'.submit_buttons\').button(\'disable\');
+                                            $('.submit_buttons').button('disable');
                                         }
                                     }
                                 );
                             } else {
-                                $(\'.chid_' . $row["chid"] . '\').toggleClass(\'checked_pic\', false);
-                                if ($(\'.checked_pic\').length > 0) {
-                                    $(\'.submit_buttons\').button(\'enable\');
+                                $('.chid_$chid').toggleClass('checked_pic', false);
+                                if ($('.checked_pic').length > 0) {
+                                    $('.submit_buttons').button('enable');
                                 } else {
-                                    $(\'.submit_buttons\').button(\'disable\');
+                                    $('.submit_buttons').button('disable');
                                 }
                             }
                         } else {
-                            if ($(\'#askme\').val()==1 && $(\'.account_' . $row["aid"] . '\').not(\'.chid_' . $row["chid"] . '\').not(\'.checked_pic\').length > 1) {
-                                CreateConfirm(\'dialog-confirm\',\'Select all other children from this account?\',\'Yes\',\'No\',
+                            if ($('#askme').val() == 1 && $('.account_$aid').not('.chid_$chid').not('.checked_pic').length > 1) {
+                                CreateConfirm('dialog-confirm', 'Select all other children from this account?', 'Yes', 'No',
                                     function() {
-                                        $(\'.account_' . $row["aid"] . '\').toggleClass(\'checked_pic\', true);
-                                        if ($(\'.checked_pic\').length > 0) {
-                                            $(\'.submit_buttons\').button(\'enable\');
+                                        $('.account_$aid').toggleClass('checked_pic', true);
+                                        if ($('.checked_pic').length > 0) {
+                                            $('.submit_buttons').button('enable');
                                         } else {
-                                            $(\'.submit_buttons\').button(\'disable\');
+                                            $('.submit_buttons').button('disable');
                                         }
                                     } ,
                                     function() {
-                                        $(\'#askme\').val(\'0\');
-                                        $(\'.chid_' . $row["chid"] . '\').toggleClass(\'checked_pic\', true);
-                                        if ($(\'.checked_pic\').length) {
-                                            $(\'.submit_buttons\').button(\'enable\');
+                                        $('#askme').val('0');
+                                        $('.chid_$chid').toggleClass('checked_pic', true);
+                                        if ($('.checked_pic').length) {
+                                            $('.submit_buttons').button('enable');
                                         } else {
-                                            $(\'.submit_buttons\').button(\'disable\');
+                                            $('.submit_buttons').button('disable');
                                         }
                                     }
                                 );
                             } else {
-                                $(\'.chid_' . $row["chid"] . '\').toggleClass(\'checked_pic\', true);
-                                $(\'.submit_buttons\').button(\'enable\');
+                                $('.chid_$chid').toggleClass('checked_pic', true);
+                                $('.submit_buttons').button('enable');
                             }
-                        }';
+                        }";
 
                 // Highlight Expected kids
-                $enrollment = explode(", ", get_db_field("days_attending", "enrollments", "pid='$pid' AND chid='" . $row["chid"] . "'"));
-                $days       = [
-                    "S",
-                    "M",
-                    "T",
-                    "W",
-                    "Th",
-                    "F",
-                    "Sa"
-                ];
-                $expected   = ""; // Reset expected.
+                $enrollment = explode(
+                    ", ",
+                    get_db_field("days_attending", "enrollments", "pid='$pid' AND chid='$chid'")
+                );
+
+                $days = ["S", "M", "T", "W", "Th", "F", "Sa"];
+                $expected = ""; // Reset expected.
                 foreach ($enrollment as $e) {
                     if ($e == $days[date("w")]) {
                         $expected = "expected-today";
                     }
                 }
 
-                $children .= '<div class="child_wrapper ui-corner-all ' . $expected . '">';
-                $children .= get_children_button($row["chid"], "", "", $action);
-                $children .= '</div>';
+                $children .= '
+                    <div class="child_wrapper ui-corner-all ' . $expected . '">
+                    ' . get_children_button($row["chid"], "", "", $action) . '
+                    </div>';
                 $lastinitial = substr($row["last"], 0, 1); // store last initial
             }
         }
-        $alphabet .= '</div></div>';
-        $children .= '</div>';
+
+        // Fill alphabet with letters used.
+        $alphabet = '
+            <div class="fill_width_middle alphabet_filter" style="margin:0px 10px;padding:5px;white-space:nowrap;">
+                <div class="label alphabet_label"">
+                    Last Initial:
+                </div>
+                <div style="white-space:normal;">
+                    <button class="keypad_buttons selected_button ui-corner-all"
+                        onclick="$(\'.keypad_buttons\').toggleClass(\'selected_button\', true);
+                                $(\'.keypad_buttons\').not(this).toggleClass(\'selected_button\', false);
+                                $(\'.child_wrapper\').show(\'fade\');
+                                $(\'.scroll-pane\').sbscroller(\'refresh\');">
+                        Show All
+                    </button>
+                    ' . $letters . '
+                </div>
+            </div>';
+
+        // Fill child container.
+        $child_container = '
+            <div style="clear:both;"></div>
+            <div class="container_main scroll-pane ui-corner-all fill_height_middle">
+                ' . $children . '
+            </div>';
     }
 
-    $returnme .= $alphabet . $children;
-
-    // Admin button
-    $returnme .= '
-    <div class="top-right side select_buttons_div">
-        <button class="select_buttons"
-            onclick="$(\'.child\').toggleClass(\'checked_pic\', true);
-                    $(\'.submit_buttons\').button(\'enable\');" >
-            Select All
-        </button>
-        <button class="select_buttons"
-            onclick="$(\'.child\').toggleClass(\'checked_pic\', false);
-                    $(\'.submit_buttons\').button(\'disable\');" >
-            Deselect All
-        </button>
-        <button class="submit_buttons select_buttons" disabled="true"
+    echo go_home_button() . '
+        <input type="hidden" id="askme" value="1" />
+        <div id="dialog-confirm" title="Confirm" style="display:none;">
+            <p>
+                <span class="ui-icon ui-icon-alert" style="margin-right: auto;margin-left: auto;">
+                </span>
+                <label>
+                    Check for other children on this account?
+                </label>
+            </p>
+        </div>
+        ' . $alphabet . '
+        ' . $child_container . '
+        <div class="top-right side select_buttons_div">
+            <button class="select_buttons"
+                onclick="$(\'.child\').toggleClass(\'checked_pic\', true);
+                        $(\'.submit_buttons\').button(\'enable\');" >
+                Select All
+            </button>
+            <button class="select_buttons"
+                onclick="$(\'.child\').toggleClass(\'checked_pic\', false);
+                        $(\'.submit_buttons\').button(\'disable\');" >
+                Deselect All
+            </button>
+            <button class="submit_buttons select_buttons" disabled="true"
+                onclick="if ($(\'.checked_pic\').length) {
+                            var account = \'\';
+                            $(\'.checked_pic\').each(function(index) {
+                                account = account == \'\' || account == $(this).attr(\'class\').match(/account_[1-9]+/ig).toString() ? $(this).attr(\'class\').match(/account_[1-9]+/ig) : \'false\';
+                            });
+                            $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                data: {
+                                    action: \'check_in_out_form\',
+                                    type: \'' . $type . '\',
+                                    chid: $(\'.checked_pic input.chid\').serializeArray(),
+                                    admin: true
+                                },
+                                success: function(data) {
+                                    $(\'#display_level\').html(data);
+                                    refresh_all();
+                                }
+                            });
+                        }">
+                Admin Check ' . ucfirst($type) . '
+            </button>
+        </div>
+        <div class="bottom center ui-corner-all">
+            <button class="submit_buttons big_button textfill" disabled="true"
             onclick="if ($(\'.checked_pic\').length) {
                         var account = \'\';
                         $(\'.checked_pic\').each(function(index) {
                             account = account == \'\' || account == $(this).attr(\'class\').match(/account_[1-9]+/ig).toString() ? $(this).attr(\'class\').match(/account_[1-9]+/ig) : \'false\';
                         });
-                        $.ajax({
-                            type: \'POST\',
-                            url: \'ajax/ajax.php\',
-                            data: {
-                                action: \'check_in_out_form\',
-                                type: \'' . $type . '\',
-                                chid: $(\'.checked_pic input.chid\').serializeArray(),
-                                admin: true
-                            },
-                            success: function(data) {
-                                $(\'#display_level\').html(data);
-                                refresh_all();
-                            }
-                        });
-                    }">
-            Admin Check ' . ucfirst($type) . '
-        </button>
-    </div>';
-    $returnme .= '<div class="bottom center ui-corner-all">
-                      <button class="submit_buttons big_button textfill" disabled="true"
-                        onclick="if ($(\'.checked_pic\').length) {
-                                    var account = \'\';
-                                    $(\'.checked_pic\').each(function(index) {
-                                        account = account == \'\' || account == $(this).attr(\'class\').match(/account_[1-9]+/ig).toString() ? $(this).attr(\'class\').match(/account_[1-9]+/ig) : \'false\';
-                                    });
-                                    if (account == \'false\') {
-                                        CreateAlert(\'dialog-confirm\',\'All selected children must be on the same account.\', \'Ok\', function(){});
-                                    } else {
-                                        $.ajax({
-                                            type: \'POST\',
-                                            url: \'ajax/ajax.php\',
-                                            data: {
-                                                action: \'check_in_out_form\',
-                                                type: \'' . $type . '\',
-                                                chid: $(\'.checked_pic input.chid\').serializeArray(),
-                                                admin: false
-                                            },
-                                            success: function(data) {
-                                                $(\'#display_level\').html(data);
-                                                refresh_all();
-                                            }
-                                        });
-                                    }
-                                }" >
-                      Next
-                      </button>
-                  </div>';
-
-    echo $returnme;
+                        if (account == \'false\') {
+                            CreateAlert(\'dialog-confirm\',\'All selected children must be on the same account.\', \'Ok\', function(){});
+                        } else {
+                            $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                data: {
+                                    action: \'check_in_out_form\',
+                                    type: \'' . $type . '\',
+                                    chid: $(\'.checked_pic input.chid\').serializeArray(),
+                                    admin: false
+                                },
+                                success: function(data) {
+                                    $(\'#display_level\').html(data);
+                                    refresh_all();
+                                }
+                            });
+                        }
+                    }" >
+            Next
+            </button>
+        </div>';
 }
 
 function check_in_out_form() {
@@ -627,7 +669,6 @@ function get_notifications($pid, $chid = false, $aid = false, $separate = false,
                     ' . $notification["note"] . '
                 </div>';
             }
-
         }
     } else {
         return false;

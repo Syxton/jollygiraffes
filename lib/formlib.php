@@ -720,14 +720,14 @@ function get_form($formname, $vars = null, $identifier = "") {
             }
 
             $notify_array = [
-            (object) [
-                "value" => "1",
-                "display" => "Yes"
-            ],
-            (object) [
-                "value" => "0",
-                "display" => "No"
-            ],
+                (object) [
+                    "value" => "1",
+                    "display" => "Yes"
+                ],
+                (object) [
+                    "value" => "0",
+                    "display" => "No"
+                ],
             ];
 
             $selected = empty($note) ? false : $note["tag"];

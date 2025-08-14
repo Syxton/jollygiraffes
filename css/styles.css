@@ -146,6 +146,7 @@ h3 {
 	font-size: clamp(15px, 4vmin, 23px);
 	white-space: break-spaces;
 	align-items: center;
+	flex-wrap: wrap;
 }
 
 .child+.list_title {

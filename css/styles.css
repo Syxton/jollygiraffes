@@ -79,7 +79,7 @@ h3 {
 
 #activepidname {
     z-index: 0;
-    font-size: 3vw;
+    font-size: 2vw;
     font-weight: bold;
     color: white;
     text-shadow: 0px 0px 8px black;
@@ -150,6 +150,10 @@ h3 {
 
 .child+.list_title {
     vertical-align: top;
+}
+
+.child.slider-item {
+    border-radius: 10px;
 }
 
 .last_update {
@@ -968,7 +972,8 @@ td.calendar-day, td.calendar-day-np {
 }
 
 .select_buttons_div {
-    top: clamp(30px, 10vmin, 60px);
+    right: 33%;
+    top: 0;
 }
 
 .optional_questions {
@@ -988,7 +993,7 @@ td.calendar-day, td.calendar-day-np {
     white-space: nowrap;
     font-weight: bold;
     color: white;
-    font-size: 3vw;
+    font-size: 2vw;
     text-shadow: black 0px 0px 10px;
 }
 
@@ -1192,6 +1197,7 @@ td.calendar-day, td.calendar-day-np {
         text-align: center;
         width: 100%;
         max-width: 100%;
+        right: 0;
     }
     .admin_menu .keypad_buttons {
         margin: 2px;

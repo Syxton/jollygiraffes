@@ -127,7 +127,7 @@ function get_check_in_out_form() {
                             onclick=\"$('.keypad_buttons').toggleClass('selected_button', true);
                                     $('.keypad_buttons').not(this).toggleClass('selected_button', false);
                                     $('.child_wrapper').children().not('.letter_$letter').parent().hide();
-                                    $('.letter_$letter').parent('.child_wrapper').show(\'fade\');
+                                    $('.letter_$letter').parent('.child_wrapper').show('fade');
                                     $('.scroll-pane').sbscroller('refresh');\">
                             " . strtoupper(substr($row["last"], 0, 1)) . "
                         </button>";

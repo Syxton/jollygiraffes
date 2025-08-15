@@ -157,6 +157,12 @@ h3 {
     flex-wrap: wrap;
 }
 
+.child_buttons {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
 .child+.list_title {
     vertical-align: top;
 }

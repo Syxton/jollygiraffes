@@ -1,0 +1,18 @@
+<button title="View Reports"
+        class="image_button toggle_view"
+        type="button"
+        onclick="$('.toggle_view').toggle();
+                $.ajax({
+                    type: 'POST',
+                    url: 'ajax/ajax.php',
+                    data: {
+                        action: 'get_reports_list',
+                        aid: '<?php echo $aid; ?>',
+                    },
+                    success: function(data) {
+                        $('#info_div').html(data);
+                        refresh_all();
+                    }
+                });">
+    <?php echo get_icon('graph'); ?>
+</button>

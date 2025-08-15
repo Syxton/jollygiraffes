@@ -112,9 +112,18 @@ h3 {
 }
 
 .admin_menu {
+    display: flex;
     height: clamp(90px, 20vmin, 100px);
-    margin-top: 5px;
     text-align: center;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+}
+
+.break {
+    white-space: nowrap;
+    clear: both;
 }
 
 .footer-text {
@@ -967,13 +976,18 @@ td.calendar-day, td.calendar-day-np {
 }
 
 .admin_menu .keypad_buttons {
-    font-size: clamp(15px, 3vmin, 22px);
+    font-size: clamp(7px, 4vmin, 22px);
     margin: 2px;
 }
 
 .select_buttons_div {
-    right: 33%;
+    position: absolute;
+    display: inline-flex;
+    justify-content: center;
+    flex-wrap: wrap;
     top: 0;
+    left: 50%;
+    transform: translate(-50%, 0);
 }
 
 .optional_questions {
@@ -1191,13 +1205,6 @@ td.calendar-day, td.calendar-day-np {
     .select_buttons, .submit_buttons {
         font-size: clamp(15px, 4vmin, 20px);
         margin: 2px;
-    }
-    .select_buttons_div {
-        position: fixed;
-        text-align: center;
-        width: 100%;
-        max-width: 100%;
-        right: 0;
     }
     .admin_menu .keypad_buttons {
         margin: 2px;

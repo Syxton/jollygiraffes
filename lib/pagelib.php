@@ -1067,6 +1067,33 @@ function grade_convert($set) {
     }
 }
 
+function is_expected_today($pid, $chid) {
+    $days_attending = get_db_field("days_attending", "enrollments", "pid='$pid' AND chid='$chid'");
+    $enrollment = explode(", ", $days_attending);
+
+    $days = ["S", "M", "T", "W", "Th", "F", "Sa"];
+    $expected = ""; // Reset expected.
+    foreach ($enrollment as $e) {
+        if ($e == $days[date("w")]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function from_template($filename, $variables = []) {
+    global $CFG;
+    if (is_file($CFG->docroot . '/templates/' . $filename)) {
+        // Extract variables into the local scope for the template
+        extract($variables);
+
+        ob_start();
+        include $CFG->docroot . '/templates/' . $filename;
+        return ob_get_clean();
+    }
+    return false;
+}
+
 function check_and_run_upgrades() {
     $version = get_db_field("version", "version", "version != ''");
     if (!$version) {

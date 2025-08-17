@@ -1888,7 +1888,7 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
         $returnme .= '<button title="Delete Contact" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to delete this contact?\', \'Yes\', \'No\', function(){ $.ajax({
                         type: \'POST\',
                         url: \'ajax/ajax.php\',
-                        data: { action: \'delete_contact\', cid: \'' . $cid . '\' } ,
+                        data: { action: \'toggle_contact_activation\', cid: \'' . $cid . '\' } ,
                         success: function(data) {
                           $.ajax({
                               type: \'POST\',
@@ -2815,55 +2815,68 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
         }
 
         // Account Contacts
-        if ($contacts = get_db_result("SELECT * FROM contacts WHERE aid='$aid' AND deleted='$deleted' ORDER BY emergency, last, first")) {
-            $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px;">Contacts:</div><div id="contacts" class="scroll-pane infobox">';
+        $SQL = "SELECT *
+                FROM contacts
+                WHERE aid = '$aid'
+                AND deleted = '$deleted'
+                ORDER BY emergency, last, first";
+        if ($contacts = get_db_result($SQL)) {
+            $contacts_list = "";
             while ($contact = fetch_row($contacts)) {
-                $action        = '$.ajax({
-                          type: \'POST\',
-                          url: \'ajax/ajax.php\',
-                          data: { action: \'get_admin_contacts_form\', cid: \'' . $contact["cid"] . '\' } ,
-                          success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                          });';
-                $recover_text  = $recover ? "activate" : "delete";
-                $delete_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to ' . $recover_text . ' \'+$(\'a#a-' . $contact["cid"] . '\').attr(\'data\')+\'?\', \'Yes\', \'No\', function(){ $.ajax({
-                          type: \'POST\',
-                          url: \'ajax/ajax.php\',
-                          data: { action: \'delete_contact\', cid: \'' . $contact["cid"] . '\' } ,
-                          success: function(data) {
-                            $.ajax({
-                                type: \'POST\',
-                                url: \'ajax/ajax.php\',
-                                data: { action: \'get_admin_accounts_form\', aid: \'' . $contact["aid"] . '\' } ,
-                                success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                            } );
-                          }
-                          });},function(){});';
+                // Toggle Contact Activation Button
+                $activation_button = "";
+                if ($activepid) {
+                    $confirm_text  = $recover ? "activate" : "delete";
+                    $caution = $recover ? "" : "caution";
+                    $activation_button = from_template("toggle_contact_activation_small.php", [
+                        "aid" => $contact["aid"],
+                        "cid" => $contact["cid"],
+                        "name" => $contact["first"] . " " . $contact["last"],
+                        "text" => $confirm_text,
+                        "caution" => $caution,
+                        "icon" => $recover ? 'add' : 'bin_closed',
+                        "title" => $recover ? "Activate" : "Delete",
+                    ]);
+                }
 
-                // Delete Contact Button
-                if ($recover) {
-                    $delete_button = $activepid ? ' <a id="a-' . $contact["cid"] . '" data="' . $contact["first"] . ' ' . $contact["last"] . '" href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . get_icon('add') . ' Activate</span></a>' : "";
-                } else {
-                    $delete_button = $activepid ? ' <a id="a-' . $contact["cid"] . '" data="' . $contact["first"] . ' ' . $contact["last"] . '" href="javascript: void(0);" onclick="' . $delete_action . '"><span class="caution inline-button ui-corner-all">' . get_icon('bin_closed') . ' Delete</span></a>' : "";
+                $buttons = $activation_button;
+                if (!$recover) {
+                    // Edit Contact Button.
+                    $returnme .= get_form("add_edit_contact", [
+                        "contact" => $contact
+                    ], $identifier);
+
+                    $identifier = time() . "contact_" . $contact["cid"];
+                    $edit_button = from_template("add_edit_contact_small.php", [
+                        "identifier" => $identifier,
+                    ]);
+
+                    // View contact's account button.
+                    $account_button = from_template("get_admin_contacts_form.php", [
+                        "cid" => $contact["cid"],
+                    ]);
+
+                    $buttons = $account_button . $edit_button . $activation_button;
                 }
 
                 $primary   = empty($contact["primary_address"]) ? "" : "primary";
                 $emergency = empty($contact["emergency"]) ? "" : "emergency";
 
-                // Edit Contact Form
-                $identifier = time() . "contact_" . $contact["cid"];
-                $returnme .= get_form("add_edit_contact", [
-                    "contact" => $contact
-                ], $identifier);
-                $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $primary . ' ' . $emergency . '"><div class="list_title">' . $contact["first"] . ' ' . $contact["last"];
-                $moreinfo = '<a href="javascript: void(0);" onclick="' . $action . ' $(\'.keypad_buttons\').toggleClass(\'selected_button\', true); $(\'.keypad_buttons\').not($(\'#admin_menu_contacts\')).toggleClass(\'selected_button\', false);"><span class="inline-button ui-corner-all">' . get_icon('magnifier_zoom_in') . '</span></a>';
-                $returnme .= $recover ? '<br /><span class="list_links">' . $delete_button . '</span></div>' : '<br /><span class="list_links">' . $moreinfo . ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_contact_' . $identifier . '\', 520, 400)"><span class="inline-button ui-corner-all">' . get_icon('wrench') . ' Edit</span></a> ' . $delete_button . '</span></div>';
-                $returnme .= '</div><div style="clear:both;"></div>';
+                $contacts_list .= from_template("contact_list_item.php", [
+                    "name" => $contact["first"] . " " . $contact["last"],
+                    "buttons" => $buttons,
+                    "classes" => $primary . " " . $emergency,
+                ]);
             }
-            $returnme .= '</div><div style="clear:both;"></div>';
+            $returnme .= '
+                <div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px;">
+                    Contacts:
+                </div>
+                <div id="contacts" class="scroll-pane infobox">
+                    ' . $contacts_list . '
+                </div>
+                <div style="clear:both;"></div>';
         }
-
-        // Billing
-        // later
     } elseif ($chid) { // Children
         $docs_selected = $notes_selected = $activity_selected = $reports_selected = "";
         $tabkey        = empty($MYVARS->GET["values"]) ? false : array_search('tab', $MYVARS->GET["values"]);
@@ -3481,7 +3494,7 @@ function get_admin_children_form($return = false, $chid = false, $recover = fals
             <div class="document_list_item ui-corner-all" style="text-align:center">
                 <span><strong>Enrolled Children</strong></span>
             </div>';
-    if ($children = get_db_result("SELECT * FROM children WHERE deleted='0' AND chid IN (SELECT chid FROM enrollments WHERE pid IN (SELECT pid FROM programs WHERE active=1)) ORDER BY last,first")) {
+    if ($children = get_db_result("SELECT * FROM children WHERE deleted='0' AND chid IN (SELECT chid FROM enrollments WHERE pid = '" . get_pid() . "') ORDER BY last,first")) {
         while ($child = fetch_row($children)) {
             $chid           = empty($chid) ? $child["chid"] : $chid;
             $selected_class = $chid && $chid == $child["chid"] ? "selected_button" : "";
@@ -3601,7 +3614,21 @@ function get_admin_contacts_form($return = false, $cid = false, $recover = false
         <div class="document_list_item ui-corner-all" style="text-align:center">
             <span><strong>Active Contacts</strong></span>
         </div>';
-    if ($contacts = get_db_result("SELECT * FROM contacts c INNER JOIN accounts a ON c.aid=a.aid WHERE c.deleted='0' AND c.aid IN (SELECT c.aid FROM enrollments e WHERE e.pid='" . get_pid() . "') ORDER BY a.name, c.last, c.first")) {
+    $SQL = "SELECT *
+            FROM contacts c
+            INNER JOIN accounts a ON c.aid = a.aid
+            WHERE c.deleted = '0'
+            AND c.aid IN (
+                SELECT b.aid
+                FROM children b
+                WHERE b.chid IN (
+                    SELECT e.chid
+                    FROM enrollments e
+                    WHERE e.pid = '" . get_pid() . "'
+                )
+            )
+            ORDER BY a.name, c.last, c.first";
+    if ($contacts = get_db_result($SQL)) {
         while ($contact = fetch_row($contacts)) {
             $cid            = empty($cid) ? $contact["cid"] : $cid;
             $selected_class = $cid && $cid == $contact["cid"] ? "selected_button" : "";
@@ -4122,7 +4149,7 @@ function delete_account() {
     }
 }
 
-function delete_contact() {
+function toggle_contact_activation() {
     global $CFG, $MYVARS;
     $cid     = empty($MYVARS->GET["cid"]) ? false : $MYVARS->GET["cid"];
     $contact = get_db_row("SELECT * FROM contacts WHERE cid='$cid'");

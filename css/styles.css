@@ -187,7 +187,7 @@ h3 {
 .list_links {
     font-size: 12px;
     font-weight: normal;
-    display: inline-block;
+    display: inline-flex;
     width: calc(50vw - 70px);
     white-space: normal;
 }

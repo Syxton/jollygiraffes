@@ -1,4 +1,4 @@
-<div class="info_tabbar">
+<div class="info_action-bar">
     <button class="subselect_buttons <?php echo $activity_selected; ?>" id="activity"
             onclick="$('.subselect_buttons').toggleClass('selected_button', true);
                     $('.subselect_buttons').not(this).toggleClass('selected_button', false);

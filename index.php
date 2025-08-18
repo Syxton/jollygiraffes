@@ -12,7 +12,7 @@ if(!isset($CFG)){ include_once ('config.php'); }
 include_once ($CFG->dirroot . '/lib/header.php');
 
 //Start Page
-include ('header.html');
+include_once ('header.html');
 
 //Main Layout
 echo get_admin_button().get_employee_timeclock_button().'
@@ -31,6 +31,6 @@ echo '</div>';
 echo '<div class="loadingscreen" style="display:none;"></div>';
 
 //End Page
-include ('footer.html');
+include_once ('footer.html');
 
 ?>

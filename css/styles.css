@@ -130,7 +130,7 @@ h3 {
     text-align: center;
     padding: 10px;
     color: white;
-    font-size: calc(1rem + 1vmax);
+    font-size: clamp(4px, 4vmin, 2em);
     text-shadow: black 0px 0px 10px;
 }
 
@@ -250,11 +250,11 @@ h3 {
     height: calc(50% - 20px);
 }
 
-.info_tabbar {
+.info_action-bar {
     text-align: center;
     white-space: nowrap;
-    position: relative;
     margin: 10px;
+    z-index: 0;
 }
 
 .attending {

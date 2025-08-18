@@ -89,20 +89,11 @@ function refresh_all() {
         }
     });
 
-    setTimeout(function() {
-            fill_height_width();
-            fill_height_width_once();
-            $(".scroll-pane").not(":has(.scroll-content)").sbscroller();
-            $(".scroll-pane").sbscroller("refresh");
-            smart_scrollbars();
-        },
-        100);
-
     $(".textfill").textfill();
 
     refresh_tags_editor();
 
-    //Delete old
+    // Delete old
     $('.colorPicker-picker').remove();
     $('.colorpicker').colorPicker({
         onColorChange: function(id, newValue) {

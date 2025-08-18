@@ -5,8 +5,14 @@
                     $.ajax({
                         type: 'POST',
                         url: 'ajax/ajax.php',
-                        data: { action: 'get_activity_list', chid: '<?php echo $chid; ?>' } ,
-                        success: function(data) { $('#subselect_div').html(data); refresh_all(); }
+                        data: {
+                            action: 'get_activity_list',
+                            chid: '<?php echo $chid; ?>',
+                        },
+                        success: function(data) {
+                            $('#subselect_div').html(data);
+                            refresh_all();
+                        }
                     });">
         Activity
     </button>

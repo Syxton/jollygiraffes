@@ -1,5 +1,5 @@
 &nbsp;
-<a href="javascript: void(0);"
+<a  href="javascript: void(0);"
     onclick="$.ajax({
                 type: 'POST',
                 url: 'ajax/ajax.php',

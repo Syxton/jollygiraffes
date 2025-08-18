@@ -2552,124 +2552,115 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                 $identifier = time() . "child_" . $child["chid"];
                 $enrolled   = is_enrolled($pid, $child["chid"]);
 
-                $action = '$.ajax({
-                          type: \'POST\',
-                          url: \'ajax/ajax.php\',
-                          data: { action: \'get_admin_children_form\', chid: \'' . $child["chid"] . '\' } ,
-                          success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                          });';
+                // Get relavent child buttons.
+                $buttons = "";
+                if (!$recover) {
+                    // Enroll / Unenroll Action.
+                    $enroll_action = from_template("action_child_enroll_unenroll.php", [
+                        "chid" => $child["chid"],
+                        "pid" => $pid,
+                        "enrolled" => $enrolled,
+                        "identifier" => $identifier,
+                        "tabid" => "pid",
+                    ]);
 
-                $enroll_action = $enrolled ? 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to unenroll \'+$(\'a#a-' . $child["chid"] . '\').attr(\'data\')+\'?\', \'Yes\', \'No\', function(){ $.ajax({
-                          type: \'POST\',
-                          url: \'ajax/ajax.php\',
-                          data: { action: \'toggle_enrollment\',pid:\'' . $pid . '\',chid: \'' . $child["chid"] . '\' } ,
-                          success: function(data) {
-                            $.ajax({
-                                type: \'POST\',
-                                url: \'ajax/ajax.php\',
-                                data: { action: \'get_info\', pid: \'' . $pid . '\' } ,
-                                success: function(data) {
-                                    $(\'#info_div\').html(data);
-                                    $.ajax({
-                                        type: \'POST\',
-                                        url: \'ajax/ajax.php\',
-                                        data: { action: \'get_action_buttons\', pid: \'' . $pid . '\' } ,
-                                        success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
-                                    } );
-                                }
-                            } );
-                          }
-                          });},function(){});' : 'CreateDialog(\'add_edit_enrollment_' . $identifier . '\',200,400)';
+                    if ($enrolled) {
+                        // Edit Enrollment Buttons
+                        $enroll_button = from_template("create_link.php", [
+                            "action" => "CreateDialog('add_edit_enrollment_" . $identifier . "', 200, 400)",
+                            "button_text" => get_icon('report_edit') . ' Edit Enrollment',
+                        ]);
 
-                // Checked In info
-                $checked_in = ($activepid == $pid) && $enrolled && is_checked_in($child["chid"]) ? get_icon('status_online') : (($activepid == $pid) && $enrolled ? get_icon('status_offline') : "");
+                        // Enroll / Unenroll Button
+                        $enroll_button .= from_template("create_link.php", [
+                            "id" => "a-" . $child["chid"],
+                            "data" => $child["first"] . " " . $child["last"],
+                            "action" => $enroll_action,
+                            "class" => "caution",
+                            "button_text" => get_icon('report_delete') . ' Unenroll',
+                        ]);
 
-                // More Info Button
-                $moreinfo = ($activepid == $pid) && $enrolled ? ' <a href="javascript: void(0);" onclick="' . $action . ' $(\'.keypad_buttons\').toggleClass(\'selected_button\', true); $(\'.keypad_buttons\').not($(\'#admin_menu_children\')).toggleClass(\'selected_button\', false);"><span class="inline-button ui-corner-all">' . get_icon('magnifier_zoom_in') . '</span></a>' : '';
+                        // Edit Enrollment Form params
+                        $params = [
+                            "pid" => $pid,
+                            "chid" => $child["chid"],
+                            "aid" => $child["aid"],
+                            "callback" => "programs",
+                            "eid" => (string) $enrolled,
+                        ];
+                    } else {
+                        // Add Enrollment Button
+                        $enroll_button .= from_template("create_link.php", [
+                            "id" => "a-" . $child["chid"],
+                            "data" => $child["first"] . " " . $child["last"],
+                            "action" => $enroll_action,
+                            "button_text" => get_icon('user_add') . ' Enroll',
+                        ]);
 
-                $params = ["pid" => $pid, "chid" => $child["chid"]];
+                        // Add Enrollment Form params
+                        $params = [
+                            "pid" => $pid,
+                            "chid" => $child["chid"],
+                            "aid" => $child["aid"],
+                            "callback" => "accounts",
+                        ];
+                    }
 
-                if ($enrolled) {
-                    $edit_enroll_action = $enrolled ? '' : '';
-                    // Enrollment Button
-                    $enroll_button = '
-                    &nbsp;
-                    <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_enrollment_' . $identifier . '\', 200, 400)">
-                        <span class="inline-button ui-corner-all">
-                        ' . get_icon('report_edit') . ' Edit Enrollment
-                        </span>
-                    </a>
-                    &nbsp;
-                    <a id="a-' . $child["chid"] . '" data="' . $child["first"] . ' ' . $child["last"] . '" href="javascript: void(0);" onclick="' . $enroll_action . '">
-                        <span class="caution inline-button ui-corner-all">
-                        ' . get_icon('report_delete') . ' Unenroll
-                        </span>
-                    </a>';
-                    $params["callback"] = "programs";
-                    $params["eid"] = (string) $enrolled;
-                    $params["aid"] = $child["aid"];
-                } else {
-                    // Enrollment Button
-                    $enroll_button = '
-                    &nbsp;
-                    <a id="a-' . $child["chid"] . '" data="' . $child["first"] . ' ' . $child["last"] . '" href="javascript: void(0);" onclick="' . $enroll_action . '">
-                        <span class="inline-button ui-corner-all">
-                        ' . get_icon('user_add') . ' Enroll
-                        </span>
-                    </a>';
-                    $params["callback"] = "accounts";
-                    $params["pid"] = $pid;
-                    $params["aid"] = $aid;
+                    // View Child Link.
+                    $view_child = "";
+                    if (($activepid == $pid) && $enrolled) {
+                        $view_child = from_template("view_child_link.php", ["chid" => $child["chid"]]);
+                    }
+
+                    // Add / Edit Enrollment Form
+                    $returnme .= get_form("add_edit_enrollment", $params, $identifier);
+
+                    // Edit Child Button
+                    $params = [
+                        "pid"      => $pid,
+                        "child"    => $child,
+                        "callback" => "programs",
+                    ];
+                    $returnme .= get_form("add_edit_child", $params, $identifier);
+
+                    $edit_button = from_template("add_edit_child_link.php", [
+                        "identifier" => $identifier,
+                        "icon" => "wrench",
+                        "label" => "Edit",
+                    ]);
+
+                    $buttons = $view_child . $edit_button . $enroll_button;
                 }
 
-                $returnme .= get_form("add_edit_enrollment", $params, $identifier);
+                // Status Icon
+                $status = "";
+                if (($activepid == $pid) && $enrolled) {
+                    if (is_checked_in($child["chid"])) {
+                        $status = get_icon('status_online');
+                    } else {
+                        $status = get_icon('status_offline');
+                    }
+                }
 
-                // Edit Child Button
-                $returnme .= get_form(
-                    "add_edit_child",
-                    [
-                        "pid"      => $pid,
-                        "callback" => "programs",
-                        "child"    => $child,
-                    ],
-                    $identifier
-                );
-
-                $edit_button = from_template("add_edit_child_small.php", [
-                    "identifier" => $identifier,
-                    "icon" => "wrench",
-                    "label" => "Edit",
+                $afterbutton = from_template("after_child_button_layout.php", [
+                    "status" => $status,
+                    "name" => $child["first"] . ' ' . $child["last"],
+                    "buttons" => $buttons,
+                    "notifications" => get_notifications($pid, $child["chid"], false, true, true),
                 ]);
 
-                $buttons = $recover ? '' : $moreinfo . $edit_button . $enroll_button;
-                $afterbutton = '
-                    <div class="child_buttons">
-                        <span class="hide_mobile">
-                            ' . $checked_in . '
-                        </span>
-                        <span>
-                            ' . $child["first"] . ' ' . $child["last"] . '
-                        </span>
-                        <span class="list_links" style="display:inline-flex;width:auto;flex-wrap: wrap;">
-                            ' . $buttons . '
-                        </span>
-                    </div>
-                    ' . get_notifications($pid, $child["chid"], false, true, true);
-
-                $returnme .= '
-                    <div class="ui-corner-all list_box">
-                        <div class="list_box_item_full">
-                            ' . from_template("childbutton.php", [
-                                    "chid" => $child["chid"],
-                                    "containerclass" => "list_title",
-                                    "containerstyles" => "display:flex;flex-wrap: nowrap;white-space: normal;",
-                                    "buttonstyles" => "margin: 10px;float:none;height:50px;width:50px;",
-                                    "piconly" => true,
-                                    "includename" => false,
-                                    "afterbutton" => $afterbutton,
-                                ]) . '
-                        </div>
-                    </div>';
+                // Child list item.
+                $returnme .= from_template("list_item_layout.php", [
+                    "item" => from_template("childbutton.php", [
+                        "chid" => $child["chid"],
+                        "containerclass" => "list_title",
+                        "containerstyles" => "display:flex;flex-wrap: nowrap;white-space: normal;",
+                        "buttonstyles" => "margin: 10px;float:none;height:50px;width:50px;",
+                        "piconly" => true,
+                        "includename" => false,
+                        "afterbutton" => $afterbutton,
+                    ]),
+                ]);
             }
             $returnme .= '</div><div style="clear:both;"></div>';
         }
@@ -2702,114 +2693,121 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                         $icon = "bin_closed";
                     }
 
-                    $delete_button = '
-                        &nbsp;
-                        <a id="a-' . $child["chid"] . '" data="' . $child["first"] . ' ' . $child["last"] . '"
-                            href="javascript: void(0);" onclick="' . $delete_action . '">
-                            <span class="inline-button ui-corner-all ' . $caution . '">
-                                ' . get_icon($icon) . ' ' . $label . '
-                            </span>
-                        </a>';
+                    $delete_button .= from_template("create_link.php", [
+                        "id" => "a-" . $child["chid"],
+                        "data" => $child["first"] . " " . $child["last"],
+                        "action" => $delete_action,
+                        "class" => "caution",
+                        "button_text" => get_icon($icon) . ' ' . $label,
+                    ]);
                 }
 
-                if ($recover) {
-                    $buttons = $delete_button;
-                } else {
-                    // More Info Button
-                    $moreinfo = "";
+                $buttons = $delete_button;
+                if (!$recover) {
+                    // View Child Link.
+                    $view_child = "";
                     if ($activepid && $enrolled) {
-                        $moreinfo = from_template("view_child_small.php", ["chid" => $child["chid"]]);
+                        $view_child = from_template("view_child_link.php", ["chid" => $child["chid"]]);
                     }
 
-                    // Edit Child Button
-                    $returnme .= get_form(
-                        "add_edit_child",
-                        [
-                            "aid"   => $aid,
-                            "child" => $child
-                        ],
-                        $identifier
-                    );
-                    $edit_button = from_template("add_edit_child_small.php", [
+                    // Edit Child Form.
+                    $params = [
+                        "aid"   => $aid,
+                        "child" => $child,
+                    ];
+                    $returnme .= get_form("add_edit_child", $params, $identifier);
+
+                    // Edit Child Button.
+                    $edit_button = from_template("add_edit_child_link.php", [
                         "identifier" => $identifier,
                         "icon" => "wrench",
                         "label" => "Edit",
                     ]);
 
-                    // Edit / Add Enrollment Button
-                    $returnme .= $enrolled ? get_form("add_edit_enrollment", [
-                        "eid" => "$enrolled",
-                        "callback" => "accounts",
-                        "aid" => $aid,
-                        "pid" => $activepid,
-                        "chid" => $child["chid"]
-                    ], $identifier) : get_form("add_edit_enrollment", [
-                        "callback" => "accounts",
-                        "aid"      => $aid,
-                        "pid"      => $activepid,
-                        "chid"     => $child["chid"]
-                    ], $identifier);
+                    $enroll_buttons = "";
+                    if ($activepid) {
+                        // Edit / Add Enrollment Form
+                        $params = [
+                            "aid"      => $aid,
+                            "pid"      => $activepid,
+                            "chid"     => $child["chid"],
+                            "callback" => "accounts",
+                        ];
 
-                    // Remove Enrollment Button.
-                    $enroll_action = from_template("action_child_enroll_unenroll.php", [
-                        "chid" => $child["chid"],
-                        "aid"  => $child["aid"],
-                        "enrolled" => $enrolled,
-                        "pid" => $activepid,
-                        "identifier" => $identifier,
-                    ]);
+                        if ($enrolled) { // If the child is enrolled, we need to pass the enrollment ID.
+                            $params["eid"] = (string) $enrolled;
+                        }
 
-                    $edit_enroll_action = "";
-                    if ($enrolled) {
-                        $edit_enroll_action = from_template("action_child_enroll_unenroll.php", [
-                            "enrolled" => false, // Editing and Adding enrollment is the same call.
+                        $returnme .= get_form("add_edit_enrollment", $params, $identifier);
+
+                        // Enroll / Unenroll Button.
+                        $enroll_action = from_template("action_child_enroll_unenroll.php", [
+                            "chid" => $child["chid"],
+                            "pid" => $activepid,
                             "identifier" => $identifier,
+                            "enrolled" => $enrolled,
+                            "tabid" => "aid",
+                            "aid"  => $child["aid"],
                         ]);
-                    }
-                    $enroll_button = $activepid && $enrolled ? ' <a href="javascript: void(0);" onclick="' . $edit_enroll_action . '"><span class="inline-button ui-corner-all">' . get_icon('report_edit') . ' Edit Enrollment</span></a> <a id="a-' . $child["chid"] . '" data="' . $child["first"] . ' ' . $child["last"] . '" href="javascript: void(0);" onclick="' . $enroll_action . '"><span class="caution inline-button ui-corner-all">' . get_icon('report_delete') . ' Unenroll</span></a>' : ($activepid ? ' <a id="a-' . $child["chid"] . '" data="' . $child["first"] . ' ' . $child["last"] . '" href="javascript: void(0);" onclick="' . $enroll_action . '"><span class="inline-button ui-corner-all">' . get_icon('user_add') . ' Enroll</span></a>' : '');
 
-                    $buttons = $moreinfo . $edit_button . $enroll_button . $delete_button;
+                        if ($enrolled) { // If the child is enrolled, we can edit or unenroll.
+                            $enroll_buttons .= from_template("create_link.php", [
+                                "action" => from_template("action_child_enroll_unenroll.php", [
+                                    "enrolled" => false, // Editing and Adding enrollment is the same call.
+                                    "identifier" => $identifier,
+                                ]),
+                                "button_text" => get_icon('report_edit') . ' Edit Enrollment',
+                            ]);
+
+                            $enroll_buttons .= from_template("create_link.php", [
+                                "id" => "a-" . $child["chid"],
+                                "data" => $child["first"] . " " . $child["last"],
+                                "action" => $enroll_action,
+                                "class" => "caution",
+                                "button_text" => get_icon('report_delete') . ' Unenroll',
+                            ]);
+                        } else { // If the child is not enrolled, we can enroll them.
+                            $enroll_buttons .= from_template("create_link.php", [
+                                "id" => "a-" . $child["chid"],
+                                "data" => $child["first"] . " " . $child["last"],
+                                "action" => $enroll_action,
+                                "button_text" => get_icon('user_add') . ' Enroll',
+                            ]);
+                        }
+                    }
+
+                    $buttons = $view_child . $edit_button . $enroll_buttons . $delete_button;
                 }
 
                 // Checked In info
                 $checked_in = "";
                 if ($activepid && $enrolled) {
                     if (is_checked_in($child["chid"])) {
-                        $checked_in = get_icon('status_recover');
+                        $checked_in = get_icon('status_online');
                     } elseif (empty($recover)) {
                         $checked_in = get_icon('status_offline');
                     }
                 }
 
-                // After Button Content
-                $afterbutton = '
-                    <div class="child_buttons">
-                        <span class="hide_mobile">
-                            ' . $checked_in . '
-                        </span>
-                        <span>
-                            ' . $child["first"] . ' ' . $child["last"] . '
-                        </span>
-                        <span class="list_links" style="display:inline-flex;width:auto;flex-wrap: wrap;">
-                            ' . $buttons . '
-                        </span>
-                    </div>
-                    ' . get_notifications($activepid, $child["chid"], $aid, true, true);
+                // After Button Layout.
+                $afterbutton = from_template("after_child_button_layout.php", [
+                    "status" => $checked_in,
+                    "name" => $child["first"] . ' ' . $child["last"],
+                    "buttons" => $buttons,
+                    "notifications" => get_notifications($activepid, $child["chid"], $aid, true, true),
+                ]);
 
-                $returnme .= '
-                    <div class="ui-corner-all list_box">
-                        <div class="list_box_item_full">
-                            ' . from_template("childbutton.php", [
-                                    "chid" => $child["chid"],
-                                    "containerclass" => "list_title",
-                                    "containerstyles" => "display:flex;flex-wrap: nowrap;white-space: normal;",
-                                    "buttonstyles" => "margin: 10px;float:none;height:50px;width:50px;",
-                                    "piconly" => true,
-                                    "includename" => false,
-                                    "afterbutton" => $afterbutton,
-                                ]) . '
-                        </div>
-                    </div>';
+                $returnme .= from_template("list_item_layout.php", [
+                    "item" => from_template("childbutton.php", [
+                        "chid" => $child["chid"],
+                        "containerclass" => "list_title",
+                        "containerstyles" => "display:flex;flex-wrap: nowrap;white-space: normal;",
+                        "buttonstyles" => "margin: 10px;float:none;height:50px;width:50px;",
+                        "piconly" => true,
+                        "includename" => false,
+                        "afterbutton" => $afterbutton,
+                    ]),
+                ]);
             }
             $returnme .= '</div>';
         }
@@ -2828,7 +2826,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                 if ($activepid) {
                     $confirm_text  = $recover ? "activate" : "delete";
                     $caution = $recover ? "" : "caution";
-                    $activation_button = from_template("toggle_contact_activation_small.php", [
+                    $activation_button = from_template("toggle_contact_activation_link.php", [
                         "aid" => $contact["aid"],
                         "cid" => $contact["cid"],
                         "name" => $contact["first"] . " " . $contact["last"],
@@ -2847,16 +2845,16 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
                     ], $identifier);
 
                     $identifier = time() . "contact_" . $contact["cid"];
-                    $edit_button = from_template("add_edit_contact_small.php", [
+                    $edit_button = from_template("add_edit_contact_link.php", [
                         "identifier" => $identifier,
                     ]);
 
-                    // View contact's account button.
-                    $account_button = from_template("get_admin_contacts_form.php", [
+                    // View contact's button.
+                    $view_contact_button = from_template("view_contact_link.php", [
                         "cid" => $contact["cid"],
                     ]);
 
-                    $buttons = $account_button . $edit_button . $activation_button;
+                    $buttons = $view_contact_button . $edit_button . $activation_button;
                 }
 
                 $primary   = empty($contact["primary_address"]) ? "" : "primary";
@@ -2881,6 +2879,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
         $docs_selected = $notes_selected = $activity_selected = $reports_selected = "";
         $tabkey        = empty($MYVARS->GET["values"]) ? false : array_search('tab', $MYVARS->GET["values"]);
         $tab           = $tabkey === false && empty($MYVARS->GET["values"][$tabkey]["value"]) ? (empty($MYVARS->GET["tab"]) ? 'activity' : $MYVARS->GET["tab"]) : $MYVARS->GET["values"][$tabkey]["value"];
+
         if (!empty($tab)) {
             if ($tab == "documents") {
                 $info = get_documents_list(true, false, $chid);
@@ -3489,55 +3488,53 @@ function get_activity_list($return = false, $aid = null, $chid = null, $cid = nu
 function get_admin_children_form($return = false, $chid = false, $recover = false) {
     global $MYVARS;
     $chid     = !empty($chid) ? $chid : (empty($MYVARS->GET["chid"]) ? false : $MYVARS->GET["chid"]);
-    $returnme = '<div class="container_list scroll-pane ui-corner-all">';
-    $returnme .= '
-            <div class="document_list_item ui-corner-all" style="text-align:center">
-                <span><strong>Enrolled Children</strong></span>
-            </div>';
+
+    $children_list = "";
     if ($children = get_db_result("SELECT * FROM children WHERE deleted='0' AND chid IN (SELECT chid FROM enrollments WHERE pid = '" . get_pid() . "') ORDER BY last,first")) {
         while ($child = fetch_row($children)) {
             $chid           = empty($chid) ? $child["chid"] : $chid;
             $selected_class = $chid && $chid == $child["chid"] ? "selected_button" : "";
             $checked_in     = $recover ? '' : (is_checked_in($child["chid"]) ? get_icon('status_online') : get_icon('status_offline'));
             $notifications  = get_notifications(get_pid(), $child["chid"], false, true, true);
-            $returnme .= '
-                <div class="ui-corner-all list_box selectablelist ' . $selected_class . '"
-                    onclick="$(this).addClass(\'selected_button\',true);
-                            $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
-                            $.ajax({
-                                type: \'POST\',
-                                url: \'ajax/ajax.php\',
-                                data: { action: \'get_info\', chid: \'' . $child["chid"] . '\' } ,
-                                success: function(data) {
-                                    $(\'#info_div\').html(data);
-                                    $.ajax({
-                                        type: \'POST\',
-                                        url: \'ajax/ajax.php\',
-                                        data: { action: \'get_action_buttons\', chid: \'' . $child["chid"] . '\' } ,
-                                        success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
-                                    } );
-                                }
-                            });">
-                    <div class="list_box_item_full">
-                        <span class="list_title leftselector">
-                            <span class="hide_mobile" style="padding: 5px;">
-                                ' . $checked_in . '
-                            </span>
-                            <span style="width: 90%;min-width: 220px;max-width: 70%;">
-                                ' . $child["last"] . ", " . $child["first"] . '
-                            </span>
-                            ' . $notifications . '
-                        </span>
-                    </div>
-                </div>';
+            $item_text = '
+                <span class="list_title leftselector">
+                    <span class="hide_mobile" style="padding: 5px;">
+                        ' . $checked_in . '
+                    </span>
+                    <span style="width: 90%;min-width: 220px;max-width: 70%;">
+                        ' . $child["last"] . ", " . $child["first"] . '
+                    </span>
+                    ' . $notifications . '
+                </span>';
+
+            $children_list .= from_template("selectable_list_item_layout.php", [
+                "item" => $item_text,
+                "class" => $selected_class,
+                "tabid" => "chid",
+                "chid" => $child["chid"],
+            ]);
         }
     } else {
-        $returnme .= '<div class="ui-corner-all list_box"><div class="list_box_item_full"><span class="list_title">None Enrolled</span></div></div>';
+        $children_list .= from_template("list_item_layout.php", [
+            "item" => '<span class="list_title">None Enrolled</span>',
+        ]);
     }
 
-    $returnme .= '</div>';
-    $returnme .= '<div class="container_actions ui-corner-all" id="actions_div">' . get_action_buttons(true, false, false, $chid, false, false, $recover) . '</div>';
-    $returnme .= '<div class="container_info ui-corner-all fill_height" id="info_div">' . get_info(true, false, false, $chid, false, false, $recover) . '</div>';
+    $returnme = '
+        <div class="container_list scroll-pane ui-corner-all">
+            <div class="document_list_item ui-corner-all" style="text-align:center">
+                <span><strong>
+                    Enrolled Children
+                </strong></span>
+            </div>
+            ' . $children_list . '
+        </div>
+        <div class="container_actions ui-corner-all" id="actions_div">
+            ' . get_action_buttons(true, false, false, $chid, false, false, $recover) . '
+        </div>
+        <div class="container_info ui-corner-all fill_height" id="info_div">
+            ' . get_info(true, false, false, $chid, false, false, $recover) . '
+        </div>';
 
     if ($return) {
         return $returnme;

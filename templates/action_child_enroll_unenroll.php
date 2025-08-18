@@ -21,7 +21,7 @@ if ($enrolled) {
                         url: 'ajax/ajax.php',
                         data: {
                             action: 'get_info',
-                            aid: '<?php echo $aid; ?>',
+                            <?php echo $tabid; ?>: '<?php echo $$tabid; ?>',
                         },
                         success: function(data) {
                             $('#info_div').html(data);
@@ -30,7 +30,7 @@ if ($enrolled) {
                                 url: 'ajax/ajax.php',
                                 data: {
                                     action: 'get_action_buttons',
-                                    aid: '<?php echo $aid; ?>',
+                                    <?php echo $tabid; ?>: '<?php echo $$tabid; ?>',
                                 },
                                 success: function(data) {
                                     $('#actions_div').html(data);

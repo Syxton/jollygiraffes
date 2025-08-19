@@ -1036,10 +1036,14 @@ function get_form($formname, $vars = null, $identifier = "") {
 
             $M = $T = $W = $Th = $F = $exempt = "";
             if (!empty($vars["chid"])) {
+                $days_attending = [];
                 $enrollment = get_db_row("SELECT * FROM enrollments WHERE chid='" . $vars["chid"] . "' AND pid='" . $vars["pid"] . "'");
-                $exempt = $enrollment["exempt"] == "1" ? "selected" : "";
-                $days_attending = $enrollment["days_attending"];
-                $days_attending = explode(",", $days_attending);
+                if ($enrollment) {
+                    $exempt = isset($enrollment["exempt"]) && $enrollment["exempt"] == "1" ? "selected" : "";
+                    $days_attending = $enrollment["days_attending"];
+                    $days_attending = explode(",", $days_attending);
+                }
+
                 $days_possible = ["M","T","W","Th","F"];
                 foreach ($days_possible as $day) {
                     $$day = array_search($day, $days_attending) !== false ? "checked" : "";

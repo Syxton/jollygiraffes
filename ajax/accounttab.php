@@ -14,6 +14,7 @@ if ($results = get_db_result($SQL)) {
         $enrolled   = is_enrolled($activepid, $child["chid"]);
 
         // Delete / Recover Child Button
+        $delete_button = "";
         if ($activepid) {
             $recover_action = $recover ? "activate" : "delete";
             $delete_action = from_template("action_child_activation.php", [

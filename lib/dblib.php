@@ -14,16 +14,31 @@ if (!isset($LIBHEADER)) {
 $DBLIB = true;
 
 function is_installed() {
-    // Make sure admin user is created.
-    if (!get_db_count("SELECT * FROM accounts WHERE admin = '1'") && !get_db_count("SELECT * FROM version")) {
-        // Admin user does not exist, so assume we need to install the db.
-        include_once('install.php');
+    global $CFG;
+    try {
+        // Make sure admin user is created.
+        if (!get_db_count("SELECT * FROM accounts WHERE admin = '1'") && !get_db_count("SELECT * FROM version")) {
+            // Admin user does not exist, so assume we need to install the db.
+            include_once('install.php');
+        }
+    } catch (\Throwable $e) {
+        // Try to catch and print out instructions for common connection errors.
+        if (strpos($e->getMessage(), 'Access denied for user') !== false) {
+            senderror("Access denied for user '" . $CFG->dbuser . "'@'" . $CFG->dbhost . "'. Please check your database username and password in the configuration file.  Make sure the user has the necessary permissions to write to the database.");
+        } elseif (strpos($e->getMessage(), 'Table') !== false && strpos($e->getMessage(), 'doesn\'t exist') !== false) {
+            // Admin user does not exist, so assume we need to install the db.
+            include_once('install.php');
+        } else {
+            senderror("Database connection error: " . $e->getMessage());
+        }
+        return false; // Return false if connection fails
     }
 }
 
-function reconnect(){
+function reconnect() {
     global $CFG;
-    if ($CFG->dbtype == "mysqli" && function_exists('mysqli_connect')) {
+    try {
+		if ($CFG->dbtype == "mysqli" && function_exists('mysqli_connect')) {
         //mysqli is installed
         $CFG->dbtype = "mysqli";
         $conn = mysqli_connect($CFG->dbhost, $CFG->dbuser, $CFG->dbpass) or senderror("Could not connect to database");
@@ -34,6 +49,17 @@ function reconnect(){
         mysql_select_db($CFG->dbname) or senderror("<b>A fatal MySQL error occured</b>.\n<br />Query: " . $SQL . "<br />\nError: (" . mysql_errno() . ") " . mysql_error());
     }
     return $conn;
+	} catch (\Throwable $e) {
+		// Try to catch and print out instructions for common connection errors.
+        if (strpos($e->getMessage(), 'Access denied for user') !== false) {
+            senderror("Access denied for user '" . $CFG->dbuser . "'@'" . $CFG->dbhost . "'. Please check your database username and password in the configuration file.  Make sure the user has the necessary permissions to write to the database.");
+        } elseif (strpos($e->getMessage(), 'Unknown database') !== false) {
+            senderror("Unknown database '" . $CFG->dbname . "'. Please check your database name in the configuration file.  If the database does not exist, you need to first create it.");
+        } else {
+            senderror("Database connection error: " . $e->getMessage());
+        }
+        return false; // Return false if connection fails
+	}
 }
 
 $conn = reconnect();

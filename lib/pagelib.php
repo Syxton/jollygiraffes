@@ -211,52 +211,37 @@ function is_enrolled($pid, $chid) {
 function get_home_page() {
     global $CFG;
 
-    echo '<div class="small_spacer"></div>
-          <div class="mylogo" style="background-image: url(\'' . $CFG->wwwroot . '/images/' . $CFG->logo . '\');"></div>
-          <div class="small_spacer"></div>';
-    $checkout_button = checked_in_children();
-    $checkin_button  = checked_out_children();
-    echo '<div class="middle-center" style="top: initial;height: 30%;">';
+    $can_checkout_children = checked_in_children();
+    $can_checkin_children  = checked_out_children();
 
-    if ($checkin_button) {
-        echo '<button class="big_button signinout bb_middle textfill" onclick="
-            $(\'.employee_button\').hide();
-            $.ajax({
-              type: \'POST\',
-              url: \'ajax/ajax.php\',
-              data: { action: \'get_check_in_out_form\', type: \'in\' },
-              success: function(data) { $(\'#display_level\').html(data); refresh_all(); }
-              });
-            "><span style="font-size:10px;">Check In <br />' . checked_out_children(true) . ' available</span>
-            </button>';
+    $checkin_button = "";
+    if ($can_checkin_children) {
+        $checkin_button .= from_template("checkinout_button.php", [
+            "button_text" => 'Check In <br />' . checked_out_children(true) . ' available',
+            "type"        => "in",
+        ]);
     }
 
-    if ($checkin_button && $checkout_button) {
-        echo '<span class="hide_mobile" style="width: 5%;display: inline-block;"></span>';
+    $checkout_button = "";
+    if ($can_checkout_children) {
+        $checkout_button = from_template("checkinout_button.php", [
+            "button_text" => 'Check Out <br />' . checked_in_children(true) . ' available',
+            "type"        => "out",
+        ]);
     }
 
-    if ($checkout_button) {
-        echo '<button class="big_button signinout bb_middle textfill" onclick="
-            $(\'.employee_button\').hide();
-            $.ajax({
-              type: \'POST\',
-              url: \'ajax/ajax.php\',
-              data: { action: \'get_check_in_out_form\', type: \'out\' },
-              success: function(data) { $(\'#display_level\').html(data); refresh_all(); }
-              });
-            "><span style="font-size:10px;">Check Out <br />' . checked_in_children(true) . ' available</span>
-            </button>';
+    $content = "<h1>No Active Programs</h1>";
+    if ($can_checkin_children && $can_checkout_children) {
+        $content = $checkin_button . '<span class="hide_mobile" style="width: 5%;display: inline-block;"></span>' . $checkout_button;
+    } elseif ($can_checkout_children) {
+        $content = $checkout_button;
+    } elseif ($can_checkin_children) {
+        $content = $checkin_button;
     }
 
-    if (empty($checkin_button) && empty($checkout_button)) {
-        echo "<h1>No Active Programs</h1>";
-    }
-
-    echo '</div>';
-
-    echo '<div class="bottom-center" style="width: auto;">
-            <div class="footer-text">' . $CFG->sitename . "<br />" . $CFG->streetaddress . '</div>
-          </div>';
+    return from_template("homepage_layout.php", [
+        "content" => $content,
+    ]);
 }
 
 function get_admin_button() {

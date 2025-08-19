@@ -14,7 +14,6 @@
 <div class="container_main scroll-pane ui-corner-all fill_height_middle">
     <?php echo $children; ?>
 </div>
-<?php echo $child_container; ?>
 <div class="select_buttons_div">
     <button class="select_buttons"
         onclick="$('.child').toggleClass('checked_pic', true);

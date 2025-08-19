@@ -220,3 +220,5 @@ ruleset.xml
 composer.json
 composer.lock
 /vendor
+config.php
+config.php

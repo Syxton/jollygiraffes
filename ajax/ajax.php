@@ -1712,24 +1712,24 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
         // NEW YEAR BUTTON
         $returnme .= from_template("newyear_program_button.php", ["pid" => $pid]);
     } elseif ($aid) { // Account actions
+        $identifier = time() . "_aid_" . $aid;
+
         // View Account button.
         $returnme .= from_template("view_account_button.php", ["aid" => $aid]);
 
         // View Reports tool button.
         $returnme .= from_template("get_reports_list_button.php", ["aid" => $aid]);
 
-        $identifier = time() . "_aid_" . $aid;
+        // Add Child Form
+        $returnme .= get_form("add_edit_child", [
+            "aid" => $aid
+        ], $identifier) . from_template("add_edit_child_button.php", [
+            "identifier" => $identifier,
+            "icon" => "child-add",
+            "title" => "Add Child",
+        ]);
+
         if (!$recover) {
-            if ($activepid) {
-                // Add Child Form
-                $returnme .= get_form("add_edit_child", [
-                    "aid" => $aid
-                ], $identifier) . from_template("add_edit_child_button.php", [
-                    "identifier" => $identifier,
-                    "icon" => "child-add",
-                    "title" => "Add Child",
-                ]);
-            }
             // Add Contact Form
             $returnme .= get_form("add_edit_contact", [
                 "aid" => $aid

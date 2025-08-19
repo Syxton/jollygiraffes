@@ -66,7 +66,7 @@ function get_db_result($SQL){
     return false;
 }
 
-function execute_db_sql($SQL){
+function execute_db_sql($SQL) {
     global $CFG, $conn;
     $update = preg_match('/^UPDATE/i', $SQL) ? true : false;
     $delete = preg_match('/^DELETE/i', $SQL) ? true : false;

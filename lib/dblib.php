@@ -13,6 +13,14 @@ if (!isset($LIBHEADER)) {
 }
 $DBLIB = true;
 
+function is_installed() {
+    // Make sure admin user is created.
+    if (!get_db_count("SELECT * FROM accounts WHERE admin = '1'") && !get_db_count("SELECT * FROM version")) {
+        // Admin user does not exist, so assume we need to install the db.
+        include_once('install.php');
+    }
+}
+
 function reconnect(){
     global $CFG;
     if ($CFG->dbtype == "mysqli" && function_exists('mysqli_connect')) {

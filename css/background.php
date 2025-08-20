@@ -1,5 +1,7 @@
 <?php
 /*** set the content type header ***/
+header("Cache-Control: public, max-age=604800"); // 1 week
+header("Expires: " . gmdate("D, d M Y H:i:s", time() + 604800) . " GMT");
 header("Content-type: text/css");
 
 $background = "";

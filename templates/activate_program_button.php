@@ -22,5 +22,5 @@
                 });
             },
             function(){})">
-    <?php echo get_icon('checkmark'); ?>
+    <?php echo icon('square-check', "2"); ?>
 </button>

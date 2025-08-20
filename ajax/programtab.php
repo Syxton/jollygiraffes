@@ -38,7 +38,7 @@ if ($results = get_db_result($SQL)) {
                 // Edit Enrollment Buttons
                 $enroll_button = from_template("create_link.php", [
                     "action" => "CreateDialog('add_edit_enrollment_" . $identifier . "', 200, 400)",
-                    "button_text" => get_icon('report_edit') . ' Edit Enrollment',
+                    "button_text" => icon('list-check') . ' Edit Enrollment',
                 ]);
 
                 // Enroll / Unenroll Button
@@ -47,7 +47,7 @@ if ($results = get_db_result($SQL)) {
                     "data" => $child["first"] . " " . $child["last"],
                     "action" => $enroll_action,
                     "class" => "caution",
-                    "button_text" => get_icon('report_delete') . ' Unenroll',
+                    "button_text" => icon('ban') . ' Unenroll',
                 ]);
 
                 // Edit Enrollment Form params
@@ -64,7 +64,7 @@ if ($results = get_db_result($SQL)) {
                     "id" => "a-" . $child["chid"],
                     "data" => $child["first"] . " " . $child["last"],
                     "action" => $enroll_action,
-                    "button_text" => get_icon('user_add') . ' Enroll',
+                    "button_text" => icon('users') . ' Enroll',
                 ]);
 
                 // Add Enrollment Form params
@@ -100,9 +100,9 @@ if ($results = get_db_result($SQL)) {
         $status = "";
         if (($activepid == $pid) && $enrolled) {
             if (is_checked_in($child["chid"])) {
-                $status = get_icon('status_online');
+                $status = active_icon(true);
             } else {
-                $status = get_icon('status_offline');
+                $status = active_icon(false);
             }
         }
 

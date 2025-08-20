@@ -14,5 +14,5 @@
                         refresh_all();
                     }
                 });">
-    <?php echo get_icon('graph'); ?>
+    <?php echo icon('chart-line'); ?>
 </button>

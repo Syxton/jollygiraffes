@@ -240,7 +240,7 @@ function get_form($formname, $vars = null, $identifier = "") {
                     ' . stripslashes($expense["note"]) . '
                 </td>
                 <td style="width:15px;">
-                    <a href="javascript: void(0)" onclick="if(confirm(\'Are you sure you want to delete this?\')){
+                    <a href="javascript: void(0);" onclick="if(confirm(\'Are you sure you want to delete this?\')){
                     $.ajax({
                         type: \'POST\',
                         url: \'ajax/ajax.php\',
@@ -248,7 +248,7 @@ function get_form($formname, $vars = null, $identifier = "") {
                         data: { action: \'delete_expense\',payid: ' . $expense["payid"] . '},
                         success: function(data) { $(\'.expense_' . $expense["payid"] . '\').hide(); }
                         }); }">
-                        ' . get_icon('delete') . '
+                        ' . icon('trash') . '
                     </a>
                 </td>
             </tr>';
@@ -411,7 +411,7 @@ function get_form($formname, $vars = null, $identifier = "") {
                     timeout: 10000,
                     data: { action: \'refresh_hours\',values: $(\'.fields.id_' . $timecard["id"] . ', #edit_employee_timecards' . $identifier . ' .employeeid\').serializeArray()},
                     success: function(data) { if(data != \'false\'){ $(\'#hours.id_' . $timecard["id"] . '\').val(data[\'hours\']); $(\'#calculate_' . $timecard["id"] . '\').html(data[\'calculate\']); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                    });">' . get_icon("refresh") . '
+                    });">' . icon("rotate") . '
                 </span>';
                     $hours = empty($timecard["hours_override"]) ? $timecard["hours"] : $timecard["hours_override"];
                     $timecard_history .= '<tr class="wage_' . $timecard["id"] . '">
@@ -492,7 +492,7 @@ function get_form($formname, $vars = null, $identifier = "") {
                                                         <input style="width:100px" class="fields" type="input" name="wage" id="wage" value="$' . $salary["wage"] . '" />
                                                     </td>
                                                     <td>
-                                                        <a href="javascript: void(0)" onclick="if(confirm(\'Are you sure you want to delete this?\')){
+                                                        <a href="javascript: void(0);" onclick="if(confirm(\'Are you sure you want to delete this?\')){
                                                         $.ajax({
                                                             type: \'POST\',
                                                             url: \'ajax/ajax.php\',
@@ -500,7 +500,7 @@ function get_form($formname, $vars = null, $identifier = "") {
                                                             data: { action: \'delete_wage_history\',id: ' . $salary["id"] . '},
                                                             success: function(data) { $(\'.wage_' . $salary["id"] . '\').hide(); }
                                                             }); }">
-                                                            ' . get_icon('delete') . '
+                                                            ' . icon('trash') . '
                                                         </a>
                                                     </td>
                                                 </tr>

@@ -3,5 +3,5 @@
         class="image_button"
         type="button"
         onclick="CreateDialog('add_edit_child_<?php echo $identifier; ?>', 360, 400);">
-    <?php echo get_icon($icon); ?>
+    <?php echo icon($icon); ?>
 </button>

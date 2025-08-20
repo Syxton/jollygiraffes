@@ -11,16 +11,16 @@
                     type: 'POST',
                     url: 'ajax/ajax.php',
                     data: {
-                        action: 'delete_account',
+                        action: 'deactivate_account',
                         aid: '<?php echo $aid; ?>',
                     },
                     success: function(data) {
-                        $('#display_level').html(data);
+                        $('#admin_display').html(data);
                         refresh_all();
                         $('.only_when_active').show();
                     }
                 });
             },
             function(){})">
-    <?php echo get_icon('x'); ?>
+    <?php echo icon("trash", "2"); ?>
 </button>

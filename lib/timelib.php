@@ -179,7 +179,7 @@ function convert_time($time){
 function draw_calendar($month, $year, $vars = false){
 
   /* draw table */
-    $calendar = '<table cellpadding="0" cellspacing="0" class="calendar fill_width">';
+    $calendar = '<table id="calendar_table" style="width:100%;" cellpadding="0" cellspacing="0" class="calendar">';
 
   /* table headings */
     $headings = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
@@ -276,7 +276,7 @@ function draw_calendar($month, $year, $vars = false){
                     <div class="tag ui-corner-all" style="font-size:9px;text-align:center;display:block;color:' . $row["textcolor"] . ';background-color:' . $row["color"] . '">' . $row["title"] . ' ' . date('g:i a', display_time($row["timelog"])) . '</div>
                     <div class="" style="margin-right:auto;margin-left:auto;text-align:center">
                         <a style="padding:2px;" class="nyroModal inline-button ui-corner-all" href="ajax/reports.php?report=activity&type=' . $type . '&id=' . $row[$type] . '&actid=' . $actid . '">
-                            ' . get_icon('magnifier') . '
+                            ' . icon('magnifying-glass') . '
                         </a>';
 
                     if ($type == "chid") {
@@ -307,10 +307,10 @@ function draw_calendar($month, $year, $vars = false){
 
                         $content .= '
                         <a style="padding:2px;" class="inline-button ui-corner-all" href="javascript: CreateDialog(\'' . $vars["form"] . '_' . $identifier . '\',300,400)">
-                            ' . get_icon('table_edit') . '
+                            ' . icon('pen-to-square') . '
                         </a>
                         <a style="padding:2px;" class="inline-button ui-corner-all" id="a-' . $actid . '" data="' . $row["title"] . '" href="javascript: ' . $delete_action . '">
-                            ' . get_icon('bin_closed') . '
+                            ' . icon('trash') . '
                         </a>';
                     } elseif ($type == "employeeid") {
                         $identifier = $vars["type"] . "_" . $row[$id];
@@ -321,7 +321,7 @@ function draw_calendar($month, $year, $vars = false){
                         $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
-                            data: { action: \'delete_employee_activity\',employeeid:\'' . $vars["employeeid"] . '\',actid:\'' . $actid . '\',nid:\'' . $nid . '\',tab:\'' . $vars["type"] . '\' },
+                            data: { action: \'deactivate_employee_activity\',employeeid:\'' . $vars["employeeid"] . '\',actid:\'' . $actid . '\',nid:\'' . $nid . '\',tab:\'' . $vars["type"] . '\' },
                             success: function(data) {
                                 $.ajax({
                                     type: \'POST\',
@@ -340,10 +340,10 @@ function draw_calendar($month, $year, $vars = false){
 
                         $content .= '
                         <a style="padding:2px;" class="inline-button ui-corner-all" href="javascript: CreateDialog(\'add_update_employee_activity_' . $identifier . '\',300,400)">
-                            ' . get_icon('table_edit') . '
+                            ' . icon('pen-to-square') . '
                         </a>
                         <a style="padding:2px;" class="inline-button ui-corner-all" id="a-' . $actid . '" data="' . $row["title"] . '" href="javascript: ' . $delete_action . '">
-                            ' . get_icon('bin_closed') . '
+                            ' . icon('trash') . '
                         </a>';
                     }
 

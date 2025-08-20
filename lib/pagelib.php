@@ -371,6 +371,103 @@ function get_icon($icon) {
     return '<img style="background:0;" src="' . $CFG->wwwroot . "/images/icons/$icon.png" . '" />';
 }
 
+function icon(...$icons) {
+    $return = '';
+
+    if (!isMultiArray($icons)) { // Simple icon.
+        // rotate is rotate-90, rotate-180, rotate-270 classes.
+        $icon = (isset($icons["icon"]) ? $icons["icon"] : (isset($icons[0]) ? $icons[0] : $icons));
+        $icons = [
+            [
+                "icon" => $icon,
+                "size" => isset($icons["size"]) ? $icons["size"] : (isset($icons[1]) ? $icons[1] : 1),
+                "class" => isset($icons["class"]) ? $icons["class"] : (isset($icons[2]) ? $icons[2] : ""),
+                "color" => isset($icons["color"]) ? $icons["color"] : (isset($icons[3]) ? $icons[3] : icon_color($icon)),
+                "transform" => isset($icons["transform"]) ? $icons["transform"] : (isset($icons[4]) ? $icons[4] : ""),
+            ],
+        ];
+    } else {
+        $icons = $icons[0];
+    }
+
+    foreach ($icons as $layer) {
+        if (isset($layer["stacksize"])) {
+            $stacksize = $layer["stacksize"];
+        }
+        if (isset($layer["stackclass"])) {
+            $stackclass = $layer["stackclass"];
+        }
+        $content = $layer["content"] ?? "";
+        $icon = $layer["icon"] ?? "";
+        $styles = $layer["style"] ?? "";
+        $transform = $layer["transform"] ?? "";
+        $layersize = $layer["size"] ?? "";
+        $layersize = empty($layersize) ? "" : " fa-" . $layersize . 'x';
+
+        $layerclass = $layer["class"] ?? "";
+        $color = isset($layer["color"]) && !empty($layer["color"]) ? $layer["color"] : icon_color($icon);
+        $color = empty($color) ? "" : "color: " . $color . ";";
+
+        if (!empty($icon)) {
+            $return .= '<i style="' . $color . $styles . '" data-fa-transform="' . $transform . '" class="' . $layerclass . $layersize . ' fa-solid fa-' . $icon . '"></i>';
+        } else {
+            $return .= '<span style="' . $styles . '" data-fa-transform="' . $transform . '" class="fa-layers-text ' . $layerclass . '">' . $content . '</span>';
+        }
+    }
+
+    if (count($icons) > 1) {
+        $stacksize = $stacksize ?? "";
+        $stacksize = empty($stacksize) ? "" : "fa-" . $stacksize . "x";
+        $stackclass = $stackclass ?? "";
+        $return = '<span class="fa-layers fa-fw ' . $stacksize . ' ' . $stackclass . '">' . $return . '</span>';
+    }
+
+    return $return;
+}
+
+function icon_color($icon) {
+    // Certain icons have different color than others.
+    switch ($icon) {
+        case "key":
+            $color = "#b2bd22";
+            break;
+        case "sliders":
+            $color = "#755c91";
+            break;
+        case "trash":
+            $color = "grey";
+            break;
+        case "pencil":
+            $color = "#519d58";
+            break;
+        case "square-rss":
+            $color = "orange";
+            break;
+        case "circle-exclamation":
+            $color = "red";
+            break;
+        case "thumbs-up":
+            $color = "green";
+            break;
+        case "thumbs-down":
+            $color = "red";
+            break;
+        default:
+            return "";
+    }
+    return $color;
+}
+
+function active_icon($active = true) {
+    return '
+    <span style="padding: 5px;">
+    ' . icon([[
+        "icon" => "house",
+        "size" => "1.5",
+        "color" => ($active ? "#40df2e" : "#5c5c5c"),
+    ]]) . '
+    </span>';
+}
 function go_home_button($button_text = 'Back') {
     return '<div class="go_home"><button class="topleft_button" onclick="if (typeof(autoback) != \'undefined\') { clearTimeout(autoback); }
             location.reload();
@@ -511,7 +608,7 @@ function get_required_notes_forms($tag) {
 
 function get_children_button($chid, $class = "", $style = "", $action = "", $piconly = false, $name = true) {
     global $CFG;
-    $row = get_db_row("SELECT * FROM children WHERE chid='$chid' AND deleted=0");
+    $row = get_db_row("SELECT * FROM children WHERE chid='$chid'");
     $pic = children_document_link($row["chid"], "avatar");
 
     if ($pic) {

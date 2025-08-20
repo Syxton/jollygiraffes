@@ -166,7 +166,7 @@ function check_in_out_form() {
     $admin    = !empty($MYVARS->GET["admin"]) && $MYVARS->GET["admin"] != "false" ? true : false;
     $chids    = $MYVARS->GET["chid"];
     $aid      = $admin ? 0 : get_db_field("aid", "children", "chid='" . $chids[0]["value"] . "' AND deleted=0");
-    $returnme = $notes = $numpads = "";
+    $returnme = $notes = $numpads = $questions_open = $questions_closed = "";
 
     $children = "";
     foreach ($chids as $chid) {
@@ -174,7 +174,6 @@ function check_in_out_form() {
             "chid" => $chid["value"],
             "containerclass" => (empty($notes) ? 'child_wrapper ui-corner-all' : 'break'),
             "buttonstyles" => "float:left;",
-            "action" => $action,
             "piconly" => true,
         ]);
     }
@@ -232,10 +231,6 @@ function check_in_out_form() {
             </p>
         </div>
         ' . $numpads . '
-        <div class="optional_questions" style="">
-            <span style="display:inline-block;width:145px;"></span>
-            ' . $note_headers . '
-        </div>
         <div class="contact_headers">
             Who is checking them ' . $type . '?
         </div>
@@ -246,6 +241,14 @@ function check_in_out_form() {
             ' . $contacts . '
         </div>
         <div class="bottom center ui-corner-all">
+            <div class="optional_questions">
+                <div style="display: flex;justify-content: space-evenly;">
+                    ' . $note_headers . '
+                </div>
+                <div style="display: flex;justify-content: space-evenly;">
+                    ' . $notes . '
+                </div>
+            </div>
             <button class="submit_buttons big_button textfill"
                 onclick="if ($(\'.ui-selected\').length) {
                             if ($(\'.ui-selected #cid_other\').length && $(\'#other_numpad\').length) {
@@ -430,7 +433,7 @@ function check_in_out($chids, $cid, $type, $time = false) {
     $returnme .= $bday . '<div class="heading" style="margin:0px 10px;"><h1>Checked ' . ucwords($type) . ' on ' . $readabletime . ' by ' . $contact . '</h1>' . $remaining_balance . '</div>
                  <div class="container_main scroll-pane ui-corner-all fill_height_middle">' . $content . '</div>';
 
-    $returnme .= $type == "out" && !empty($notify) ? '<br /><div class="bottom center ui-corner-all" style="padding-bottom:10px;position:initial;max-height:initial;height:30%;">' . get_icon("alert") . ' <span style="position:relative;top:-8px;font-size:24px"><strong>Attention</strong></span><br />' . $notify . '</div>' : '';
+    $returnme .= $type == "out" && !empty($notify) ? '<br /><div class="bottom center ui-corner-all" style="padding-bottom:10px;position:initial;max-height:initial;height:30%;">' . icon("circle-exclamation") . ' <span style="position:relative;top:-8px;font-size:24px"><strong>Attention</strong></span><br />' . $notify . '</div>' : '';
 
     $returnme .= '<script type="text/javascript">
         ' . $confetti_start . '
@@ -885,7 +888,7 @@ function add_edit_tag() {
 
     $callback = empty($callback) ? false : $callback;
 
-    $tag = empty($tag) ? $update : $tag;
+    $tag = empty($tag) ? (isset($update) ? $update : false) : $tag;
     if (!empty($tag)) {
         $tag       = strtolower(str_replace(' ', '_', $tag));
         $title     = empty($title) ? ucwords(str_replace('_', ' ', $tag)) : ucwords($title);
@@ -1650,129 +1653,147 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
     $deleted       = $recover ? '1' : '0';
     $recover_param = $recover ? 'true' : '';
 
+    $forms = $display = "";
+
     // Expand button.
-    $returnme .= from_template("view_expand_button.php");
+    $display .= from_template("view_expand_button.php");
 
     if ($pid) { // Program actions
         $identifier = "pid_$pid";
         $program    = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
-        $returnme .= from_template("view_program_button.php", ["pid" => $pid]);
-        $returnme .= from_template("view_reports_button.php", ["pid" => $pid]);
+        $display .= from_template("view_program_button.php", ["pid" => $pid]);
+        $display .= from_template("view_reports_button.php", ["pid" => $pid]);
 
-        $returnme .= get_form("add_edit_expense", [
+        $forms .= get_form("add_edit_expense", [
             "pid"      => $pid,
             "callback" => "programs"
-        ], $identifier) . from_template("add_edit_expense_button.php", [
+        ], $identifier);
+
+        $display .= from_template("add_edit_expense_button.php", [
             "identifier" => $identifier,
-            "icon" => "payment",
+            "icon" => "money-bill-transfer",
             "title" => "Donations/Expenses",
         ]);
 
-        $returnme .= get_form("event_editor", [
+        $forms .= get_form("event_editor", [
             "pid"      => $pid,
             "callback" => "programs",
             "program"  => $program
-        ], $identifier) . from_template("event_editor_button.php", [
+        ], $identifier);
+
+        $display .= from_template("event_editor_button.php", [
             "identifier" => $identifier,
-            "icon" => "clock_big",
+            "icon" => "clock",
             "title" => "Edit Events",
         ]);
 
         $activebulletin = get_db_row("SELECT * FROM notes WHERE tag='bulletin' AND pid='$pid' AND aid='0' AND notify='2'") ? 'background:orange' : '';
-        $returnme .= get_form("bulletin", [
+        $forms .= get_form("bulletin", [
             "pid"      => $pid,
             "callback" => "programs"
-        ], $identifier) . from_template("bulletin_button.php", [
+        ], $identifier);
+
+        $display .= from_template("bulletin_button.php", [
             "identifier" => $identifier,
-            "icon" => "bulletin",
+            "icon" => "map-pin",
             "title" => "Bulletin",
             "style" => $activebulletin,
         ]);
 
         // Edit Program Details
-        $returnme .= get_form("add_edit_program", [
+        $forms .= get_form("add_edit_program", [
             "pid"      => $program["pid"],
             "callback" => "programs",
             "program"  => $program
-        ], $identifier) . from_template("add_edit_program_button.php", [
+        ], $identifier);
+
+        $display .= from_template("add_edit_program_button.php", [
             "identifier" => $identifier,
-            "icon" => "config",
+            "icon" => "wrench",
             "title" => "Edit Program",
         ]);
 
         if ($program["pid"] == $activepid) {
-            $returnme .= from_template("deactivate_program_button.php", ["pid" => $pid]);
+            $display .= from_template("deactivate_program_button.php", ["pid" => $pid]);
         } else {
-            $returnme .= from_template("activate_program_button.php", ["pid" => $pid]);
+            $display .= from_template("activate_program_button.php", ["pid" => $pid]);
         }
 
         // DELETE PROGRAM BUTTON
-        $returnme .= from_template("delete_program_button.php", ["pid" => $pid]);
+        $display .= from_template("delete_program_button.php", ["pid" => $pid]);
 
         // NEW YEAR BUTTON
-        $returnme .= from_template("newyear_program_button.php", ["pid" => $pid]);
+        $display .= from_template("newyear_program_button.php", ["pid" => $pid]);
     } elseif ($aid) { // Account actions
         $identifier = time() . "_aid_" . $aid;
 
         // View Account button.
-        $returnme .= from_template("view_account_button.php", ["aid" => $aid]);
+        $display .= from_template("view_account_button.php", ["aid" => $aid]);
 
         // View Reports tool button.
-        $returnme .= from_template("get_reports_list_button.php", ["aid" => $aid]);
+        $display .= from_template("get_reports_list_button.php", ["aid" => $aid]);
 
         // Add Child Form
-        $returnme .= get_form("add_edit_child", [
+        $forms .= get_form("add_edit_child", [
             "aid" => $aid
-        ], $identifier) . from_template("add_edit_child_button.php", [
+        ], $identifier);
+
+        $display .= from_template("add_edit_child_button.php", [
             "identifier" => $identifier,
-            "icon" => "child-add",
+            "icon" => "child-reaching",
             "title" => "Add Child",
         ]);
 
         if (!$recover) {
             // Add Contact Form
-            $returnme .= get_form("add_edit_contact", [
+            $forms .= get_form("add_edit_contact", [
                 "aid" => $aid
-            ], $identifier) . from_template("add_edit_child_button.php", [
+            ], $identifier);
+
+            $display .= from_template("add_edit_contact_button.php", [
                 "identifier" => $identifier,
-                "icon" => "contact-add",
+                "icon" => "person-breastfeeding",
                 "title" => "Add Contact",
             ]);
         }
 
-        $returnme .= get_form("add_edit_payment", [
+        $forms .= get_form("add_edit_payment", [
             "pid"          => get_pid(),
             "aid"          => $aid,
             "callback"     => "accounts",
             "callbackinfo" => $aid
-        ], $identifier) . from_template("add_edit_payment_button.php", [
+        ], $identifier);
+
+        $display .= from_template("add_edit_payment_button.php", [
             "identifier" => $identifier,
-            "icon" => "payment",
+            "icon" => "money-bill-1-wave",
             "title" => "Make Payment",
         ]);
 
-        $returnme .= get_form("bulletin", [
+        $forms .= get_form("bulletin", [
             "aid"      => $aid,
             "callback" => "accounts"
         ], $identifier);
         $activebulletin = get_db_row("SELECT * FROM notes WHERE tag='bulletin' AND pid='0' AND aid='$aid' AND notify='2'") ? 'background:orange' : '';
-        $returnme .= '<button title="Bulletin" style="' . $activebulletin . '" class="image_button" type="button" onclick="CreateDialog(\'bulletin_' . $identifier . '\', 360, 400)">' . get_icon('bulletin') . '</button>';
+        $display .= '<button title="Bulletin" style="' . $activebulletin . '" class="image_button" type="button" onclick="CreateDialog(\'bulletin_' . $identifier . '\', 360, 400)">' . icon("map-pin", "2") . '</button>';
 
         // Edit Account
         $account = get_db_row("SELECT * FROM accounts WHERE aid='$aid' AND deleted='$deleted'");
-        $returnme .= get_form("add_edit_account", [
+        $forms .= get_form("add_edit_account", [
             "account"       => $account,
             "recover_param" => $recover_param
-        ], $identifier) . from_template("add_edit_account_button.php", [
+        ], $identifier);
+
+        $display .= from_template("add_edit_account_button.php", [
             "identifier" => $identifier,
-            "icon" => "config",
+            "icon" => "wrench",
             "title" => "Edit Account",
         ]);
 
         if (!$recover) {
-            $returnme .= from_template("delete_account_button.php", ["aid" => $aid]);
+            $display .= from_template("deactivate_account_button.php", ["aid" => $aid]);
         } else {
-            $returnme .= from_template("activate_account_button.php", ["aid" => $aid]);
+            $display .= from_template("activate_account_button.php", ["aid" => $aid]);
         }
 
         // Billing
@@ -1782,7 +1803,17 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
         $child      = get_db_row("SELECT * FROM children WHERE chid='$chid'");
         $did        = get_db_field("did", "documents", "tag='avatar' AND chid='$chid'");
 
-        $returnme .= get_form("avatar", [
+        $display .= '<button title="Go to account" class="image_button" type="button" onclick="$.ajax({
+                type: \'POST\',
+                url: \'ajax/ajax.php\',
+                data: { action: \'get_admin_accounts_form\', aid: \'' . $child["aid"] . '\' } ,
+                success: function(data) {
+                    $(\'#admin_display\').html(data); refresh_all();
+                    $(\'.keypad_buttons\').toggleClass(\'selected_button\', true); $(\'.keypad_buttons\').not($(\'#accounts\')).toggleClass(\'selected_button\', false);
+                }
+            });">' . icon('magnifying-glass', "2") . '</button>';
+
+        $forms .= get_form("avatar", [
             "did"         => $did,
             "chid"        => $chid,
             "callback"    => "get_admin_children_form",
@@ -1790,42 +1821,49 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
             "param1value" => $child["chid"],
             "child"       => $child
         ], $identifier);
-        $returnme .= '<button title="Edit Picture" class="image_button" type="button" onclick="CreateDialog(\'avatar_' . $identifier . '\', 300, 400)">' . get_icon('avatar') . '</button>';
+        $display .= '<button title="Edit Picture" class="image_button" type="button" onclick="CreateDialog(\'avatar_' . $identifier . '\', 300, 400)">' . icon('camera', "2") . '</button>';
 
-        $returnme .= get_form("attach_doc", [
+        $forms .= get_form("attach_doc", [
             "chid"        => $child["chid"],
             "callback"    => "get_admin_children_form",
             "param1"      => "chid",
             "param1value" => $child["chid"],
             "child"       => $child
         ], $identifier);
-        $returnme .= '<button title="Attach Document" class="image_button" type="button" onclick="CreateDialog(\'attach_doc_' . $identifier . '\', 300, 400)">' . get_icon('doc-add') . '</button>';
+        $display .= '<button title="Attach Document" class="image_button" type="button" onclick="CreateDialog(\'attach_doc_' . $identifier . '\', 300, 400)">' . icon('paperclip', "2") . '</button>';
 
-        $returnme .= get_form("attach_note", [
+        $forms .= get_form("attach_note", [
             "nid"      => "",
             "chid"     => $child["chid"],
             "callback" => "children",
             "child"    => $child
         ], $identifier);
-        $returnme .= '<button title="Attach Note" class="image_button" type="button" onclick="CreateDialog(\'attach_note_' . $identifier . '\', 360, 400)">' . get_icon('note-add') . '</button>';
+        $display .= '<button title="Attach Note" class="image_button" type="button" onclick="CreateDialog(\'attach_note_' . $identifier . '\', 360, 400)">' . icon('comments', "2") . '</button>';
+
+        $forms .= get_form("add_edit_child", [
+            "aid"      => $child["aid"],
+            "callback" => "children",
+            "child"    => $child
+        ], $identifier);
+        $display .= '<button title="Edit Child" class="image_button" type="button" onclick="CreateDialog(\'add_edit_child_' . $identifier . '\', 300, 400)">' . icon('user-pen', "2") . '</button>';
 
         $enroll_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to unenroll ' . $child["first"] . ' ' . $child["last"] . '?\', \'Yes\', \'No\', function(){ $.ajax({
-                  type: \'POST\',
-                  url: \'ajax/ajax.php\',
-                  data: { action: \'toggle_enrollment\',pid:\'' . $activepid . '\',chid: \'' . $child["chid"] . '\' } ,
-                  success: function(data) {
-                    $.ajax({
-                        type: \'POST\',
-                        url: \'ajax/ajax.php\',
-                        data: { action: \'get_admin_children_form\', chid: \'\' } ,
-                        success: function(data) {
-                            $(\'#admin_display\').html(data); refresh_all();
-                        }
-                    } );
-                  }
-                  });},function(){});';
+            type: \'POST\',
+            url: \'ajax/ajax.php\',
+            data: { action: \'toggle_enrollment\',pid:\'' . $activepid . '\',chid: \'' . $child["chid"] . '\' } ,
+            success: function(data) {
+            $.ajax({
+                type: \'POST\',
+                url: \'ajax/ajax.php\',
+                data: { action: \'get_admin_children_form\', chid: \'\' } ,
+                success: function(data) {
+                    $(\'#admin_display\').html(data); refresh_all();
+                }
+            } );
+            }
+            });},function(){});';
 
-        $returnme .= get_form("add_edit_enrollment", [
+        $forms .= get_form("add_edit_enrollment", [
             "eid"      => get_db_field("eid", "enrollments", "chid='" . $child["chid"] . "' AND pid='$activepid'"),
             "refresh"  => true,
             "callback" => "children",
@@ -1833,26 +1871,10 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
             "pid"      => $activepid,
             "chid"     => $child["chid"]
         ], $identifier);
-        $returnme .= '<button title="Edit Enrollment" class="image_button" type="button" onclick="CreateDialog(\'add_edit_enrollment_' . $identifier . '\', 200, 400)">' . get_icon('enroll_edit') . '</button>';
+        $display .= '<button title="Edit Enrollment" class="image_button" type="button" onclick="CreateDialog(\'add_edit_enrollment_' . $identifier . '\', 200, 400)">' . icon('list-check', "2") . '</button>';
 
-        $returnme .= '<button title="Unenroll" class="image_button" type="button" onclick="' . $enroll_action . '">' . get_icon('enroll_delete') . '</button>';
 
-        $returnme .= '<button title="Go to account" class="image_button" type="button" onclick="$.ajax({
-                        type: \'POST\',
-                        url: \'ajax/ajax.php\',
-                        data: { action: \'get_admin_accounts_form\', aid: \'' . $child["aid"] . '\' } ,
-                        success: function(data) {
-                            $(\'#admin_display\').html(data); refresh_all();
-                            $(\'.keypad_buttons\').toggleClass(\'selected_button\', true); $(\'.keypad_buttons\').not($(\'#accounts\')).toggleClass(\'selected_button\', false);
-                        }
-                    });">' . get_icon('back') . '</button>';
-
-        $returnme .= get_form("add_edit_child", [
-            "aid"      => $child["aid"],
-            "callback" => "children",
-            "child"    => $child
-        ], $identifier);
-        $returnme .= '<button title="Edit Child" class="image_button" type="button" onclick="CreateDialog(\'add_edit_child_' . $identifier . '\', 300, 400)">' . get_icon('config') . '</button>';
+        $display .= '<button title="Unenroll" class="image_button" type="button" onclick="' . $enroll_action . '">' . icon('toggle-on', "2") . '</button>';
 
         $delete_action = from_template("action_child_activation.php", [
             "chid" => $child["chid"],
@@ -1863,14 +1885,14 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
         ]);
 
         // Delete Child Button
-        $returnme .= '
+        $display .= '
             <button title="Delete Child" class="image_button" type="button" onclick="' . $delete_action . '">
-                ' . get_icon('x') . '
+                ' . icon('trash', "2") . '
             </button>';
     } elseif ($cid) { // Contact Buttons
         $identifier = time() . "contact_$cid";
         $contact    = get_db_row("SELECT * FROM contacts WHERE cid='$cid'");
-        $returnme .= '<button title="Go to account" class="image_button" type="button" onclick="$.ajax({
+        $display .= '<button title="Go to account" class="image_button" type="button" onclick="$.ajax({
                         type: \'POST\',
                         url: \'ajax/ajax.php\',
                         data: { action: \'get_admin_accounts_form\', aid: \'' . $contact["aid"] . '\' } ,
@@ -1878,14 +1900,14 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
                             $(\'#admin_display\').html(data); refresh_all();
                             $(\'.keypad_buttons\').toggleClass(\'selected_button\', true); $(\'.keypad_buttons\').not($(\'#accounts\')).toggleClass(\'selected_button\', false);
                         }
-                    });">' . get_icon('back') . '</button>';
-        $returnme .= get_form("add_edit_contact", [
+                    });">' . icon('magnifying-glass', "2") . '</button>';
+        $forms .= get_form("add_edit_contact", [
             "callback" => "contacts",
             "contact"  => $contact
         ], $identifier);
-        $returnme .= '<button title="Edit Contact" class="image_button" type="button" onclick="CreateDialog(\'add_edit_contact_' . $identifier . '\', 520, 400)">' . get_icon('config') . '</button>';
+        $display .= '<button title="Edit Contact" class="image_button" type="button" onclick="CreateDialog(\'add_edit_contact_' . $identifier . '\', 520, 400)">' . icon('user-pen', '2') . '</button>';
         // Delete Contact Button
-        $returnme .= '<button title="Delete Contact" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to delete this contact?\', \'Yes\', \'No\', function(){ $.ajax({
+        $display .= '<button title="Delete Contact" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to delete this contact?\', \'Yes\', \'No\', function(){ $.ajax({
                         type: \'POST\',
                         url: \'ajax/ajax.php\',
                         data: { action: \'toggle_contact_activation\', cid: \'' . $cid . '\' } ,
@@ -1899,55 +1921,55 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
                               }
                           } );
                         }
-                    });}, function(){})">' . get_icon('x') . '</button>';
+                    });}, function(){})">' . icon('trash', '2') . '</button>';
     } elseif ($employeeid) {
         $identifier = time() . "_employeeid_" . $employeeid;
 
-        $employee = get_db_row("SELECT * FROM employee WHERE employeeid='$employeeid' AND deleted='$deleted'");
+        $employee = get_db_row("SELECT * FROM employee WHERE employeeid='$employeeid'");
 
         // Wage History
-        $returnme .= get_form("edit_employee_wage_history", [
+        $forms .= get_form("edit_employee_wage_history", [
             "employee"      => $employee,
             "recover_param" => $recover_param
         ], $identifier);
-        $returnme .= '<button title="Wage History" class="image_button" type="button" onclick="CreateDialog(\'edit_employee_wage_history_' . $identifier . '\', 400, 500)">' . get_icon('payment') . '</button>';
+        $display .= '<button title="Wage History" class="image_button" type="button" onclick="CreateDialog(\'edit_employee_wage_history_' . $identifier . '\', 400, 500)">' . icon('sack-dollar', "2") . '</button>';
 
         // Timecards
-        $returnme .= get_form("edit_employee_timecards", [
+        $forms .= get_form("edit_employee_timecards", [
             "employee"      => $employee,
             "recover_param" => $recover_param
         ], $identifier);
-        $returnme .= '<button title="Timecards" class="image_button" type="button" onclick="CreateDialog(\'edit_employee_timecards_' . $identifier . '\', 400, 500)">' . get_icon('clock_big') . '</button>';
+        $display .= '<button title="Timecards" class="image_button" type="button" onclick="CreateDialog(\'edit_employee_timecards_' . $identifier . '\', 400, 500)">' . icon('stopwatch', "2") . '</button>';
 
         // Edit Employee
-        $returnme .= get_form("add_edit_employee", [
+        $forms .= get_form("add_edit_employee", [
             "employee"      => $employee,
             "recover_param" => $recover_param
         ], $identifier);
-        $returnme .= '<button title="Edit Employee" class="image_button" type="button" onclick="CreateDialog(\'add_edit_employee_' . $identifier . '\', 230, 315)">' . get_icon('config') . '</button>';
+        $display .= '<button title="Edit Employee" class="image_button" type="button" onclick="CreateDialog(\'add_edit_employee_' . $identifier . '\', 230, 315)">' . icon('wrench', '2') . '</button>';
 
         if (!$recover) {
-            $returnme .= '<button title="Delete Employee" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to delete this employee?\', \'Yes\', \'No\', function(){ $.ajax({
+            $display .= '<button title="Deactivate Employee" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to deactivate this employee?\', \'Yes\', \'No\', function(){ $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
-                            data: { action: \'delete_employee\', employeeid: \'' . $employeeid . '\' } ,
+                            data: { action: \'deactivate_employee\', employeeid: \'' . $employeeid . '\' } ,
                             success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                        });}, function(){})">' . get_icon('x') . '</button>';
+                        });}, function(){})">' . icon('toggle-on', '2') . '</button>';
         } else {
-            $returnme .= '<button title="Reactivate Employee" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to reactivate this employee?\', \'Yes\', \'No\', function(){ $.ajax({
+            $display .= '<button title="Reactivate Employee" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to reactivate this employee?\', \'Yes\', \'No\', function(){ $.ajax({
                             type: \'POST\',
                             url: \'ajax/ajax.php\',
                             data: { action: \'activate_employee\', employeeid: \'' . $employeeid . '\' } ,
                             success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                        });}, function(){})">' . get_icon('checkmark') . '</button>';
+                        });}, function(){})">' . icon('toggle-off', '2') . '</button>';
         }
     } elseif ($actid) {
     }
 
     if ($return) {
-        return $returnme;
+        return $forms . $display;
     } else {
-        echo $returnme;
+        echo $forms . $display;
     }
 }
 
@@ -1986,7 +2008,7 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
             url: \'ajax/ajax.php\',
             data: { action: \'view_invoices\', aid: \'' . $aid . '\',pid: \'' . $pid . '\' } ,
             success: function(data) { $(\'#info_div\').html(data); refresh_all(); }
-        });">' . get_icon('invoicegroup') . '</button>';
+        });">' . icon('layer-group', "2") . '</button>';
 
         // view invoices timeline
         $returnme .= '<button title="Show Invoice Timeline" class="image_button" type="button" onclick="$.ajax({
@@ -1994,7 +2016,7 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
             url: \'ajax/ajax.php\',
             data: { action: \'view_invoices\', aid: \'' . $aid . '\',pid: \'' . $pid . '\',orderbytime: true } ,
             success: function(data) { $(\'#info_div\').html(data); refresh_all(); }
-        });">' . get_icon('invoicetimeline') . '</button>';
+        });">' . icon('timeline', "2") . '</button>';
     }
 
     if (empty($aid)) {
@@ -2033,7 +2055,7 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
             } );
             </script>';
 
-        $returnme .= '  <button title="Print Tax Papers" class="image_button" type="button" onclick="$(\'#myValidForm\').submit();">' . get_icon('print') . '</button>
+        $returnme .= '  <button title="Print Tax Papers" class="image_button" type="button" onclick="$(\'#myValidForm\').submit();">' . icon('print', "2") . '</button>
                     </form>';
     }
 
@@ -2042,7 +2064,7 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
             "pid" => $pid,
             "aid" => $aid
         ], $identifier);
-        $returnme .= '<button title="Calculate Invoices" class="image_button" type="button" onclick="CreateDialog(\'create_invoices_' . $identifier . '\', 200, 550)">' . get_icon('calculator') . '</button>';
+        $returnme .= '<button title="Calculate Invoices" class="image_button" type="button" onclick="CreateDialog(\'create_invoices_' . $identifier . '\', 200, 550)">' . icon('calculator', "2") . '</button>';
     }
 
     if ($aid && $pid) {
@@ -2081,7 +2103,7 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
             } );
             </script>';
 
-        $returnme .= '  <button title="Print Tax Papers" class="image_button" type="button" onclick="$(\'#myValidForm\').submit();">' . get_icon('print') . '</button>
+        $returnme .= '  <button title="Print Tax Papers" class="image_button" type="button" onclick="$(\'#myValidForm\').submit();">' . icon('print', "2") . '</button>
                     </form>';
 
         $override = get_db_row("SELECT * FROM billing_override WHERE pid='$pid' AND aid='$aid'");
@@ -2092,7 +2114,7 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
             "callback" => "billing",
             "override" => $override
         ], $identifier);
-        $returnme .= '<button title="Billing Overrides" class="image_button" type="button" onclick="CreateDialog(\'billing_overrides_' . $identifier . '\', 400, 400)">' . get_icon('config') . '</button>';
+        $returnme .= '<button title="Billing Overrides" class="image_button" type="button" onclick="CreateDialog(\'billing_overrides_' . $identifier . '\', 400, 400)">' . icon('vault', "2") . '</button>';
     }
 
     if ($return) {
@@ -2188,11 +2210,18 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 "callback"     => "billing",
                 "callbackinfo" => $aid
             ], $identifier);
-            $payfee_button .= '<button style="font-size: 9px;" type="button" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\', 300, 400)">Add Payment/Fee</button>';
-            $list_invoices_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoice&pid=' . $pid . '&aid=' . $account["aid"] . '&time=' . time() . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 0px 7px 2px 4px;">' . get_icon('list_small') . ' List Invoices</span></a>';
-            $timeline_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoicetimeline&pid=' . $pid . '&aid=' . $account["aid"] . '&time=' . time() . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 0px 7px 2px 4px;">' . get_icon('calendar') . ' Invoice Timeline</span></a>';
+            $payfee_button .= '<a style="font-size: 9px;" href="javascript: void(0);" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all" style="padding: 5px;">' . icon('money-bill') . ' Add Payment/Fee</span></a>';
+            $list_invoices_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoice&pid=' . $pid . '&aid=' . $account["aid"] . '&time=' . time() . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 5px;">' . icon('list') . ' List Invoices</span></a>';
+            $timeline_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoicetimeline&pid=' . $pid . '&aid=' . $account["aid"] . '&time=' . time() . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 5px;">' . icon('timeline') . ' Invoice Timeline</span></a>';
 
-            $returnme .= '<div class="document_list_item ui-corner-all"><strong>Account: ' . $account["name"] . '</strong><div style="padding: 6px;">' . $list_invoices_button . " " . $timeline_button . " " . $payfee_button . '</div>';
+            $returnme .= '
+                <div class="document_list_item ui-corner-all">
+                    <div style="padding: 6px;display:flex;align-items: center;">
+                        <span>
+                            <strong>Account: ' . $account["name"] . '</strong>
+                        </span>
+                        ' . $list_invoices_button . $timeline_button . $payfee_button . '
+                    </div>';
 
             if (empty($orderbytime)) {  // Group all transactions
                 // Fees
@@ -2200,9 +2229,26 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 if ($payments = get_db_result($SQL)) {
                     $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2"));
                     $total_fee = empty($total_fee) ? "0.00" : $total_fee;
-                    $returnme .= '<div class="ui-corner-all list_box invoice_bills" style="background-color:darkRed;">
-                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">' . get_icon('plusminus') . ' </td><td>Fees</td><td style="width:50%;text-align:right"><strong>Total Fees: </strong>$' . number_format($total_fee, 2) . '</td></tr></table></a></div>
-                                        <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
+                    $returnme .= '
+                        <div class="ui-corner-all list_box invoice_bills" style="background-color:darkRed;">
+                            <div class="flexsection">
+                                <a href="javascript: void(0);" style="color: white;">
+                                    <table style="width:100%;color: inherit;font: inherit;">
+                                        <tr>
+                                            <td class="hide_mobile" style="width: 16px;">
+                                                ' . get_icon('plusminus') . '
+                                            </td>
+                                            <td>
+                                                Fees
+                                            </td>
+                                            <td style="width:50%;text-align:right">
+                                                <strong>Total Fees: </strong>$' . number_format($total_fee, 2) . '
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </a>
+                            </div>
+                            <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                     while ($payment = fetch_row($payments)) {
                         $identifier          = time() . "accountpaymentpayid_" . $payment["payid"];
                         $edit_payment_button = get_form("add_edit_payment", [
@@ -2253,9 +2299,26 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 if ($payments = get_db_result($SQL)) {
                     $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2");
                     $total_paid = empty($total_paid) ? "0.00" : $total_paid;
-                    $returnme .= '<div class="ui-corner-all list_box invoice_payments" style="background-color:darkCyan;">
-                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">' . get_icon('plusminus') . ' </td><td class="hide_mobile">Payments</td><td style="width:50%;text-align:right"><strong>Total Payments:</strong> $' . number_format($total_paid, 2) . '</td></tr></table></a></div>
-                                        <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
+                    $returnme .= '
+                        <div class="ui-corner-all list_box invoice_payments" style="background-color:darkCyan;">
+                            <div class="flexsection">
+                                <a href="javascript: void(0);" style="color: white;">
+                                    <table style="width:100%;color: inherit;font: inherit;">
+                                        <tr>
+                                            <td class="hide_mobile" style="width: 16px;">
+                                                ' . get_icon('plusminus') . '
+                                            </td>
+                                            <td class="hide_mobile">
+                                                Payments
+                                            </td>
+                                            <td style="width:50%;text-align:right">
+                                                <strong>Total Payments:</strong> $' . number_format($total_paid, 2) . '
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </a>
+                            </div>
+                            <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                     while ($payment = fetch_row($payments)) {
                         $identifier          = time() . "accountpaymentpayid_" . $payment["payid"];
                         $edit_payment_button = get_form("add_edit_payment", [
@@ -2306,7 +2369,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 if ($invoices = get_db_result($SQL)) {
                     while ($invoice = fetch_row($invoices)) {
                         $returnme .= '<div class="ui-corner-all list_box invoice_week">
-                                        <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">' . get_icon('plusminus') . ' </td><td style="width:50%">Week of <span class="hide_mobile">' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</span><span class="show_mobile">' . date('m/d/Y', $invoice["fromdate"]) . '</span></td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($invoice["owed"], 2) . '</td></tr></table></a></div>
+                                        <div class="flexsection"><a href="javascript: void(0);" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">' . get_icon('plusminus') . ' </td><td style="width:50%">Week of <span class="hide_mobile">' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</span><span class="show_mobile">' . date('m/d/Y', $invoice["fromdate"]) . '</span></td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($invoice["owed"], 2) . '</td></tr></table></a></div>
                                         <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                         $SQL = "SELECT * FROM billing_perchild WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND fromdate = '" . $invoice["fromdate"] . "' ORDER BY id";
 
@@ -2356,9 +2419,23 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                     while ($result = fetch_row($results)) {
                         if (!$result["bill"]) { // Payment or Fee
                             if ($result["amount"] < 0) { // Fee
-                                $returnme .= '<div class="ui-corner-all list_box invoice_bills" style="background-color:darkRed;padding: 5px;color: white;">
-                                                    <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">' . get_icon('plusminus') . ' </td><td style="width:50%;text-align:right"><strong>Fee:</strong> $' . number_format(abs($result["amount"]), 2) . '</td></tr></table></a></div>
-                                                    <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
+                                $returnme .= '
+                                    <div class="ui-corner-all list_box invoice_bills" style="background-color:darkRed;padding: 5px;color: white;">
+                                        <div class="flexsection">
+                                            <a href="javascript: void(0);" style="color: white;">
+                                                <table style="width:100%;color: inherit;font: inherit;">
+                                                    <tr>
+                                                        <td class="hide_mobile" style="width: 16px;">
+                                                            ' . get_icon('plusminus') . '
+                                                        </td>
+                                                        <td style="width:50%;text-align:right">
+                                                            <strong>Fee:</strong> $' . number_format(abs($result["amount"]), 2) . '
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </a>
+                                        </div>
+                                        <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
 
                                 $identifier          = time() . "accountpaymentpayid_" . $result["id"];
                                 $result["payment"] = $result["amount"];
@@ -2388,28 +2465,43 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
                                 $paytext = $result["amount"] >= 0 ? "Payment of " : "Fee of ";
                                 $note = empty($result["note"]) ? "" : '<tr><td><em>Note: ' . $result["note"] . '</em></td></tr>';
-                                $returnme .= '<div>
-                                                 <table style="width:100%;color: inherit;font: inherit;">
-                                                     <tr>
-                                                         <td style="width: 40px;">' . $edit_payment_button . '</td>
-                                                         <td>
-                                                             <table style="width: 100%;font-size: 11px;background-color: rgba(255, 255, 255, .4);border: 1px solid silver;">
-                                                                 <tr>
-                                                                     <td style="font-weight: bold;">' . $paytext . ' $' . number_format(abs($result["amount"]), 2) . ' was added on ' . date('m/d/Y', display_time($result["fromdate"])) . '</td>
-                                                                 </tr>
-                                                                 ' . $note . '
-                                                             </table>
-                                                         </td>
-                                                         <td style="width: 50px;">' . $delete_payment . '</td>
-                                                     </tr>
-                                                 </table>
-                                               </div>
-                                             </div>
-                                           </div>';
+                                $returnme .= '
+                                            <div>
+                                                <table style="width:100%;color: inherit;font: inherit;">
+                                                    <tr>
+                                                        <td style="width: 40px;">' . $edit_payment_button . '</td>
+                                                        <td>
+                                                            <table style="width: 100%;font-size: 11px;background-color: rgba(255, 255, 255, .4);border: 1px solid silver;">
+                                                                <tr>
+                                                                    <td style="font-weight: bold;">' . $paytext . ' $' . number_format(abs($result["amount"]), 2) . ' was added on ' . date('m/d/Y', display_time($result["fromdate"])) . '</td>
+                                                                </tr>
+                                                                ' . $note . '
+                                                            </table>
+                                                        </td>
+                                                        <td style="width: 50px;">' . $delete_payment . '</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>';
                             } else { // Payment
-                                $returnme .= '<div class="ui-corner-all list_box invoice_payments" style="background-color:darkCyan;padding: 5px;color: white;">
-                                                    <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">' . get_icon('plusminus') . ' </td><td style="width:50%;text-align:right"><strong>Payment:</strong> $' . number_format($result["amount"], 2) . '</td></tr></table></a></div>
-                                                    <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
+                                $returnme .= '
+                                    <div class="ui-corner-all list_box invoice_payments" style="background-color:darkCyan;padding: 5px;color: white;">
+                                        <div class="flexsection">
+                                            <a href="javascript: void(0);" style="color: white;">
+                                                <table style="width:100%;color: inherit;font: inherit;">
+                                                    <tr>
+                                                        <td class="hide_mobile" style="width: 16px;">
+                                                            ' . get_icon('plusminus') . '
+                                                        </td>
+                                                        <td style="width:50%;text-align:right">
+                                                            <strong>Payment:</strong> $' . number_format($result["amount"], 2) . '
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </a>
+                                        </div>
+                                        <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
 
                                 $identifier          = time() . "accountpaymentpayid_" . $result["id"];
                                 $result["payment"] = $result["amount"];
@@ -2439,29 +2531,48 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
                                 $paytext = $result["amount"] >= 0 ? "Payment of " : "Fee of ";
                                 $note = empty($result["note"]) ? "" : '<tr><td><em>Note: ' . $result["note"] . '</em></td></tr>';
-                                $returnme .= '<div>
-                                                 <table style="width:100%;color: inherit;font: inherit;">
-                                                     <tr>
-                                                         <td style="width: 40px;">' . $edit_payment_button . '</td>
-                                                         <td>
-                                                             <table style="width: 100%;font-size: 11px;background-color: rgba(255, 255, 255, .4);border: 1px solid silver;">
-                                                                 <tr>
-                                                                     <td style="font-weight: bold;">' . $paytext . ' $' . number_format(abs($result["amount"]), 2) . ' was added on ' . date('m/d/Y', display_time($result["fromdate"])) . '</td>
-                                                                 </tr>
-                                                                 ' . $note . '
-                                                             </table>
-                                                         </td>
-                                                         <td style="width: 50px;">' . $delete_payment . '</td>
-                                                     </tr>
-                                                 </table>
-                                               </div>
-                                             </div>
-                                           </div>';
+                                $returnme .= '
+                                            <div>
+                                                <table style="width:100%;color: inherit;font: inherit;">
+                                                    <tr>
+                                                        <td style="width: 40px;">' . $edit_payment_button . '</td>
+                                                        <td>
+                                                            <table style="width: 100%;font-size: 11px;background-color: rgba(255, 255, 255, .4);border: 1px solid silver;">
+                                                                <tr>
+                                                                    <td style="font-weight: bold;">' . $paytext . ' $' . number_format(abs($result["amount"]), 2) . ' was added on ' . date('m/d/Y', display_time($result["fromdate"])) . '</td>
+                                                                </tr>
+                                                                ' . $note . '
+                                                            </table>
+                                                        </td>
+                                                        <td style="width: 50px;">' . $delete_payment . '</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>';
                             }
                         } else { // Bill
-                            $returnme .= '<div class="ui-corner-all list_box invoice_week" style="padding: 5px;color: white;">
-                                            <div class="flexsection"><a href="javascript: void(0)" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">' . get_icon('plusminus') . ' </td><td style="width:50%">Week of <span class="hide_mobile">' . date('F \t\h\e jS, Y', $result["fromdate"]) . '</span><span class="show_mobile">' . date('m/d/Y', $result["fromdate"]) . '</span></td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($result["amount"], 2) . '</td></tr></table></a></div>
-                                            <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
+                            $returnme .= '
+                                <div class="ui-corner-all list_box invoice_week" style="padding: 5px;color: white;">
+                                    <div class="flexsection">
+                                        <a href="javascript: void(0);" style="color: white;">
+                                            <table style="width:100%;color: inherit;font: inherit;">
+                                                <tr>
+                                                    <td class="hide_mobile" style="width: 16px;">
+                                                        ' . get_icon('plusminus') . '
+                                                    </td>
+                                                    <td style="width:50%">
+                                                        Week of <span class="hide_mobile">' . date('F \t\h\e jS, Y', $result["fromdate"]) . '</span>
+                                                        <span class="show_mobile">' . date('m/d/Y', $result["fromdate"]) . '</span>
+                                                    </td>
+                                                    <td style="width:50%;text-align:right">
+                                                        <strong>Bill: </strong>$' . number_format($result["amount"], 2) . '
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </a>
+                                    </div>
+                                    <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                             $SQL = "SELECT * FROM billing_perchild WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND fromdate = '" . $result["fromdate"] . "' ORDER BY id";
 
                             if ($perchild_invoices = get_db_result($SQL)) {
@@ -2485,7 +2596,9 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                     $returnme .= '<div class="week_receipt"><span>' . $perchild_invoice["receipt"] . $exempt_show . "</span><span>$exempt_button</span></div>";
                                 }
                             }
-                            $returnme .= '</div></div>';
+                            $returnme .= '
+                                    </div>
+                                </div>';
                         }
                     }
                     $total_billed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "' $yearsql");
@@ -2493,30 +2606,67 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                     $total_billed = empty($total_billed) ? "0.00" : $total_billed;
                 }
             }
+
             // Add current week charges.
             if (($year == "all" || $year == date("Y")) && $current_week = week_balance($pid, $account["aid"], true)) {
-                $returnme .= '<div class="ui-corner-all list_box invoice_week" style="padding: 5px;color: white;">
-                                <div><a style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width:50%">Current Week</td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($current_week, 2) . '</td></tr></table></a></div>
-                              </div>';
+                $returnme .= '
+                    <div class="ui-corner-all list_box invoice_week" style="padding: 5px;color: white;">
+                        <div>
+                            <a style="color: white;">
+                                <table style="width:100%;color: inherit;font: inherit;">
+                                    <tr>
+                                        <td style="width:50%">
+                                            Current Week
+                                        </td>
+                                        <td style="width:50%;text-align:right">
+                                            <strong>Bill: </strong>$' . number_format($current_week, 2) . '
+                                        </td>
+                                    </tr>
+                                </table>
+                            </a>
+                        </div>
+                    </div>';
                 $total_billed += (float) $current_week;
             }
 
             $balance = $total_billed - $total_paid + $beginning_balance;
-            $returnme .= '<div style="padding: 0px 12px;">
-            <div style="text-align: right;color: darkred;"><strong>Beginning Year Balance:</strong> $' . number_format($beginning_balance, 2) . '</div>
-                            <div style="text-align: right;color: darkred;"><strong>Owed:</strong> $' . number_format($total_billed, 2) . '</div>
-                            <div style="text-align: right;color: blue;"><strong>Paid:</strong> $' . number_format($total_paid, 2) . '</div>
-                            <hr align="right" style="width:100px;" />
-                            <div style="text-align: right"><strong>Balance:</strong> $' . number_format($balance, 2) . '</div>
-                          </div>';
+            $returnme .= '
+                <div style="padding: 0px 12px;">
+                    <div style="text-align: right;color: darkred;">
+                        <strong>Beginning Year Balance:</strong> $' . number_format($beginning_balance, 2) . '
+                    </div>
+                    <div style="text-align: right;color: darkred;">
+                        <strong>Owed:</strong> $' . number_format($total_billed, 2) . '
+                    </div>
+                    <div style="text-align: right;color: blue;">
+                        <strong>Paid:</strong> $' . number_format($total_paid, 2) . '
+                    </div>
+                    <hr align="right" style="width:100px;" />
+                    <div style="text-align: right">
+                        <strong>Balance:</strong> $' . number_format($balance, 2) . '
+                    </div>
+                </div>';
 
             // Expected next week if prepaid.
             if (get_db_field("payahead", "programs", "pid='$pid'")) { // if prepaid
-                $returnme .= '<div class="ui-corner-all list_box invoice_week" style="padding: 5px;color: white; background: green;">
-                                <div><a style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td style="width:50%">Next Week</td><td style="width:50%;text-align:right"><strong>Prepay Expected: </strong>$' . number_format(week_balance($pid, $account["aid"], true, true), 2) . '</td></tr></table></a></div>
-                              </div>';
+                $returnme .= '
+                    <div class="ui-corner-all list_box invoice_week" style="padding: 5px;color: white; background: green;">
+                        <div>
+                            <a style="color: white;">
+                                <table style="width:100%;color: inherit;font: inherit;">
+                                    <tr>
+                                        <td style="width:50%">
+                                            Next Week
+                                        </td>
+                                        <td style="width:50%;text-align:right">
+                                            <strong>Prepay Expected: </strong>$' . number_format(week_balance($pid, $account["aid"], true, true), 2) . '
+                                        </td>
+                                    </tr>
+                                </table>
+                            </a>
+                        </div>
+                    </div>';
             }
-
             $returnme .= '</div>';
         }
         $returnme .= '</div>';
@@ -2553,7 +2703,7 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
     } elseif ($cid) { // Contacts
         include("contactstab.php");
     } elseif ($employeeid) { // Employees
-        include("employeetab.php");
+        include("employeestab.php");
     }
 
     if ($return) {
@@ -2612,7 +2762,7 @@ function delete_activity() {
     }
 }
 
-function delete_employee_activity() {
+function deactivate_employee_activity() {
     global $CFG, $MYVARS;
     $employeeid = empty($MYVARS->GET["employeeid"]) ? false : $MYVARS->GET["employeeid"];
     $actid      = empty($MYVARS->GET["actid"]) ? false : $MYVARS->GET["actid"];
@@ -2677,7 +2827,7 @@ function get_documents_list($return = false, $aid = null, $chid = null, $cid = n
         // View All button
         $returnme .= '
                 <div class="document_list_item ui-corner-all" style="text-align:center">
-                    <a href="ajax/fileviewer.php?chid=' . $chid . '" class="nyroModal"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View All</span></a>
+                    <a href="ajax/fileviewer.php?chid=' . $chid . '" class="nyroModal"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View All</span></a>
                 </div>';
         while ($document = fetch_row($documents)) {
             $delete_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this \'+$(\'a#a-' . $document["did"] . '\').attr(\'data\')+\' document?\', \'Yes\', \'No\',
@@ -2717,7 +2867,7 @@ function get_documents_list($return = false, $aid = null, $chid = null, $cid = n
                         <span class="tag-description">
                             ' . $document["description"] . '
                         </span>
-                        <span class="list_links"><a href="ajax/fileviewer.php?did=' . $document["did"] . '" class="nyroModal"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Document</span></a> <a href="javascript: void(0);" onclick="CreateDialog(\'attach_doc_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all">' . get_icon('table_edit') . ' Update Document</span></a> <a id="a-' . $document["did"] . '" data="' . $document["tag"] . '" href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . get_icon('bin_closed') . ' Delete Document</span></a></span>
+                        <span class="list_links"><a href="ajax/fileviewer.php?did=' . $document["did"] . '" class="nyroModal"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Document</span></a> <a href="javascript: void(0);" onclick="CreateDialog(\'attach_doc_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all">' . icon('pen-to-square') . ' Update Document</span></a> <a id="a-' . $document["did"] . '" data="' . $document["tag"] . '" href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . icon('trash') . ' Delete Document</span></a></span>
                     </div>
                 </div>';
         }
@@ -2764,7 +2914,7 @@ function get_notes_list($return = false, $aid = null, $chid = null, $cid = null,
             <div class="document_list_item ui-corner-all" style="text-align:center">
                 <a href="ajax/reports.php?report=allnotes&type=' . $type . '&id=' . $id . '" class="nyroModal">
                     <span class="inline-button ui-corner-all">
-                        ' . get_icon('magnifier') . ' View All
+                        ' . icon('magnifying-glass') . ' View All
                     </span>
                 </a>
             </div>';
@@ -2809,7 +2959,7 @@ function get_notes_list($return = false, $aid = null, $chid = null, $cid = null,
                         <span class="tag-description">
                             ' . $note["note"] . '
                         </span>
-                        <span class="list_links"><a href="javascript: void(0);" onclick="CreateDialog(\'attach_note_' . $identifier . '\', 360, 400)"><span class="inline-button ui-corner-all">' . get_icon('table_edit') . ' Update Note</span></a> <a id="a-' . $note["nid"] . '" data="' . $note["tag"] . '" href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . get_icon('bin_closed') . ' Delete Note</span></a></span>
+                        <span class="list_links"><a href="javascript: void(0);" onclick="CreateDialog(\'attach_note_' . $identifier . '\', 360, 400)"><span class="inline-button ui-corner-all">' . icon('pen-to-square') . ' Update Note</span></a> <a id="a-' . $note["nid"] . '" data="' . $note["tag"] . '" href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . icon('trash') . ' Delete Note</span></a></span>
                     </div>
                 </div>';
         }
@@ -2867,65 +3017,65 @@ function get_reports_list($return = false, $pid = null, $aid = null, $chid = nul
     switch ($type) {
         case "pid":
             // Simple Child List
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'child_list\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' List of Children</span></a><div class="report-cubes-container"></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'child_list\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' List of Children</span></a><div class="report-cubes-container"></div>';
             // Child attendance between dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'program_per_child_attendance\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Per Child Attendance Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'program_per_child_attendance\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Per Child Attendance Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
             // Per Account attendance between dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'program_per_account_attendance\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Per Account Attendance Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'program_per_account_attendance\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Per Account Attendance Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
             // Activities between dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
             // Daily Activity Tag Count Between Dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
             // Daily Attendance Breakdown 30 min
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'attendance_throughout_day\'); $(\'#extra\').val(\'30\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' Daily Attendance 30min Breakdown</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'attendance_throughout_day\'); $(\'#extra\').val(\'30\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Attendance 30min Breakdown</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
             // Daily Attendance Breakdown 15 min
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'attendance_throughout_day\'); $(\'#extra\').val(\'15\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' Daily Attendance 15min Breakdown</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'attendance_throughout_day\'); $(\'#extra\').val(\'15\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Attendance 15min Breakdown</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
             // Meal Status Count Between Dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'meal_status_count\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' Meal Status Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'meal_status_count\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Meal Status Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
             // Notes between dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'allnotes\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Notes Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: pink"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'allnotes\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Notes Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: pink"></div><div class="cube" style="background-color: lightblue"></div></div>';
             // Week expected attendance
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'weekly_expected_attendance\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' Expected attendance vs Actual attendance</span></a><div class="report-cubes-container"></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'weekly_expected_attendance\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Expected attendance vs Actual attendance</span></a><div class="report-cubes-container"></div>';
             // Account Balances
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_account_bill\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View All Account Balances</span></a><div class="report-cubes-container"></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_account_bill\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View All Account Balances</span></a><div class="report-cubes-container"></div>';
             // Program Cash Flow
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_program_cash_flow\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Program Cash Flow</span></a><div class="report-cubes-container"></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_program_cash_flow\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Program Cash Flow</span></a><div class="report-cubes-container"></div>';
             // Program Payments between dates (optional)
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'payments_between\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' Program Payments (dates optional)</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'payments_between\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Program Payments (dates optional)</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
             break;
         case "aid":
             // Activities between dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
             // Daily Activity Tag Count Between Dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
             // Invoice Between Dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'invoice_between\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' Invoice Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'invoice_between\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Invoice Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
             // Notes between dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'allnotes\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Notes Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: pink"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'allnotes\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Notes Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: pink"></div><div class="cube" style="background-color: lightblue"></div></div>';
             // Account Cash Flow
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_program_cash_flow\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Account Cash Flow</span></a><div class="report-cubes-container"></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_program_cash_flow\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Account Cash Flow</span></a><div class="report-cubes-container"></div>';
             // Account Payments
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'payments_between\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' Account Payments - FOR TAXES</span></a><div class="report-cubes-container"></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'payments_between\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Account Payments - FOR TAXES</span></a><div class="report-cubes-container"></div>';
             break;
         case "chid":
             // Child Activities Between Dates
-            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
             // Daily Activity Tag Count Between Dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
             // Child Notes Between Dates
-            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'allnotes\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Notes Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: pink"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'allnotes\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Notes Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: pink"></div><div class="cube" style="background-color: lightblue"></div></div>';
             break;
         case "cid":
             // Daily Activity Tag Count Between Dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
             // Contact Activities Between Dates
-            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
             break;
         case "employeeid":
             // Employee Activities Between Dates
-            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
             // Employee Pay Between Dates
-            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'employee_paid\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View Pay Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'employee_paid\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Pay Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
             break;
         case "actid":
             break;
@@ -3009,38 +3159,60 @@ function get_activity_list($return = false, $aid = null, $chid = null, $cid = nu
     $nextyear  = ($month + 1) == 13 ? $year + 1 : $year;
     // View All button
     $returnme .= '
-            <div class="document_list_item ui-corner-all" style="text-align:center">
-                <a href="ajax/reports.php?month1=' . $month . '&year1=' . $year . '&report=activity&type=' . $type . '&id=' . $id . '" class="nyroModal"><span class="inline-button ui-corner-all">' . get_icon('magnifier') . ' View All ' . date('F', mktime(0, 0, 0, $month, 1, $year)) . '</span></a>
-            </div>';
-    $returnme .= '<div class="document_list_item ui-corner-all" style="text-align:center;"><table class="fill_width" cellpadding="0" cellspacing="0"><tr><td style="text-align: left;"><a href="javascript: void(0);" onclick="
-    $.ajax({
-        type: \'POST\',
-        url: \'ajax/ajax.php\',
-        data: { action: \'get_activity_list\',' . $type . ': \'' . $$type . '\',month:\'' . $prevmonth . '\',year:\'' . $prevyear . '\' } ,
-        success: function(data) {
-                $(\'#subselect_div\').hide(\'fade\');
-                $(\'#subselect_div\').html(data);
-                $(\'#subselect_div\').show(\'fade\');
-                refresh_all();
-            }
-    } );">' . date('F Y', mktime(0, 0, 0, $prevmonth, 1, $prevyear)) . '</a></td><td colspan="5" style="text-align:center;font-size:130%;font-weight:bold;">' . date('F Y', mktime(0, 0, 0, $month, 1, $year)) . '</td><td style="text-align:right"><a href="javascript: void(0);" onclick="
-    $.ajax({
-        type: \'POST\',
-        url: \'ajax/ajax.php\',
-        data: { action: \'get_activity_list\',' . $type . ': \'' . $$type . '\',month:\'' . $nextmonth . '\',year:\'' . $nextyear . '\' } ,
-        success: function(data) {
-                $(\'#subselect_div\').hide(\'fade\', function() {} );
-                $(\'#subselect_div\').html(data);
-                $(\'#subselect_div\').show(\'fade\');
-                refresh_all();
-            }
-    });">' . date('F Y', mktime(0, 0, 0, $nextmonth, 1, $nextyear)) . '</a></td></tr><tr><td colspan="7" style="height:10px;"></td></tr></table>';
-    $returnme .= draw_calendar($month, $year, [
-        "type"  => "activity",
-        "$type" => $$type,
-        "form"  => "update_activity"
-    ]);
-    $returnme .= "</div>";
+        <div class="document_list_item ui-corner-all" style="text-align:center">
+            <a href="ajax/reports.php?month1=' . $month . '&year1=' . $year . '&report=activity&type=' . $type . '&id=' . $id . '" class="nyroModal"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View All ' . date('F', mktime(0, 0, 0, $month, 1, $year)) . '</span></a>
+        </div>
+        <div class="document_list_item ui-corner-all" style="text-align:center;">
+            <table id="document_list_item" style="width:100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td style="text-align: left;">
+                        <a href="javascript: void(0);"
+                            onclick="
+                                $.ajax({
+                                    type: \'POST\',
+                                    url: \'ajax/ajax.php\',
+                                    data: { action: \'get_activity_list\',' . $type . ': \'' . $$type . '\',month:\'' . $prevmonth . '\',year:\'' . $prevyear . '\' } ,
+                                    success: function(data) {
+                                            $(\'#subselect_div\').hide(\'fade\');
+                                            $(\'#subselect_div\').html(data);
+                                            $(\'#subselect_div\').show(\'fade\');
+                                            refresh_all();
+                                        }
+                                } );">
+                            ' . date('F Y', mktime(0, 0, 0, $prevmonth, 1, $prevyear)) . '
+                        </a>
+                    </td>
+                    <td colspan="5" style="text-align:center;font-size:130%;font-weight:bold;">
+                        ' . date('F Y', mktime(0, 0, 0, $month, 1, $year)) . '
+                    </td>
+                    <td style="text-align:right">
+                        <a href="javascript: void(0);"
+                            onclick="
+                                $.ajax({
+                                    type: \'POST\',
+                                    url: \'ajax/ajax.php\',
+                                    data: { action: \'get_activity_list\',' . $type . ': \'' . $$type . '\',month:\'' . $nextmonth . '\',year:\'' . $nextyear . '\' } ,
+                                    success: function(data) {
+                                            $(\'#subselect_div\').hide(\'fade\', function() {} );
+                                            $(\'#subselect_div\').html(data);
+                                            $(\'#subselect_div\').show(\'fade\');
+                                            refresh_all();
+                                        }
+                                });">
+                            ' . date('F Y', mktime(0, 0, 0, $nextmonth, 1, $nextyear)) . '
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="7" style="height:10px;"></td>
+                </tr>
+            </table>
+            ' . draw_calendar($month, $year, [
+                    "type"  => "activity",
+                    "$type" => $$type,
+                    "form"  => "update_activity"
+                ]) . '
+        </div>';
 
     if ($return) {
         return $returnme;
@@ -3058,7 +3230,7 @@ function get_admin_children_form($return = false, $chid = false, $recover = fals
         while ($child = fetch_row($children)) {
             $chid           = empty($chid) ? $child["chid"] : $chid;
             $selected_class = $chid && $chid == $child["chid"] ? "selected_button" : "";
-            $checked_in     = $recover ? '' : (is_checked_in($child["chid"]) ? get_icon('status_online') : get_icon('status_offline'));
+            $checked_in     = $recover ? '' : (is_checked_in($child["chid"]) ? active_icon(true) : active_icon(false));
             $notifications  = get_notifications(get_pid(), $child["chid"], false, true, true);
             $item_text = '
                 <span class="list_title leftselector">
@@ -3113,8 +3285,9 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
     $aid      = $aid ? $aid : (empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"]);
 
     $program  = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
-    $returnme = '<div class="container_list scroll-pane ui-corner-all">';
-    $returnme .= '<div class="ui-corner-all list_box" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+    $returnme = '
+        <div class="container_list scroll-pane ui-corner-all">
+            <div class="ui-corner-all list_box selectablelist" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                     $.ajax({
                         type: \'POST\',
                         url: \'ajax/ajax.php\',
@@ -3128,7 +3301,13 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
                                 success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
                             } );
                         }
-                    });"><div class="list_box_item_full"><span class="list_title">' . $program["name"] . '</span></div></div>';
+                    });">
+                <div class="list_box_item_full">
+                    <span class="list_title">
+                        ' . $program["name"] . '
+                    </span>
+                </div>
+            </div>';
     if ($accounts = get_db_result("SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid')) ORDER BY name")) {
         $i = 0;
         while ($account = fetch_row($accounts)) {
@@ -3137,7 +3316,9 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
             $aid             = $selected_class == "selected_button" ? $account["aid"] : $aid;
             $account_balance = account_balance($pid, $account["aid"], true);
             $balanceclass    = $account_balance <= 0 ? "balance_good" : "balance_bad";
-            $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+            $returnme .= '
+                <div class="ui-corner-all list_box selectablelist ' . $selected_class . '"
+                    onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                             $.ajax({
                                 type: \'POST\',
                                 url: \'ajax/ajax.php\',
@@ -3151,14 +3332,33 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
                                         success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
                                     } );
                                 }
-                            });"><div class="list_box_item_left account_name"><span class="list_title">' . $account["name"] . '</span></div><div class="list_box_item_right billing_info"><div class="child_count">Children: ' . $kid_count . '<br /><span class="' . $balanceclass . '">Balance: $' . $account_balance . '</span></div></div></div>';
+                            });">
+                    <div class="list_box_item_left account_name">
+                        <span class="list_title">
+                            ' . $account["name"] . '
+                        </span>
+                    </div>
+                    <div class="list_box_item_right billing_info">
+                        <div class="child_count">
+                            Children: ' . $kid_count . '<br />
+                            <span class="' . $balanceclass . '">
+                                Balance: $' . $account_balance . '
+                            </span>
+                        </div>
+                    </div>
+                </div>';
             $i++;
         }
     }
 
-    $returnme .= '</div>';
-    $returnme .= '<div class="container_actions ui-corner-all" id="actions_div">' . get_billing_buttons(true, $pid, $aid) . '</div>';
-    $returnme .= '<div class="container_info ui-corner-all fill_height" id="info_div">' . view_invoices(true, $pid, $aid) . '</div>';
+    $returnme .= '
+        </div>
+        <div class="container_actions ui-corner-all" id="actions_div">
+            ' . get_billing_buttons(true, $pid, $aid) . '
+        </div>
+        <div class="container_info ui-corner-all fill_height" id="info_div">
+            ' . view_invoices(true, $pid, $aid) . '
+        </div>';
 
     if ($return) {
         return $returnme;
@@ -3249,7 +3449,7 @@ function get_admin_employees_form($return = false, $employeeid = false, $recover
                   url: \'ajax/ajax.php\',
                   data: { action: \'get_admin_employees_form\', employeeid: \'\', recover: \'true\' } ,
                   success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                  });">See Deleted</button>';
+                  });">See Inactive</button>';
         }
     } else {
         $returnme .= '<button style="margin:4px;"  onclick="$.ajax({
@@ -3355,7 +3555,7 @@ function get_tags_actions($return = false, $tagtype = null, $tag = null) {
             "tagtype"  => $tagtype,
             "callback" => "tags"
         ], $identifier);
-        $returnme .= '<button title="Add Tag" class="image_button" type="button" onclick="CreateDialog(\'add_edit_tag_' . $identifier . '\', 300, 400)">' . get_icon('Address-book') . '</button>';
+        $returnme .= '<button title="Add Tag" class="image_button" type="button" onclick="CreateDialog(\'add_edit_tag_' . $identifier . '\', 300, 400)">' . icon('tags', '2') . '</button>';
     }
 
     if ($return) {
@@ -3413,8 +3613,8 @@ function get_tags_info($return = false, $tagtype = null, $tag = null) {
                 ],
                 $identifier
             );
-            $edit_button   = ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_tag_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all">' . get_icon('wrench') . ' Edit</span></a>';
-            $delete_button = ' <a href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . get_icon('bin_closed') . ' Delete</span></a>';
+            $edit_button   = ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_tag_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all">' . icon('wrench') . ' Edit</span></a>';
+            $delete_button = ' <a href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . icon('trash') . ' Delete</span></a>';
 
             $returnme .= '<div class="ui-corner-all list_box"><div class="list_title"><span id="tag_template' . $identifier . '" class="tag ui-corner-all" style="color:' . $tagrow["textcolor"] . ';background-color:' . $tagrow["color"] . '">' . $tagrow["title"] . '</span>';
             $returnme .= ' <span class="list_links" style="float:right;">' . $edit_button . $delete_button . '</span></div>';
@@ -3498,7 +3698,7 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
                   url: \'ajax/ajax.php\',
                   data: { action: \'get_admin_accounts_form\', aid: \'\', recover: \'true\' } ,
                   success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                  });">See Deleted</button>';
+                  });">See Inactive</button>';
         }
 
         $returnme .= '</div>
@@ -3592,8 +3792,8 @@ function get_contacts_selector($chids, $admin = false) {
         $i = 0;
         while ($row = fetch_row($result)) {
             $selected  = $i == 0 && !$admin ? "ui-selected" : "";
-            $emergency = empty($row["emergency"]) ? "" : '<span class="emergency_contact">' . get_icon('error') . '</span>';
-            $primary   = empty($row["primary_address"]) ? "" : '<span class="primary_contact">' . get_icon('star') . '</span>';
+            $emergency = empty($row["emergency"]) ? "" : '<span class="emergency_contact">' . icon('circle-exclamation') . '</span>';
+            $primary   = empty($row["primary_address"]) ? "" : '<span class="primary_contact">' . icon('star') . '</span>';
             $returnme .= '<li class="ui-widget-content ' . $selected . '"><span class="contact" style="display:inline-block;width:30px;"><input class="cid" id="cid_' . $row["cid"] . '" name="cid_' . $row["cid"] . '" type="hidden" value="' . $row["cid"] . '" /></span>' . $row["first"] . ' ' . $row["last"] . ' - ' . $row["relation"] . $emergency . $primary . '</li>';
             $i++;
         }
@@ -3672,7 +3872,7 @@ function activate_account() {
     $aid = empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"];
     if ($aid) {
         execute_db_sql("UPDATE accounts SET deleted=0 WHERE aid='$aid'");
-        execute_db_sql("UPDATE enrollments SET deleted=0 WHERE chid IN (SELECT children WHERE aid='$aid')");
+        execute_db_sql("UPDATE enrollments SET deleted=0 WHERE chid IN (SELECT chid FROM children WHERE aid='$aid')");
         execute_db_sql("UPDATE children SET deleted=0 WHERE aid='$aid'");
         execute_db_sql("UPDATE contacts SET deleted=0 WHERE aid='$aid'");
         get_admin_accounts_form(false, $aid);
@@ -3684,25 +3884,25 @@ function activate_employee() {
     $employeeid = empty($MYVARS->GET["employeeid"]) ? false : $MYVARS->GET["employeeid"];
     if ($employeeid) {
         execute_db_sql("UPDATE employee SET deleted=0 WHERE employeeid='$employeeid'");
-        get_admin_employees_form(false, $employeeid);
+        get_admin_employees_form(false, $employeeid, false);
     }
 }
 
-function delete_employee() {
+function deactivate_employee() {
     global $CFG, $MYVARS;
     $employeeid = empty($MYVARS->GET["employeeid"]) ? false : $MYVARS->GET["employeeid"];
     if ($employeeid) {
         execute_db_sql("UPDATE employee SET deleted=1 WHERE employeeid='$employeeid'");
-        get_admin_employees_form(false, $employeeid);
+        get_admin_employees_form(false, $employeeid, true);
     }
 }
 
-function delete_account() {
+function deactivate_account() {
     global $CFG, $MYVARS;
     $aid = empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"];
     if ($aid) {
         execute_db_sql("UPDATE accounts SET deleted=1 WHERE aid='$aid'");
-        execute_db_sql("UPDATE enrollments SET deleted=1 WHERE chid IN (SELECT children WHERE aid='$aid')");
+        execute_db_sql("UPDATE enrollments SET deleted=1 WHERE chid IN (SELECT chid FROM children WHERE aid='$aid')");
         execute_db_sql("UPDATE children SET deleted=1 WHERE aid='$aid'");
         execute_db_sql("UPDATE contacts SET deleted=1 WHERE aid='$aid'");
         $MYVARS->GET["aid"] = '';
@@ -3892,8 +4092,8 @@ function save_required_notes() {
         execute_db_sql("INSERT INTO events_required_notes (evid, rnid, sort) VALUES('$evid', '$rnid', '$sort')");
     } else {
         $oldnote = get_db_row("SELECT * FROM notes_required WHERE rnid='$rnid'");
-        execute_db_sql("UPDATE notes_required SET title='$title', tag='$tag' WHERE rnid='$rnid'");
-        execute_db_sql("UPDATE notes SET note=REPLACE(note, '" . $oldnote["title"] . ":', '$title:'),tag='$tag' WHERE rnid='$rnid'");
+        execute_db_sql("UPDATE notes_required SET title='$title', tag='$tag', question_type='$question_type' WHERE rnid='$rnid'");
+        execute_db_sql("UPDATE notes SET note=REPLACE(note, '" . $oldnote["title"] . ":', '$title:'), tag='$tag' WHERE rnid='$rnid'");
     }
 
     echo view_required_notes_form($pid, $evid);

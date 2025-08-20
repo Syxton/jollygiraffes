@@ -134,3 +134,27 @@ function senderror($message){
     error_log($message);
     die($message);
 }
+
+/**
+ * Checks if a given array is a multi-dimensional array.
+ *
+ * A multi-dimensional array is defined as an array where all elements are also arrays.
+ *
+ * @param array $a Array to check.
+ *
+ * @return bool True if the array is multi-dimensional, otherwise false.
+ */
+function isMultiArray($a) {
+    // Check if $a is an array and has elements
+    if (is_array($a) && count($a) > 0) {
+        // Iterate over each element in the array
+        foreach ($a as $value) {
+            // If any element is not an array, return false
+            if (!is_array($value)) {
+                return false;
+            }
+        }
+        return true;  // All elements are arrays
+    }
+    return false;  // $a is either not an array or is empty
+}

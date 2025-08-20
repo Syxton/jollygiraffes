@@ -31,8 +31,8 @@ if (empty($sort)) {
 }
 $returnme .= '
     <div style="left: 47%;position: fixed;display: block;top: 0;z-index: 100;">
-        <button style="font-size: 12px;text-shadow: darkGrey 1px 1px 3px;" onclick="$(\'.printthis\').print();">' . get_icon('printer') . ' Print</button>
-        <button style="font-size: 12px;text-shadow: darkGrey 1px 1px 3px;" onclick="
+        <button style="display:inline-flex;align-items:center;font-size: 12px;text-shadow: darkGrey 1px 1px 3px;" onclick="$(\'.printthis\').print();">' . icon('print', "2") . ' Print</button>
+        <button style="display:inline-flex;align-items:center;font-size: 12px;text-shadow: darkGrey 1px 1px 3px;" onclick="
             $(\'.copied\').remove();
             $(\'body\').append(\'<div class=\\\'copied\\\' style=\\\'background:white;width:\'+$(\'.printthis\').width()+\'px\\\'>\'+$(\'.printthis\').html()+\'</div>\');
             html2canvas($(\'.copied\').last(), {
@@ -44,7 +44,7 @@ $returnme .= '
                     link.click();
                 }
             });
-            ">' . get_icon('wrench') . ' Copy</button></div><div id="printthis" class="printthis fill_height" style="padding-left:10px;width:785px;">';
+            ">' . icon('copy', "2") . ' Copy</button></div><div id="printthis" class="printthis fill_height" style="padding-left:10px;width:785px;">';
 
 $fromnum = strtotime($from);
 $tonum = strtotime($to);

@@ -31,7 +31,7 @@ if ($results = get_db_result($SQL)) {
             } else {
                 $label = "Delete";
                 $caution = "caution";
-                $icon = "bin_closed";
+                $icon = "trash";
             }
 
             $delete_button .= from_template("create_link.php", [
@@ -39,7 +39,7 @@ if ($results = get_db_result($SQL)) {
                 "data" => $child["first"] . " " . $child["last"],
                 "action" => $delete_action,
                 "class" => "caution",
-                "button_text" => get_icon($icon) . ' ' . $label,
+                "button_text" => icon($icon) . ' ' . $label,
             ]);
         }
 
@@ -97,7 +97,7 @@ if ($results = get_db_result($SQL)) {
                             "enrolled" => false, // Editing and Adding enrollment is the same call.
                             "identifier" => $identifier,
                         ]),
-                        "button_text" => get_icon('report_edit') . ' Edit Enrollment',
+                        "button_text" => icon('list-check') . ' Edit Enrollment',
                     ]);
 
                     $enroll_buttons .= from_template("create_link.php", [
@@ -105,14 +105,14 @@ if ($results = get_db_result($SQL)) {
                         "data" => $child["first"] . " " . $child["last"],
                         "action" => $enroll_action,
                         "class" => "caution",
-                        "button_text" => get_icon('report_delete') . ' Unenroll',
+                        "button_text" => icon('ban') . ' Unenroll',
                     ]);
                 } else { // If the child is not enrolled, we can enroll them.
                     $enroll_buttons .= from_template("create_link.php", [
                         "id" => "a-" . $child["chid"],
                         "data" => $child["first"] . " " . $child["last"],
                         "action" => $enroll_action,
-                        "button_text" => get_icon('user_add') . ' Enroll',
+                        "button_text" => icon('users') . ' Enroll',
                     ]);
                 }
             }
@@ -124,9 +124,9 @@ if ($results = get_db_result($SQL)) {
         $checked_in = "";
         if ($activepid && $enrolled) {
             if (is_checked_in($child["chid"])) {
-                $checked_in = get_icon('status_online');
+                $checked_in = active_icon(true);
             } elseif (empty($recover)) {
-                $checked_in = get_icon('status_offline');
+                $checked_in = active_icon(false);
             }
         }
 

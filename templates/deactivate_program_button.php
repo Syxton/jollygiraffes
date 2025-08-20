@@ -22,5 +22,5 @@
                 });
             },
             function(){})">
-    <?php echo get_icon('no'); ?>
+    <?php echo icon('ban', "2"); ?>
 </button>

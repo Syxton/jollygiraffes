@@ -22,5 +22,5 @@
                 });
             },
             function(){})">
-    <?php echo get_icon('refresh'); ?>
+    <?php echo icon('clone', "2"); ?>
 </button>

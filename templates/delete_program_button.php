@@ -22,5 +22,5 @@
                 });
             },
             function(){})">
-    <?php echo get_icon('x'); ?>
+    <?php echo icon("trash", "2"); ?>
 </button>

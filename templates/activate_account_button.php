@@ -15,12 +15,12 @@
                         aid: '<?php echo $aid; ?>',
                     },
                     success: function(data) {
-                        $('#display_level').html(data);
+                        $('#admin_display').html(data);
                         refresh_all();
                         $('.only_when_active').show();
                     }
                 });
             },
             function(){})">
-    <?php echo get_icon('checkmark'); ?>
+    <?php echo icon('square-check', "2"); ?>
 </button>

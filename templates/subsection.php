@@ -4,4 +4,3 @@
 <div id="<?php echo $id; ?>" class="scroll-pane infobox">
     <?php echo $content; ?>
 </div>
-<div style="clear:both;"></div>

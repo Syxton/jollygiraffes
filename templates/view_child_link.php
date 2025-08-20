@@ -15,6 +15,6 @@
             $('.keypad_buttons').toggleClass('selected_button', true);
             $('.keypad_buttons').not($('#admin_menu_children')).toggleClass('selected_button', false);">
     <span class="inline-button ui-corner-all">
-        <?php echo get_icon('magnifier_zoom_in'); ?>
+        <?php echo icon('magnifying-glass'); ?>
     </span>
 </a>

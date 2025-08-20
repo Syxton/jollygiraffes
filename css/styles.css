@@ -152,7 +152,6 @@ h3 {
     padding: 10px;
     font-weight: bold;
     font-size: clamp(15px, 4vmin, 23px);
-    white-space: break-spaces;
     align-items: center;
     flex-wrap: wrap;
 }
@@ -274,11 +273,11 @@ h3 {
 }
 
 .caution {
-    background-color: #D15354 !important;
+    background-color: #7a3333 !important;
 }
 
 .caution:hover {
-    background-color: #D67273 !important;
+    background-color: #701b1c !important;
 }
 
 .container_actions {
@@ -287,6 +286,7 @@ h3 {
     padding: 2px 0px 6px;
     margin-bottom: 5px;
     display: flex;
+    align-items: center;
 }
 
 .container_actions button, .container_actions form {
@@ -888,7 +888,7 @@ td.calendar-day, td.calendar-day-np {
     max-height: 40px;
 }
 
-.image_button img {
+.image_button img, .image_button svg {
     width: 3vw;
     height: 3vw;
     min-width: 20px;
@@ -997,10 +997,12 @@ td.calendar-day, td.calendar-day-np {
 }
 
 .optional_questions {
+    display: inline-flex;
+    float: left;
+    flex-direction: column;
+    width: 60%;
     margin: 0px 10px;
     height: 70px;
-    width: calc(60% - 20px);
-    display: inline-block;
     white-space: nowrap;
 }
 

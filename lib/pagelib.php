@@ -431,17 +431,17 @@ function icon_color($icon) {
         case "key":
             $color = "#b2bd22";
             break;
-        case "sliders":
-            $color = "#755c91";
+        case "chart-line":
+            $color = "#5ed63aff";
             break;
         case "trash":
             $color = "grey";
             break;
-        case "pencil":
-            $color = "#519d58";
+        case "child-reaching":
+            $color = "#98b0ffff";
             break;
-        case "square-rss":
-            $color = "orange";
+        case "money-bill-1-wave":
+            $color = "#7e8f7cff";
             break;
         case "circle-exclamation":
             $color = "red";
@@ -451,6 +451,18 @@ function icon_color($icon) {
             break;
         case "thumbs-down":
             $color = "red";
+            break;
+        case "person-breastfeeding":
+            $color = "#c441a3ff";
+            break;
+        case "map-pin":
+            $color = "#6744c7ff";
+            break;
+        case "wrench":
+            $color = "#686868ff";
+            break;
+        case "magnifying-glass":
+            $color = "#f0df4dff";
             break;
         default:
             return "";

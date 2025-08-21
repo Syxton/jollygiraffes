@@ -888,6 +888,13 @@ td.calendar-day, td.calendar-day-np {
     max-height: 40px;
 }
 
+.image_button svg:hover {
+    filter: brightness(.7);
+    position: relative;
+    top: 1px;
+    left: 1px;
+}
+
 .image_button img, .image_button svg {
     width: 3vw;
     height: 3vw;

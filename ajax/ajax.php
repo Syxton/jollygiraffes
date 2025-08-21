@@ -2454,7 +2454,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
             if (($year == "all" || $year == date("Y")) && $current_week = week_balance($pid, $account["aid"], true)) {
                 $transactions .= from_template("billing_flexsection_layout.php", [
                     "class" => "invoice_week",
-                    "style" => "padding: 5px;color: white;",
+                    "style" => "padding: 5px;color: white; background: #5767a1;",
                     "header" => from_template("current_header_stacked.php", [
                         "amount" => $current_week,
                     ]),
@@ -2487,7 +2487,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 $transactions .= from_template("billing_flexsection_layout.php", [
                     "class" => "invoice_week",
                     "style" => "padding: 5px;color: white; background: green;",
-                    "header" => from_template("current_header_stacked.php", [
+                    "header" => from_template("next_header_stacked.php", [
                         "amount" => week_balance($pid, $account["aid"], true, true),
                     ]),
                     "contents" => "",

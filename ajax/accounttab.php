@@ -170,7 +170,7 @@ if ($results = get_db_result($SQL)) {
         // Toggle Contact Activation Button
         $activation_button = "";
         if ($activepid) {
-            $confirm_text  = $recover ? "activate" : "delete";
+            $confirm_text  = $recover ? "activate" : "deactivate";
             $caution = $recover ? "" : "caution";
             $activation_button = from_template("toggle_contact_activation_link.php", [
                 "aid" => $contact["aid"],
@@ -178,8 +178,8 @@ if ($results = get_db_result($SQL)) {
                 "name" => $contact["first"] . " " . $contact["last"],
                 "text" => $confirm_text,
                 "caution" => $caution,
-                "icon" => $recover ? 'add' : 'bin_closed',
-                "title" => $recover ? "Activate" : "Delete",
+                "icon" => $recover ? 'toggle-off' : 'toggle-on',
+                "title" => $recover ? "Activate" : "Deactivate",
             ]);
         }
 

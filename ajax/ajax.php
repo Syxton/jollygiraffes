@@ -1921,7 +1921,7 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
                               }
                           } );
                         }
-                    });}, function(){})">' . icon('trash', '2') . '</button>';
+                    });}, function(){})">' . icon('toggle-on', '2') . '</button>';
     } elseif ($employeeid) {
         $identifier = time() . "_employeeid_" . $employeeid;
 
@@ -2229,6 +2229,56 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 if ($payments = get_db_result($SQL)) {
                     $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2"));
                     $total_fee = empty($total_fee) ? "0.00" : $total_fee;
+                    $receipts = "";
+                    while ($payment = fetch_row($payments)) {
+                        $identifier          = time() . "accountpaymentpayid_" . $payment["payid"];
+                        $edit_payment_button = get_form("add_edit_payment", [
+                            "payment"      => $payment,
+                            "pid"          => $pid,
+                            "aid"          => $account["aid"],
+                            "callback"     => "billing",
+                            "callbackinfo" => $aid
+                        ], $identifier);
+                        $edit_payment_button .= '<button style="font-size: 9px;" type="button" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\', 300, 400)">Edit</button>';
+                        $delete_payment = '<button style="font-size: 9px;" type="button" onclick="CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this payment?\', \'Yes\', \'No\', function(){ $.ajax({
+                              type: \'POST\',
+                              url: \'ajax/ajax.php\',
+                              data: { action: \'delete_payment\', payid: \'' . $payment["payid"] . '\' } ,
+                              success: function(data) {
+                                $.ajax({
+                                  type: \'POST\',
+                                  url: \'ajax/ajax.php\',
+                                  data: { action: \'get_admin_billing_form\', pid: \'' . $pid . '\', aid: \'' . $aid . '\' } ,
+                                  success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
+                                  } );
+                              }
+                              });},function(){});">Delete</button>';
+
+                        $paytext = $payment["payment"] >= 0 ? "Payment of " : "Fee of ";
+                        $note = empty($payment["note"]) ? "" : '<tr><td><em>Note: ' . $payment["note"] . '</em></td></tr>';
+                        $receipts .= '
+                            <div>
+                                <table style="width:100%;color: inherit;font: inherit;">
+                                    <tr>
+                                        <td style="width: 40px;">
+                                            ' . $edit_payment_button . '
+                                        </td>
+                                        <td>
+                                            <table style="width: 100%;font-size: 11px;background-color: rgba(255, 255, 255, .4);border: 1px solid silver;">
+                                                <tr>
+                                                    <td style="font-weight: bold;">' . $paytext . ' $' . number_format(abs($payment["payment"]), 2) . ' was added on ' . date('m/d/Y', display_time($payment["timelog"])) . '</td>
+                                                </tr>
+                                                ' . $note . '
+                                            </table>
+                                        </td>
+                                        <td style="width: 50px;">
+                                            ' . $delete_payment . '
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>';
+                    }
+
                     $returnme .= '
                         <div class="ui-corner-all list_box invoice_bills" style="background-color:darkRed;">
                             <div class="flexsection">
@@ -2248,7 +2298,18 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                     </table>
                                 </a>
                             </div>
-                            <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
+                            <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
+                                ' . $receipts . '
+                            </div>
+                        </div>';
+                }
+
+                $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2 ORDER BY timelog,payid";
+                if ($payments = get_db_result($SQL)) {
+                    $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2");
+                    $total_paid = empty($total_paid) ? "0.00" : $total_paid;
+
+                    $receipts = "";
                     while ($payment = fetch_row($payments)) {
                         $identifier          = time() . "accountpaymentpayid_" . $payment["payid"];
                         $edit_payment_button = get_form("add_edit_payment", [
@@ -2275,30 +2336,25 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
                         $paytext = $payment["payment"] >= 0 ? "Payment of " : "Fee of ";
                         $note = empty($payment["note"]) ? "" : '<tr><td><em>Note: ' . $payment["note"] . '</em></td></tr>';
-                        $returnme .= '<div>
-                                         <table style="width:100%;color: inherit;font: inherit;">
-                                             <tr>
-                                                 <td style="width: 40px;">' . $edit_payment_button . '</td>
-                                                 <td>
-                                                     <table style="width: 100%;font-size: 11px;background-color: rgba(255, 255, 255, .4);border: 1px solid silver;">
-                                                         <tr>
-                                                             <td style="font-weight: bold;">' . $paytext . ' $' . number_format(abs($payment["payment"]), 2) . ' was added on ' . date('m/d/Y', display_time($payment["timelog"])) . '</td>
-                                                         </tr>
-                                                         ' . $note . '
-                                                     </table>
-                                                 </td>
-                                                 <td style="width: 50px;">' . $delete_payment . '</td>
-                                             </tr>
-                                         </table>
-                                       </div>';
+                        $receipts .= '
+                            <div>
+                                <table style="width:100%;color: inherit;font: inherit;">
+                                    <tr>
+                                        <td style="width: 40px;">' . $edit_payment_button . '</td>
+                                        <td>
+                                            <table style="width: 100%;font-size: 11px;background-color: rgba(255, 255, 255, .4);border: 1px solid silver;">
+                                                <tr>
+                                                    <td style="font-weight: bold;">' . $paytext . ' $' . number_format($payment["payment"], 2) . ' was added on ' . date('m/d/Y', display_time($payment["timelog"])) . '</td>
+                                                </tr>
+                                                ' . $note . '
+                                            </table>
+                                        </td>
+                                        <td style="width: 50px;">' . $delete_payment . '</td>
+                                    </tr>
+                                </table>
+                            </div>';
                     }
-                    $returnme .= '</div></div>';
-                }
 
-                $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2 ORDER BY timelog,payid";
-                if ($payments = get_db_result($SQL)) {
-                    $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2");
-                    $total_paid = empty($total_paid) ? "0.00" : $total_paid;
                     $returnme .= '
                         <div class="ui-corner-all list_box invoice_payments" style="background-color:darkCyan;">
                             <div class="flexsection">
@@ -2318,61 +2374,17 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                     </table>
                                 </a>
                             </div>
-                            <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
-                    while ($payment = fetch_row($payments)) {
-                        $identifier          = time() . "accountpaymentpayid_" . $payment["payid"];
-                        $edit_payment_button = get_form("add_edit_payment", [
-                            "payment"      => $payment,
-                            "pid"          => $pid,
-                            "aid"          => $account["aid"],
-                            "callback"     => "billing",
-                            "callbackinfo" => $aid
-                        ], $identifier);
-                        $edit_payment_button .= '<button style="font-size: 9px;" type="button" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\', 300, 400)">Edit</button>';
-                        $delete_payment = '<button style="font-size: 9px;" type="button" onclick="CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this payment?\', \'Yes\', \'No\', function(){ $.ajax({
-                              type: \'POST\',
-                              url: \'ajax/ajax.php\',
-                              data: { action: \'delete_payment\', payid: \'' . $payment["payid"] . '\' } ,
-                              success: function(data) {
-                                $.ajax({
-                                  type: \'POST\',
-                                  url: \'ajax/ajax.php\',
-                                  data: { action: \'get_admin_billing_form\', pid: \'' . $pid . '\', aid: \'' . $aid . '\' } ,
-                                  success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                                  } );
-                              }
-                              });},function(){});">Delete</button>';
-
-                        $paytext = $payment["payment"] >= 0 ? "Payment of " : "Fee of ";
-                        $note = empty($payment["note"]) ? "" : '<tr><td><em>Note: ' . $payment["note"] . '</em></td></tr>';
-                        $returnme .= '<div>
-                                        <table style="width:100%;color: inherit;font: inherit;">
-                                            <tr>
-                                                <td style="width: 40px;">' . $edit_payment_button . '</td>
-                                                <td>
-                                                    <table style="width: 100%;font-size: 11px;background-color: rgba(255, 255, 255, .4);border: 1px solid silver;">
-                                                        <tr>
-                                                            <td style="font-weight: bold;">' . $paytext . ' $' . number_format($payment["payment"], 2) . ' was added on ' . date('m/d/Y', display_time($payment["timelog"])) . '</td>
-                                                        </tr>
-                                                        ' . $note . '
-                                                    </table>
-                                                </td>
-                                                <td style="width: 50px;">' . $delete_payment . '</td>
-                                            </tr>
-                                        </table>
-                                      </div>';
-                    }
-                    $returnme .= '</div></div>';
+                            <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
+                                ' . $receipts . '
+                            </div>
+                        </div>';
                 }
 
                 $SQL = "SELECT * FROM billing WHERE pid='$pid' AND aid='" . $account["aid"] . "' $yearsql ORDER BY fromdate";
                 if ($invoices = get_db_result($SQL)) {
                     while ($invoice = fetch_row($invoices)) {
-                        $returnme .= '<div class="ui-corner-all list_box invoice_week">
-                                        <div class="flexsection"><a href="javascript: void(0);" style="color: white;"><table style="width:100%;color: inherit;font: inherit;"><tr><td class="hide_mobile" style="width: 16px;">' . get_icon('plusminus') . ' </td><td style="width:50%">Week of <span class="hide_mobile">' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</span><span class="show_mobile">' . date('m/d/Y', $invoice["fromdate"]) . '</span></td><td style="width:50%;text-align:right"><strong>Bill: </strong>$' . number_format($invoice["owed"], 2) . '</td></tr></table></a></div>
-                                        <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
                         $SQL = "SELECT * FROM billing_perchild WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND fromdate = '" . $invoice["fromdate"] . "' ORDER BY id";
-
+                        $receipts = "";
                         if ($perchild_invoices = get_db_result($SQL)) {
                             while ($perchild_invoice = fetch_row($perchild_invoices)) {
                                 $exempt_title  = empty($perchild_invoice["exempt"]) ? "Exempt" : "Undo";
@@ -2391,10 +2403,44 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                       }
                                       });">' . $exempt_title . '</button>';
                                 $exempt_button = !strstr($perchild_invoice["receipt"], "[Exempt]") ? "$exempt" : "";
-                                $returnme .= '<div class="week_receipt"><span>' . $perchild_invoice["receipt"] . $exempt_show . "</span><span>$exempt_button</span></div>";
+                                $receipts .= '
+                                    <div class="week_receipt">
+                                        <span>
+                                            ' . $perchild_invoice["receipt"] . $exempt_show . '
+                                        </span>
+                                        <span>
+                                            ' . $exempt_button . '
+                                        </span>
+                                    </div>';
                             }
                         }
-                        $returnme .= '</div></div>';
+
+                        $returnme .= '
+                            <div class="ui-corner-all list_box invoice_week">
+                                <div class="flexsection">
+                                    <a href="javascript: void(0);" style="color: white;">
+                                        <table style="width:100%;color: inherit;font: inherit;">
+                                            <tr>
+                                                <td class="hide_mobile" style="width: 16px;">
+                                                    ' . get_icon('plusminus') . '
+                                                </td>
+                                                <td style="width:50%">
+                                                    Week of <span class="hide_mobile">' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</span>
+                                                    <span class="show_mobile">
+                                                        ' . date('m/d/Y', $invoice["fromdate"]) . '
+                                                    </span>
+                                                </td>
+                                                <td style="width:50%;text-align:right">
+                                                    <strong>Bill: </strong>$' . number_format($invoice["owed"], 2) . '
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </a>
+                                </div>
+                                <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
+                                    ' . $receipts . '
+                                </div>
+                            </div>';
                     }
                 }
                 $total_billed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "' $yearsql");
@@ -2419,24 +2465,6 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                     while ($result = fetch_row($results)) {
                         if (!$result["bill"]) { // Payment or Fee
                             if ($result["amount"] < 0) { // Fee
-                                $returnme .= '
-                                    <div class="ui-corner-all list_box invoice_bills" style="background-color:darkRed;padding: 5px;color: white;">
-                                        <div class="flexsection">
-                                            <a href="javascript: void(0);" style="color: white;">
-                                                <table style="width:100%;color: inherit;font: inherit;">
-                                                    <tr>
-                                                        <td class="hide_mobile" style="width: 16px;">
-                                                            ' . get_icon('plusminus') . '
-                                                        </td>
-                                                        <td style="width:50%;text-align:right">
-                                                            <strong>Fee:</strong> $' . number_format(abs($result["amount"]), 2) . '
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                            </a>
-                                        </div>
-                                        <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
-
                                 $identifier          = time() . "accountpaymentpayid_" . $result["id"];
                                 $result["payment"] = $result["amount"];
                                 $result["payid"] = $result["id"];
@@ -2466,6 +2494,22 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                 $paytext = $result["amount"] >= 0 ? "Payment of " : "Fee of ";
                                 $note = empty($result["note"]) ? "" : '<tr><td><em>Note: ' . $result["note"] . '</em></td></tr>';
                                 $returnme .= '
+                                    <div class="ui-corner-all list_box invoice_bills" style="background-color:darkRed;padding: 5px;color: white;">
+                                        <div class="flexsection">
+                                            <a href="javascript: void(0);" style="color: white;">
+                                                <table style="width:100%;color: inherit;font: inherit;">
+                                                    <tr>
+                                                        <td class="hide_mobile" style="width: 16px;">
+                                                            ' . get_icon('plusminus') . '
+                                                        </td>
+                                                        <td style="width:50%;text-align:right">
+                                                            <strong>Fee:</strong> $' . number_format(abs($result["amount"]), 2) . '
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </a>
+                                        </div>
+                                        <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
                                             <div>
                                                 <table style="width:100%;color: inherit;font: inherit;">
                                                     <tr>
@@ -2485,24 +2529,6 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                         </div>
                                     </div>';
                             } else { // Payment
-                                $returnme .= '
-                                    <div class="ui-corner-all list_box invoice_payments" style="background-color:darkCyan;padding: 5px;color: white;">
-                                        <div class="flexsection">
-                                            <a href="javascript: void(0);" style="color: white;">
-                                                <table style="width:100%;color: inherit;font: inherit;">
-                                                    <tr>
-                                                        <td class="hide_mobile" style="width: 16px;">
-                                                            ' . get_icon('plusminus') . '
-                                                        </td>
-                                                        <td style="width:50%;text-align:right">
-                                                            <strong>Payment:</strong> $' . number_format($result["amount"], 2) . '
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                            </a>
-                                        </div>
-                                        <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
-
                                 $identifier          = time() . "accountpaymentpayid_" . $result["id"];
                                 $result["payment"] = $result["amount"];
                                 $result["payid"] = $result["id"];
@@ -2532,6 +2558,22 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                 $paytext = $result["amount"] >= 0 ? "Payment of " : "Fee of ";
                                 $note = empty($result["note"]) ? "" : '<tr><td><em>Note: ' . $result["note"] . '</em></td></tr>';
                                 $returnme .= '
+                                    <div class="ui-corner-all list_box invoice_payments" style="background-color:darkCyan;padding: 5px;color: white;">
+                                        <div class="flexsection">
+                                            <a href="javascript: void(0);" style="color: white;">
+                                                <table style="width:100%;color: inherit;font: inherit;">
+                                                    <tr>
+                                                        <td class="hide_mobile" style="width: 16px;">
+                                                            ' . get_icon('plusminus') . '
+                                                        </td>
+                                                        <td style="width:50%;text-align:right">
+                                                            <strong>Payment:</strong> $' . number_format($result["amount"], 2) . '
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </a>
+                                        </div>
+                                        <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
                                             <div>
                                                 <table style="width:100%;color: inherit;font: inherit;">
                                                     <tr>
@@ -2552,6 +2594,39 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                     </div>';
                             }
                         } else { // Bill
+                            $SQL = "SELECT * FROM billing_perchild WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND fromdate = '" . $result["fromdate"] . "' ORDER BY id";
+
+                            $receipts = "";
+                            if ($perchild_invoices = get_db_result($SQL)) {
+                                while ($perchild_invoice = fetch_row($perchild_invoices)) {
+                                    $exempt_title  = empty($perchild_invoice["exempt"]) ? "Exempt" : "Undo";
+                                    $exempt_show   = empty($perchild_invoice["exempt"]) || strstr($perchild_invoice["receipt"], "[Exempt]") ? "" : " - <span style='color:blue;font-weight:bold;'>Exempt $0</span>";
+                                    $exempt        = '<button style="font-size: 9px;" type="button" onclick="$.ajax({
+                                          type: \'POST\',
+                                          url: \'ajax/ajax.php\',
+                                          data: { action: \'toggle_exemption\', id: \'' . $perchild_invoice["id"] . '\' } ,
+                                          success: function(data) {
+                                            $.ajax({
+                                              type: \'POST\',
+                                              url: \'ajax/ajax.php\',
+                                              data: { action: \'get_admin_billing_form\', pid: \'' . $pid . '\', aid: \'' . $aid . '\' } ,
+                                              success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
+                                              } );
+                                          }
+                                          });">' . $exempt_title . '</button>';
+                                    $exempt_button = !strstr($perchild_invoice["receipt"], "[Exempt]") ? "<span>$exempt</span>" : "";
+                                    $receipts .= '
+                                        <div class="week_receipt">
+                                            <span>
+                                                ' . $perchild_invoice["receipt"] . $exempt_show . '
+                                            </span>
+                                            <span>
+                                                ' . $exempt_button . '
+                                            </span>
+                                        </div>';
+                                }
+                            }
+
                             $returnme .= '
                                 <div class="ui-corner-all list_box invoice_week" style="padding: 5px;color: white;">
                                     <div class="flexsection">
@@ -2572,31 +2647,8 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                             </table>
                                         </a>
                                     </div>
-                                    <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">';
-                            $SQL = "SELECT * FROM billing_perchild WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND fromdate = '" . $result["fromdate"] . "' ORDER BY id";
-
-                            if ($perchild_invoices = get_db_result($SQL)) {
-                                while ($perchild_invoice = fetch_row($perchild_invoices)) {
-                                    $exempt_title  = empty($perchild_invoice["exempt"]) ? "Exempt" : "Undo";
-                                    $exempt_show   = empty($perchild_invoice["exempt"]) || strstr($perchild_invoice["receipt"], "[Exempt]") ? "" : " - <span style='color:blue;font-weight:bold;'>Exempt $0</span>";
-                                    $exempt        = '<button style="font-size: 9px;" type="button" onclick="$.ajax({
-                                          type: \'POST\',
-                                          url: \'ajax/ajax.php\',
-                                          data: { action: \'toggle_exemption\', id: \'' . $perchild_invoice["id"] . '\' } ,
-                                          success: function(data) {
-                                            $.ajax({
-                                              type: \'POST\',
-                                              url: \'ajax/ajax.php\',
-                                              data: { action: \'get_admin_billing_form\', pid: \'' . $pid . '\', aid: \'' . $aid . '\' } ,
-                                              success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                                              } );
-                                          }
-                                          });">' . $exempt_title . '</button>';
-                                    $exempt_button = !strstr($perchild_invoice["receipt"], "[Exempt]") ? "<span>$exempt</span>" : "";
-                                    $returnme .= '<div class="week_receipt"><span>' . $perchild_invoice["receipt"] . $exempt_show . "</span><span>$exempt_button</span></div>";
-                                }
-                            }
-                            $returnme .= '
+                                    <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
+                                        ' . $receipts . '
                                     </div>
                                 </div>';
                         }

@@ -15,5 +15,5 @@
                         refresh_all();
                     }
                 });">
-    <?php echo get_icon('search'); ?>
+    <?php echo icon('magnifying-glass', "2"); ?>
 </button>

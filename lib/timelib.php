@@ -306,7 +306,7 @@ function draw_calendar($month, $year, $vars = false){
                     },function(){});';
 
                         $content .= '
-                        <a style="padding:2px;" class="inline-button ui-corner-all" href="javascript: CreateDialog(\'' . $vars["form"] . '_' . $identifier . '\',300,400)">
+                        <a style="padding:2px;" class="inline-button ui-corner-all" href="javascript: void(0);" onclick="CreateDialog(\'' . $vars["form"] . '_' . $identifier . '\',300,400)">
                             ' . icon('pen-to-square') . '
                         </a>
                         <a style="padding:2px;" class="inline-button ui-corner-all" id="a-' . $actid . '" data="' . $row["title"] . '" href="javascript: ' . $delete_action . '">
@@ -339,7 +339,7 @@ function draw_calendar($month, $year, $vars = false){
                     },function(){});';
 
                         $content .= '
-                        <a style="padding:2px;" class="inline-button ui-corner-all" href="javascript: CreateDialog(\'add_update_employee_activity_' . $identifier . '\',300,400)">
+                        <a style="padding:2px;" class="inline-button ui-corner-all" href="javascript: void(0);" onclick="CreateDialog(\'add_update_employee_activity_' . $identifier . '\',300,400)">
                             ' . icon('pen-to-square') . '
                         </a>
                         <a style="padding:2px;" class="inline-button ui-corner-all" id="a-' . $actid . '" data="' . $row["title"] . '" href="javascript: ' . $delete_action . '">
@@ -363,7 +363,7 @@ function draw_calendar($month, $year, $vars = false){
             $content .= get_form("add_activity", ["day" => $list_day, "month" => $month, "year" => $year, "aid" => $aid,"chid" => $vars["chid"],"callback" => "children"], $identifier);
 
             $dayadd = '<div class="day-add">
-                        <a style="" href="javascript: CreateDialog(\'add_activity_' . $identifier . '\',300,400)">
+                        <a style="" href="javascript: void(0);" onclick="CreateDialog(\'add_activity_' . $identifier . '\',300,400)">
                             +
                         </a>
                    </div>';
@@ -372,7 +372,7 @@ function draw_calendar($month, $year, $vars = false){
             $content .= get_form("add_update_employee_activity", ["day" => $list_day, "month" => $month, "year" => $year, "employeeid" => $vars["employeeid"],"callback" => "employee"], $identifier);
 
             $dayadd = '<div class="day-add">
-                        <a style="" href="javascript: CreateDialog(\'add_update_employee_activity_' . $identifier . '\',300,400)">
+                        <a style="" href="javascript: void(0);" onclick="CreateDialog(\'add_update_employee_activity_' . $identifier . '\',300,400)">
                             +
                         </a>
                    </div>';

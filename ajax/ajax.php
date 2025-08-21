@@ -589,7 +589,6 @@ function validate() {
 }
 
 function get_admin_page($type = false, $id = false) {
-    $returnme  = "";
     $activepid = get_pid();
 
     // checks for software updates
@@ -608,16 +607,6 @@ function get_admin_page($type = false, $id = false) {
     $programname = get_db_field("name", "programs", "pid='$activepid'");
     $programname = empty($programname) ? "No Active Program" : $programname;
     $account     = get_db_row("SELECT * FROM accounts WHERE admin='1'");
-    $identifier  = time() . "edit_account_" . $account["aid"];
-    $returnme .= get_form("add_edit_account", [
-        "account" => $account,
-    ], $identifier);
-    $admin_button = '<button title="Edit Admin" class="topright_button" type="button" onclick="CreateDialog(\'add_edit_account_' . $identifier . '\', 200, 315)">Edit Admin</button>';
-    $returnme .= '<div id="dialog-confirm" title="Confirm" style="display:none;">
-                       <p><span class="ui-icon ui-icon-alert" style="margin-right: auto;margin-left: auto;"></span><label></label></p>
-                    </div>';
-    $returnme .= '<span id="activepidname" class="top-center">' . $programname . '</span>' . $admin_button;
-    $returnme .= go_home_button('Exit Admin');
 
     $enrollment_selected = $account_selected = $contacts_selected = $tag_selected = $employees_selected = $billing_selected = $children_selected = "";
     if (!empty($type)) {
@@ -642,63 +631,33 @@ function get_admin_page($type = false, $id = false) {
         $account_selected = 'selected_button';
     }
 
-    $returnme .= '<div class="admin_menu">
-                    <button class="keypad_buttons ' . $account_selected . '" id="accounts" onclick="$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not(this).toggleClass(\'selected_button\',false);
-                    $.ajax({
-                      type: \'POST\',
-                      url: \'ajax/ajax.php\',
-                      data: { action: \'get_admin_accounts_form\', aid: \'\' } ,
-                      success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                      });">Accounts</button>
-                    <button class="keypad_buttons ' . $enrollment_selected . '" id="admin_menu_programs" onclick="$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not(this).toggleClass(\'selected_button\',false);
-                    $.ajax({
-                      type: \'POST\',
-                      url: \'ajax/ajax.php\',
-                      data: { action: \'get_admin_enrollment_form\', chid: \'\' } ,
-                      success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); refresh_all(); } );  }
-                      });">Programs</button>
-                    <button class="keypad_buttons ' . $tag_selected . '" id="admin_menu_tags" onclick="$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not(this).toggleClass(\'selected_button\',false);
-                    $.ajax({
-                      type: \'POST\',
-                      url: \'ajax/ajax.php\',
-                      data: { action: \'get_admin_tags_form\', cid: \'\' } ,
-                      success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                      });">Tags</button>
-                    ';
-
     $active_display = $activepid ? "" : "display:none;";
-    $returnme .= '<span class="only_when_active" style="' . $active_display . '">
-                    <button class="keypad_buttons ' . $children_selected . '" id="admin_menu_children" onclick="$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not(this).toggleClass(\'selected_button\',false);
-                    $.ajax({
-                      type: \'POST\',
-                      url: \'ajax/ajax.php\',
-                      data: { action: \'get_admin_children_form\', chid: \'\' } ,
-                      success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                      });">Children</button>
-                    <button class="keypad_buttons ' . $contacts_selected . '" id="admin_menu_contacts" onclick="$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not(this).toggleClass(\'selected_button\',false);
-                    $.ajax({
-                      type: \'POST\',
-                      url: \'ajax/ajax.php\',
-                      data: { action: \'get_admin_contacts_form\', cid: \'\' } ,
-                      success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                      });">Contacts</button>
-                    <button class="keypad_buttons ' . $employees_selected . '" id="admin_menu_employees" onclick="$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not(this).toggleClass(\'selected_button\',false);
-                    $.ajax({
-                      type: \'POST\',
-                      url: \'ajax/ajax.php\',
-                      data: { action: \'get_admin_employees_form\', employeeid: \'\' } ,
-                      success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                      });">Employees</button>
-                    <button class="keypad_buttons ' . $billing_selected . '" id="admin_menu_billing" onclick="$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not(this).toggleClass(\'selected_button\',false);
-                    $.ajax({
-                      type: \'POST\',
-                      url: \'ajax/ajax.php\',
-                      data: { action: \'get_admin_billing_form\', pid: \'' . $activepid . '\' } ,
-                      success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                      });">Billing</button></span>';
-    $returnme .= '</div><div id="admin_display" class="admin_display fill_height">';
-    $returnme .= $form;
-    $returnme .= '</div>';
+
+    $identifier  = time() . "edit_account_" . $account["aid"];
+    $returnme = get_form("add_edit_account", ["account" => $account], $identifier) . '
+        <div id="dialog-confirm" title="Confirm" style="display:none;">
+            <p>
+                <span class="ui-icon ui-icon-alert" style="margin-right: auto;margin-left: auto;"></span>
+                <label></label>
+            </p>
+        </div>
+        <span id="activepidname" class="top-center">' . $programname . '</span>
+        <button title="Edit Admin" class="topright_button" type="button" onclick="CreateDialog(\'add_edit_account_' . $identifier . '\', 200, 315)">
+            Edit Admin
+        </button>
+        ' . go_home_button('Exit Admin') . '
+        ' . from_template("admin_layout.php", [
+            "account_selected"    => $account_selected,
+            "enrollment_selected" => $enrollment_selected,
+            "contacts_selected"   => $contacts_selected,
+            "tag_selected"        => $tag_selected,
+            "employees_selected"  => $employees_selected,
+            "billing_selected"    => $billing_selected,
+            "children_selected"   => $children_selected,
+            "active"              => $active_display,
+            "pid"                 => $activepid,
+            "content"             => $form,
+        ]);
 
     return $returnme;
 }
@@ -1845,7 +1804,7 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
             "callback" => "children",
             "child"    => $child
         ], $identifier);
-        $display .= '<button title="Edit Child" class="image_button" type="button" onclick="CreateDialog(\'add_edit_child_' . $identifier . '\', 300, 400)">' . icon('user-pen', "2") . '</button>';
+        $display .= '<button title="Edit Child" class="image_button" type="button" onclick="CreateDialog(\'add_edit_child_' . $identifier . '\', 300, 300)">' . icon('user-pen', "2") . '</button>';
 
         $enroll_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to unenroll ' . $child["first"] . ' ' . $child["last"] . '?\', \'Yes\', \'No\', function(){ $.ajax({
             type: \'POST\',
@@ -2022,41 +1981,44 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
     if (empty($aid)) {
         // print tax papers
         // Activity from / to
-        $returnme .= '      <form style="display:inline" id="myValidForm" method="get" action="ajax/reports.php" onsubmit="return false;">
-                            <input type="hidden" name="report" id="report" value="all_tax_papers" />
-                            <input type="hidden" name="id" id="id" value="' . $pid . '" />
-                            <input type="hidden" name="type" id="type" value="pid" />
-                            <input type="hidden" name="actid" id="actid" value="" />
-                            <input type="hidden" name="extra" id="extra" value="" />
-                            <input type="hidden" id="from" name="from" value="01/01/' . date("Y", strtotime("-1 year")) . '" /><input type="hidden" id="to" name="to" value="12/31/' . date("Y", strtotime("-1 year")) . '" />
-
-            ';
         $returnme .= '
-            <script>
-                $(function() {
-                    var dates = $("#from, #to").datepicker({
-                        changeMonth: true,
-                        numberOfMonths: 1,
-                        onSelect: function(selectedDate) {
-                            var option = this.id == "from" ? "minDate" : "maxDate",
-                                instance = $(this).data("datepicker"),
-                                date = $.datepicker.parseDate(
-                                    instance.settings.dateFormat ||
-                                    $.datepicker._defaults.dateFormat,
-                                    selectedDate, instance.settings);
-                            dates.not(this).datepicker("option", option, date);
-                        }
-                    } );
-                } );
-            $(function() {
-              var validForm = $("#myValidForm").submit(function(e) {
-                  validForm.nyroModal().nmCall();
-              } );
-            } );
-            </script>';
+            <form style="display:inline" id="myValidForm" method="get"
+                  action="ajax/reports.php" onsubmit="return false;">
+                <input type="hidden" name="report" id="report" value="all_tax_papers" />
+                <input type="hidden" name="id" id="id" value="' . $pid . '" />
+                <input type="hidden" name="type" id="type" value="pid" />
+                <input type="hidden" name="actid" id="actid" value="" />
+                <input type="hidden" name="extra" id="extra" value="" />
+                <input type="hidden" id="from" name="from" value="01/01/' . date("Y", strtotime("-1 year")) . '" />
+                <input type="hidden" id="to" name="to" value="12/31/' . date("Y", strtotime("-1 year")) . '" />
 
-        $returnme .= '  <button title="Print Tax Papers" class="image_button" type="button" onclick="$(\'#myValidForm\').submit();">' . icon('print', "2") . '</button>
-                    </form>';
+                <script>
+                    $(function() {
+                        var dates = $("#from, #to").datepicker({
+                            changeMonth: true,
+                            numberOfMonths: 1,
+                            onSelect: function(selectedDate) {
+                                var option = this.id == "from" ? "minDate" : "maxDate",
+                                    instance = $(this).data("datepicker"),
+                                    date = $.datepicker.parseDate(
+                                        instance.settings.dateFormat ||
+                                        $.datepicker._defaults.dateFormat,
+                                        selectedDate, instance.settings);
+                                dates.not(this).datepicker("option", option, date);
+                            }
+                        });
+                    });
+                    $(function() {
+                        var validForm = $("#myValidForm").submit(function(e) {
+                            validForm.nyroModal().nmCall();
+                        });
+                    });
+                </script>
+
+                <button title="Print Tax Papers" class="image_button" type="button" onclick="$(\'#myValidForm\').submit();">
+                    ' . icon('print', "2") . '
+                </button>
+            </form>';
     }
 
     if ($aid || $pid) {
@@ -2064,47 +2026,51 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
             "pid" => $pid,
             "aid" => $aid
         ], $identifier);
-        $returnme .= '<button title="Calculate Invoices" class="image_button" type="button" onclick="CreateDialog(\'create_invoices_' . $identifier . '\', 200, 550)">' . icon('calculator', "2") . '</button>';
+        $returnme .= '
+            <button title="Calculate Invoices" class="image_button" type="button" onclick="CreateDialog(\'create_invoices_' . $identifier . '\', 200, 400)">
+                ' . icon('calculator', "2") . '
+            </button>';
     }
 
     if ($aid && $pid) {
         // print tax papers
         // Activity from / to
-        $returnme .= '      <form style="display:inline" id="myValidForm" method="get" action="ajax/reports.php" onsubmit="return false;">
-                            <input type="hidden" name="report" id="report" value="all_tax_papers" />
-                            <input type="hidden" name="id" id="id" value="' . $aid . '" />
-                            <input type="hidden" name="type" id="type" value="aid" />
-                            <input type="hidden" name="actid" id="actid" value="" />
-                            <input type="hidden" name="extra" id="extra" value="" />
-                            <input type="hidden" id="from" name="from" value="01/01/' . date("Y", strtotime("-1 year")) . '" /><input type="hidden" id="to" name="to" value="12/31/' . date("Y", strtotime("-1 year")) . '" />
-
-            ';
         $returnme .= '
-            <script>
-                $(function() {
-                    var dates = $("#from, #to").datepicker({
-                        changeMonth: true,
-                        numberOfMonths: 1,
-                        onSelect: function(selectedDate) {
-                            var option = this.id == "from" ? "minDate" : "maxDate",
-                                instance = $(this).data("datepicker"),
-                                date = $.datepicker.parseDate(
-                                    instance.settings.dateFormat ||
-                                    $.datepicker._defaults.dateFormat,
-                                    selectedDate, instance.settings);
-                            dates.not(this).datepicker("option", option, date);
-                        }
+            <form style="display:inline" id="myValidForm" method="get"
+                  action="ajax/reports.php" onsubmit="return false;">
+                <input type="hidden" name="report" id="report" value="all_tax_papers" />
+                <input type="hidden" name="id" id="id" value="' . $aid . '" />
+                <input type="hidden" name="type" id="type" value="aid" />
+                <input type="hidden" name="actid" id="actid" value="" />
+                <input type="hidden" name="extra" id="extra" value="" />
+                <input type="hidden" id="from" name="from" value="01/01/' . date("Y", strtotime("-1 year")) . '" />
+                <input type="hidden" id="to" name="to" value="12/31/' . date("Y", strtotime("-1 year")) . '" />
+                <script>
+                    $(function() {
+                        var dates = $("#from, #to").datepicker({
+                            changeMonth: true,
+                            numberOfMonths: 1,
+                            onSelect: function(selectedDate) {
+                                var option = this.id == "from" ? "minDate" : "maxDate",
+                                    instance = $(this).data("datepicker"),
+                                    date = $.datepicker.parseDate(
+                                        instance.settings.dateFormat ||
+                                        $.datepicker._defaults.dateFormat,
+                                        selectedDate, instance.settings);
+                                dates.not(this).datepicker("option", option, date);
+                            }
+                        } );
                     } );
+                $(function() {
+                var validForm = $("#myValidForm").submit(function(e) {
+                    validForm.nyroModal().nmCall();
                 } );
-            $(function() {
-              var validForm = $("#myValidForm").submit(function(e) {
-                  validForm.nyroModal().nmCall();
-              } );
-            } );
-            </script>';
-
-        $returnme .= '  <button title="Print Tax Papers" class="image_button" type="button" onclick="$(\'#myValidForm\').submit();">' . icon('print', "2") . '</button>
-                    </form>';
+                } );
+                </script>
+                <button title="Print Tax Papers" class="image_button" type="button" onclick="$(\'#myValidForm\').submit();">
+                    ' . icon('print', "2") . '
+                </button>
+            </form>';
 
         $override = get_db_row("SELECT * FROM billing_override WHERE pid='$pid' AND aid='$aid'");
         $returnme .= get_form("billing_overrides", [
@@ -2114,7 +2080,7 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
             "callback" => "billing",
             "override" => $override
         ], $identifier);
-        $returnme .= '<button title="Billing Overrides" class="image_button" type="button" onclick="CreateDialog(\'billing_overrides_' . $identifier . '\', 400, 400)">' . icon('vault', "2") . '</button>';
+        $returnme .= '<button title="Billing Overrides" class="image_button" type="button" onclick="CreateDialog(\'billing_overrides_' . $identifier . '\', 450, 500)">' . icon('vault', "2") . '</button>';
     }
 
     if ($return) {
@@ -2177,53 +2143,39 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
         $yearsql2 = "AND timelog >= '$beginningofyear' AND timelog <= '$endofyear'";
     }
 
-    $returnme   = "";
-    $total_paid = 0;
-
-    $onchange = '$.ajax({
-                        type: \'POST\',
-                        url: \'ajax/ajax.php\',
-                        data: { action: \'view_invoices\', aid: \'' . $aid . '\',pid: \'' . $pid . '\',orderbytime: \'' . $orderbytime . '\',year: this.value } ,
-                        success: function(data) { $(\'#info_div\').html(data); refresh_all(); }
-                    });';
-
     $years[] = "all";
     for ($i = date("Y"); $i > date("Y") - 5; $i--) {
         $years[] = $i;
     }
 
-    $yearselector = make_select_from_array("yearselector", $years, false, false, $year, $onchange);
-    $returnme .= '<div class="scroll-pane fill_height"><div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px; 5px;">Invoices: ' . $yearselector . '</div>';
+    $yearselector = make_select_from_array(
+        "yearselector",
+        $years,
+        false,
+        false,
+        $year,
+        from_template("invoice_year_selector_action.php", [
+            "pid" => $pid,
+            "aid" => $aid,
+            "orderbytime" => $orderbytime
+        ])
+    );
+
     if (empty($aid)) { // All accounts enrolled in program
         $SQL = "SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid')) ORDER BY name";
     } else { // Only selected account
         $SQL = "SELECT * FROM accounts WHERE aid='$aid'";
     }
 
+    $total_paid = 0;
+    $returnme = "<div>No Accounts</div>"; // Default message if no accounts found
+    $account_invoices = "";
     if ($accounts = get_db_result($SQL)) {
         while ($account = fetch_row($accounts)) {
             $total_paid     = $total_billed = $total_fee = 0;
-            $identifier     = time() . "accountpayment_" . $account["aid"];
-            $payfee_button  = get_form("add_edit_payment", [
-                "pid"          => $pid,
-                "aid"          => $account["aid"],
-                "callback"     => "billing",
-                "callbackinfo" => $aid
-            ], $identifier);
-            $payfee_button .= '<a style="font-size: 9px;" href="javascript: void(0);" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all" style="padding: 5px;">' . icon('money-bill') . ' Add Payment/Fee</span></a>';
-            $list_invoices_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoice&pid=' . $pid . '&aid=' . $account["aid"] . '&time=' . time() . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 5px;">' . icon('list') . ' List Invoices</span></a>';
-            $timeline_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoicetimeline&pid=' . $pid . '&aid=' . $account["aid"] . '&time=' . time() . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 5px;">' . icon('timeline') . ' Invoice Timeline</span></a>';
 
-            $returnme .= '
-                <div class="document_list_item ui-corner-all">
-                    <div style="padding: 6px;display:flex;align-items: center;">
-                        <span>
-                            <strong>Account: ' . $account["name"] . '</strong>
-                        </span>
-                        ' . $list_invoices_button . $timeline_button . $payfee_button . '
-                    </div>';
-
-            if (empty($orderbytime)) {  // Group all transactions
+            $transactions = "";
+            if (empty($orderbytime)) {  // Group all transactions aka Stacked View
                 // Fees
                 $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2 ORDER BY timelog,payid";
                 if ($payments = get_db_result($SQL)) {
@@ -2239,69 +2191,33 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                             "callback"     => "billing",
                             "callbackinfo" => $aid
                         ], $identifier);
-                        $edit_payment_button .= '<button style="font-size: 9px;" type="button" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\', 300, 400)">Edit</button>';
-                        $delete_payment = '<button style="font-size: 9px;" type="button" onclick="CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this payment?\', \'Yes\', \'No\', function(){ $.ajax({
-                              type: \'POST\',
-                              url: \'ajax/ajax.php\',
-                              data: { action: \'delete_payment\', payid: \'' . $payment["payid"] . '\' } ,
-                              success: function(data) {
-                                $.ajax({
-                                  type: \'POST\',
-                                  url: \'ajax/ajax.php\',
-                                  data: { action: \'get_admin_billing_form\', pid: \'' . $pid . '\', aid: \'' . $aid . '\' } ,
-                                  success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                                  } );
-                              }
-                              });},function(){});">Delete</button>';
 
+                        $edit_payment_button .= from_template("edit_payment_button.php", ["identifier" => $identifier]);
+
+                        $delete_payment = from_template("delete_payment_button.php", [
+                            "payid" => $payment["payid"],
+                            "pid"   => $pid,
+                            "aid"   => $aid,
+                        ]);
                         $paytext = $payment["payment"] >= 0 ? "Payment of " : "Fee of ";
                         $note = empty($payment["note"]) ? "" : '<tr><td><em>Note: ' . $payment["note"] . '</em></td></tr>';
-                        $receipts .= '
-                            <div>
-                                <table style="width:100%;color: inherit;font: inherit;">
-                                    <tr>
-                                        <td style="width: 40px;">
-                                            ' . $edit_payment_button . '
-                                        </td>
-                                        <td>
-                                            <table style="width: 100%;font-size: 11px;background-color: rgba(255, 255, 255, .4);border: 1px solid silver;">
-                                                <tr>
-                                                    <td style="font-weight: bold;">' . $paytext . ' $' . number_format(abs($payment["payment"]), 2) . ' was added on ' . date('m/d/Y', display_time($payment["timelog"])) . '</td>
-                                                </tr>
-                                                ' . $note . '
-                                            </table>
-                                        </td>
-                                        <td style="width: 50px;">
-                                            ' . $delete_payment . '
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>';
+
+                        $receipts .= from_template("payment_receipt_layout.php", [
+                            "editbutton" => $edit_payment_button,
+                            "deletebutton" => $delete_payment,
+                            "amount" => $payment["payment"],
+                            "desc" => $paytext,
+                            "time" => $payment["timelog"],
+                            "note" => $note,
+                        ]);
                     }
 
-                    $returnme .= '
-                        <div class="ui-corner-all list_box invoice_bills" style="background-color:darkRed;">
-                            <div class="flexsection">
-                                <a href="javascript: void(0);" style="color: white;">
-                                    <table style="width:100%;color: inherit;font: inherit;">
-                                        <tr>
-                                            <td class="hide_mobile" style="width: 16px;">
-                                                ' . get_icon('plusminus') . '
-                                            </td>
-                                            <td>
-                                                Fees
-                                            </td>
-                                            <td style="width:50%;text-align:right">
-                                                <strong>Total Fees: </strong>$' . number_format($total_fee, 2) . '
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </a>
-                            </div>
-                            <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
-                                ' . $receipts . '
-                            </div>
-                        </div>';
+                    $transactions .= from_template("billing_flexsection_layout.php", [
+                        "class" => "invoice_bills",
+                        "style" => "background-color:darkRed;",
+                        "header" => from_template("fees_header_stacked.php", ["amount" => $total_fee]),
+                        "contents" => $receipts,
+                    ]);
                 }
 
                 $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2 ORDER BY timelog,payid";
@@ -2312,6 +2228,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                     $receipts = "";
                     while ($payment = fetch_row($payments)) {
                         $identifier          = time() . "accountpaymentpayid_" . $payment["payid"];
+
                         $edit_payment_button = get_form("add_edit_payment", [
                             "payment"      => $payment,
                             "pid"          => $pid,
@@ -2319,65 +2236,33 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                             "callback"     => "billing",
                             "callbackinfo" => $aid
                         ], $identifier);
-                        $edit_payment_button .= '<button style="font-size: 9px;" type="button" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\', 300, 400)">Edit</button>';
-                        $delete_payment = '<button style="font-size: 9px;" type="button" onclick="CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this payment?\', \'Yes\', \'No\', function(){ $.ajax({
-                              type: \'POST\',
-                              url: \'ajax/ajax.php\',
-                              data: { action: \'delete_payment\', payid: \'' . $payment["payid"] . '\' } ,
-                              success: function(data) {
-                                $.ajax({
-                                  type: \'POST\',
-                                  url: \'ajax/ajax.php\',
-                                  data: { action: \'get_admin_billing_form\', pid: \'' . $pid . '\', aid: \'' . $aid . '\' } ,
-                                  success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                                  } );
-                              }
-                              });},function(){});">Delete</button>';
+                        $edit_payment_button .= from_template("edit_payment_button.php", ["identifier" => $identifier]);
+
+                        $delete_payment = from_template("delete_payment_button.php", [
+                            "payid" => $payment["payid"],
+                            "pid"   => $pid,
+                            "aid"   => $aid,
+                        ]);
 
                         $paytext = $payment["payment"] >= 0 ? "Payment of " : "Fee of ";
                         $note = empty($payment["note"]) ? "" : '<tr><td><em>Note: ' . $payment["note"] . '</em></td></tr>';
-                        $receipts .= '
-                            <div>
-                                <table style="width:100%;color: inherit;font: inherit;">
-                                    <tr>
-                                        <td style="width: 40px;">' . $edit_payment_button . '</td>
-                                        <td>
-                                            <table style="width: 100%;font-size: 11px;background-color: rgba(255, 255, 255, .4);border: 1px solid silver;">
-                                                <tr>
-                                                    <td style="font-weight: bold;">' . $paytext . ' $' . number_format($payment["payment"], 2) . ' was added on ' . date('m/d/Y', display_time($payment["timelog"])) . '</td>
-                                                </tr>
-                                                ' . $note . '
-                                            </table>
-                                        </td>
-                                        <td style="width: 50px;">' . $delete_payment . '</td>
-                                    </tr>
-                                </table>
-                            </div>';
+
+                        $receipts .= from_template("payment_receipt_layout.php", [
+                            "editbutton" => $edit_payment_button,
+                            "deletebutton" => $delete_payment,
+                            "amount" => $payment["payment"],
+                            "desc" => $paytext,
+                            "time" => $payment["timelog"],
+                            "note" => $note,
+                        ]);
                     }
 
-                    $returnme .= '
-                        <div class="ui-corner-all list_box invoice_payments" style="background-color:darkCyan;">
-                            <div class="flexsection">
-                                <a href="javascript: void(0);" style="color: white;">
-                                    <table style="width:100%;color: inherit;font: inherit;">
-                                        <tr>
-                                            <td class="hide_mobile" style="width: 16px;">
-                                                ' . get_icon('plusminus') . '
-                                            </td>
-                                            <td class="hide_mobile">
-                                                Payments
-                                            </td>
-                                            <td style="width:50%;text-align:right">
-                                                <strong>Total Payments:</strong> $' . number_format($total_paid, 2) . '
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </a>
-                            </div>
-                            <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
-                                ' . $receipts . '
-                            </div>
-                        </div>';
+                    $transactions .= from_template("billing_flexsection_layout.php", [
+                        "class" => "invoice_payments",
+                        "style" => "background-color:darkCyan;",
+                        "header" => from_template("payment_header_stacked.php", ["amount" => $total_paid]),
+                        "contents" => $receipts,
+                    ]);
                 }
 
                 $SQL = "SELECT * FROM billing WHERE pid='$pid' AND aid='" . $account["aid"] . "' $yearsql ORDER BY fromdate";
@@ -2387,60 +2272,32 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                         $receipts = "";
                         if ($perchild_invoices = get_db_result($SQL)) {
                             while ($perchild_invoice = fetch_row($perchild_invoices)) {
-                                $exempt_title  = empty($perchild_invoice["exempt"]) ? "Exempt" : "Undo";
-                                $exempt_show   = empty($perchild_invoice["exempt"]) || strstr($perchild_invoice["receipt"], "[Exempt]") ? "" : " - <span style='color:blue;font-weight:bold;'>Exempt $0</span>";
-                                $exempt        = '<button style="font-size: 9px;" type="button" onclick="$.ajax({
-                                      type: \'POST\',
-                                      url: \'ajax/ajax.php\',
-                                      data: { action: \'toggle_exemption\', id: \'' . $perchild_invoice["id"] . '\' } ,
-                                      success: function(data) {
-                                        $.ajax({
-                                          type: \'POST\',
-                                          url: \'ajax/ajax.php\',
-                                          data: { action: \'get_admin_billing_form\', pid: \'' . $pid . '\', aid: \'' . $aid . '\' } ,
-                                          success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                                          } );
-                                      }
-                                      });">' . $exempt_title . '</button>';
-                                $exempt_button = !strstr($perchild_invoice["receipt"], "[Exempt]") ? "$exempt" : "";
-                                $receipts .= '
-                                    <div class="week_receipt">
-                                        <span>
-                                            ' . $perchild_invoice["receipt"] . $exempt_show . '
-                                        </span>
-                                        <span>
-                                            ' . $exempt_button . '
-                                        </span>
-                                    </div>';
+                                $exempt_button = "";
+                                if (!strstr($perchild_invoice["receipt"], "[Exempt]")) { // If not already exempted
+                                    $exempt_button = from_template("exempt_button.php", [
+                                        "title" => (empty($perchild_invoice["exempt"]) ? "Exempt" : "Recend Exemption"),
+                                        "invoiceid" => $perchild_invoice["id"],
+                                        "pid" => $pid,
+                                        "aid" => $aid,
+                                    ]);
+                                }
+
+                                $receipts .= from_template("billing_receipt_layout.php", [
+                                    "exemptbutton" => $exempt_button,
+                                    "desc" => $perchild_invoice["receipt"],
+                                ]);
                             }
                         }
 
-                        $returnme .= '
-                            <div class="ui-corner-all list_box invoice_week">
-                                <div class="flexsection">
-                                    <a href="javascript: void(0);" style="color: white;">
-                                        <table style="width:100%;color: inherit;font: inherit;">
-                                            <tr>
-                                                <td class="hide_mobile" style="width: 16px;">
-                                                    ' . get_icon('plusminus') . '
-                                                </td>
-                                                <td style="width:50%">
-                                                    Week of <span class="hide_mobile">' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</span>
-                                                    <span class="show_mobile">
-                                                        ' . date('m/d/Y', $invoice["fromdate"]) . '
-                                                    </span>
-                                                </td>
-                                                <td style="width:50%;text-align:right">
-                                                    <strong>Bill: </strong>$' . number_format($invoice["owed"], 2) . '
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </a>
-                                </div>
-                                <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
-                                    ' . $receipts . '
-                                </div>
-                            </div>';
+                        $transactions .= from_template("billing_flexsection_layout.php", [
+                            "class" => "invoice_week",
+                            "style" => "",
+                            "header" => from_template("billing_header_stacked.php", [
+                                "weekof" => $invoice["fromdate"],
+                                "amount" => $invoice["owed"],
+                            ]),
+                            "contents" => $receipts,
+                        ]);
                     }
                 }
                 $total_billed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "' $yearsql");
@@ -2454,21 +2311,26 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 $total_paid = empty($total_paid) ? "0.00" : $total_paid;
 
                 $SQL = "SELECT id, pid, aid, amount, note, fromdate, bill
-                          FROM (SELECT id, pid, aid, owed as amount, receipt as note, fromdate, 1 AS bill
-                                  FROM billing
-                                UNION
-                                SELECT payid as id, pid, aid, payment as amount, note, timelog as fromtime, 0 as bill
-                                  FROM billing_payments) c
-                         WHERE pid='$pid' AND aid='" . $account["aid"] . "' $yearsql
-                      ORDER BY fromdate";
+                        FROM (
+                            SELECT id, pid, aid, owed as amount, receipt as note, fromdate, 1 AS bill
+                            FROM billing
+                            UNION
+                            SELECT payid as id, pid, aid, payment as amount, note, timelog as fromtime, 0 as bill
+                            FROM billing_payments
+                        ) c
+                        WHERE pid='$pid'
+                        AND aid='" . $account["aid"] . "'
+                        $yearsql
+                        ORDER BY fromdate";
+
                 if ($results = get_db_result($SQL)) {
                     while ($result = fetch_row($results)) {
                         if (!$result["bill"]) { // Payment or Fee
                             if ($result["amount"] < 0) { // Fee
-                                $identifier          = time() . "accountpaymentpayid_" . $result["id"];
                                 $result["payment"] = $result["amount"];
                                 $result["payid"] = $result["id"];
-                                $result["timelog"] = $result["timefrom"];
+                                $result["timelog"] = $result["fromdate"];
+                                $identifier          = time() . "accountpaymentpayid_" . $result["id"];
                                 $edit_payment_button = get_form("add_edit_payment", [
                                     "payment"      => $result,
                                     "pid"          => $pid,
@@ -2476,63 +2338,41 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                     "callback"     => "billing",
                                     "callbackinfo" => $aid
                                 ], $identifier);
-                                $edit_payment_button .= '<button style="font-size: 9px;" type="button" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\', 300, 400)">Edit</button>';
-                                $delete_payment = '<button style="font-size: 9px;" type="button" onclick="CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this payment?\', \'Yes\', \'No\', function(){ $.ajax({
-                                      type: \'POST\',
-                                      url: \'ajax/ajax.php\',
-                                      data: { action: \'delete_payment\', payid: \'' . $result["id"] . '\' } ,
-                                      success: function(data) {
-                                        $.ajax({
-                                          type: \'POST\',
-                                          url: \'ajax/ajax.php\',
-                                          data: { action: \'get_admin_billing_form\', pid: \'' . $pid . '\', aid: \'' . $aid . '\' } ,
-                                          success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                                          } );
-                                      }
-                                      });},function(){});">Delete</button>';
+                                $edit_payment_button .= from_template("edit_payment_button.php", ["identifier" => $identifier]);
 
-                                $paytext = $result["amount"] >= 0 ? "Payment of " : "Fee of ";
+                                $delete_payment = from_template("delete_payment_button.php", [
+                                    "payid" => $result["id"],
+                                    "pid"   => $pid,
+                                    "aid"   => $aid,
+                                ]);
+
                                 $note = empty($result["note"]) ? "" : '<tr><td><em>Note: ' . $result["note"] . '</em></td></tr>';
-                                $returnme .= '
-                                    <div class="ui-corner-all list_box invoice_bills" style="background-color:darkRed;padding: 5px;color: white;">
-                                        <div class="flexsection">
-                                            <a href="javascript: void(0);" style="color: white;">
-                                                <table style="width:100%;color: inherit;font: inherit;">
-                                                    <tr>
-                                                        <td class="hide_mobile" style="width: 16px;">
-                                                            ' . get_icon('plusminus') . '
-                                                        </td>
-                                                        <td style="width:50%;text-align:right">
-                                                            <strong>Fee:</strong> $' . number_format(abs($result["amount"]), 2) . '
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                            </a>
-                                        </div>
-                                        <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
-                                            <div>
-                                                <table style="width:100%;color: inherit;font: inherit;">
-                                                    <tr>
-                                                        <td style="width: 40px;">' . $edit_payment_button . '</td>
-                                                        <td>
-                                                            <table style="width: 100%;font-size: 11px;background-color: rgba(255, 255, 255, .4);border: 1px solid silver;">
-                                                                <tr>
-                                                                    <td style="font-weight: bold;">' . $paytext . ' $' . number_format(abs($result["amount"]), 2) . ' was added on ' . date('m/d/Y', display_time($result["fromdate"])) . '</td>
-                                                                </tr>
-                                                                ' . $note . '
-                                                            </table>
-                                                        </td>
-                                                        <td style="width: 50px;">' . $delete_payment . '</td>
-                                                    </tr>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>';
+
+                                $header = from_template("payment_or_fees_header_timeline.php", [
+                                    "type"   => ($result["amount"] >= 0 ? "Payment" : "Fee"),
+                                    "amount" => $result["amount"],
+                                ]);
+
+                                $content = from_template("payment_receipt_layout.php", [
+                                    "editbutton" => $edit_payment_button,
+                                    "deletebutton" => $delete_payment,
+                                    "amount" => $result["amount"],
+                                    "desc" => ($result["amount"] >= 0 ? "Payment of " : "Fee of "),
+                                    "time" => $result["timelog"],
+                                    "note" => $note,
+                                ]);
+
+                                $transactions .= from_template("billing_flexsection_layout.php", [
+                                    "class" => "invoice_bills",
+                                    "style" => "background-color:darkRed;padding: 5px;color: white;",
+                                    "header" => $header,
+                                    "contents" => $content,
+                                ]);
                             } else { // Payment
                                 $identifier          = time() . "accountpaymentpayid_" . $result["id"];
                                 $result["payment"] = $result["amount"];
                                 $result["payid"] = $result["id"];
-                                $result["timelog"] = $result["timefrom"];
+                                $result["timelog"] = $result["fromdate"];
                                 $edit_payment_button = get_form("add_edit_payment", [
                                     "payment"      => $result,
                                     "pid"          => $pid,
@@ -2540,58 +2380,35 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                     "callback"     => "billing",
                                     "callbackinfo" => $aid
                                 ], $identifier);
-                                $edit_payment_button .= '<button style="font-size: 9px;" type="button" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\', 300, 400)">Edit</button>';
-                                $delete_payment = '<button style="font-size: 9px;" type="button" onclick="CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this payment?\', \'Yes\', \'No\', function(){ $.ajax({
-                                      type: \'POST\',
-                                      url: \'ajax/ajax.php\',
-                                      data: { action: \'delete_payment\', payid: \'' . $result["id"] . '\' } ,
-                                      success: function(data) {
-                                        $.ajax({
-                                          type: \'POST\',
-                                          url: \'ajax/ajax.php\',
-                                          data: { action: \'get_admin_billing_form\', pid: \'' . $pid . '\', aid: \'' . $aid . '\' } ,
-                                          success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                                          } );
-                                      }
-                                      });},function(){});">Delete</button>';
 
-                                $paytext = $result["amount"] >= 0 ? "Payment of " : "Fee of ";
+                                $delete_payment = from_template("delete_payment_button.php", [
+                                    "payid" => $result["id"],
+                                    "pid"   => $pid,
+                                    "aid"   => $aid,
+                                ]);
+
                                 $note = empty($result["note"]) ? "" : '<tr><td><em>Note: ' . $result["note"] . '</em></td></tr>';
-                                $returnme .= '
-                                    <div class="ui-corner-all list_box invoice_payments" style="background-color:darkCyan;padding: 5px;color: white;">
-                                        <div class="flexsection">
-                                            <a href="javascript: void(0);" style="color: white;">
-                                                <table style="width:100%;color: inherit;font: inherit;">
-                                                    <tr>
-                                                        <td class="hide_mobile" style="width: 16px;">
-                                                            ' . get_icon('plusminus') . '
-                                                        </td>
-                                                        <td style="width:50%;text-align:right">
-                                                            <strong>Payment:</strong> $' . number_format($result["amount"], 2) . '
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                            </a>
-                                        </div>
-                                        <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
-                                            <div>
-                                                <table style="width:100%;color: inherit;font: inherit;">
-                                                    <tr>
-                                                        <td style="width: 40px;">' . $edit_payment_button . '</td>
-                                                        <td>
-                                                            <table style="width: 100%;font-size: 11px;background-color: rgba(255, 255, 255, .4);border: 1px solid silver;">
-                                                                <tr>
-                                                                    <td style="font-weight: bold;">' . $paytext . ' $' . number_format(abs($result["amount"]), 2) . ' was added on ' . date('m/d/Y', display_time($result["fromdate"])) . '</td>
-                                                                </tr>
-                                                                ' . $note . '
-                                                            </table>
-                                                        </td>
-                                                        <td style="width: 50px;">' . $delete_payment . '</td>
-                                                    </tr>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>';
+
+                                $header = from_template("payment_or_fees_header_timeline.php", [
+                                    "type"   => ($result["amount"] >= 0 ? "Payment" : "Fee"),
+                                    "amount" => $result["amount"],
+                                ]);
+
+                                $content = from_template("payment_receipt_layout.php", [
+                                    "editbutton" => $edit_payment_button,
+                                    "deletebutton" => $delete_payment,
+                                    "amount" => $result["amount"],
+                                    "desc" => ($result["amount"] >= 0 ? "Payment of " : "Fee of "),
+                                    "time" => $result["timelog"],
+                                    "note" => $note,
+                                ]);
+
+                                $transactions .= from_template("billing_flexsection_layout.php", [
+                                    "class" => "invoice_payments",
+                                    "style" => "background-color:darkCyan;padding: 5px;color: white;",
+                                    "header" => $header,
+                                    "contents" => $content,
+                                ]);
                             }
                         } else { // Bill
                             $SQL = "SELECT * FROM billing_perchild WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND fromdate = '" . $result["fromdate"] . "' ORDER BY id";
@@ -2599,58 +2416,32 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                             $receipts = "";
                             if ($perchild_invoices = get_db_result($SQL)) {
                                 while ($perchild_invoice = fetch_row($perchild_invoices)) {
-                                    $exempt_title  = empty($perchild_invoice["exempt"]) ? "Exempt" : "Undo";
-                                    $exempt_show   = empty($perchild_invoice["exempt"]) || strstr($perchild_invoice["receipt"], "[Exempt]") ? "" : " - <span style='color:blue;font-weight:bold;'>Exempt $0</span>";
-                                    $exempt        = '<button style="font-size: 9px;" type="button" onclick="$.ajax({
-                                          type: \'POST\',
-                                          url: \'ajax/ajax.php\',
-                                          data: { action: \'toggle_exemption\', id: \'' . $perchild_invoice["id"] . '\' } ,
-                                          success: function(data) {
-                                            $.ajax({
-                                              type: \'POST\',
-                                              url: \'ajax/ajax.php\',
-                                              data: { action: \'get_admin_billing_form\', pid: \'' . $pid . '\', aid: \'' . $aid . '\' } ,
-                                              success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                                              } );
-                                          }
-                                          });">' . $exempt_title . '</button>';
-                                    $exempt_button = !strstr($perchild_invoice["receipt"], "[Exempt]") ? "<span>$exempt</span>" : "";
-                                    $receipts .= '
-                                        <div class="week_receipt">
-                                            <span>
-                                                ' . $perchild_invoice["receipt"] . $exempt_show . '
-                                            </span>
-                                            <span>
-                                                ' . $exempt_button . '
-                                            </span>
-                                        </div>';
+                                    $exempt_button = "";
+                                    if (!strstr($perchild_invoice["receipt"], "[Exempt]")) { // If not already exempted
+                                        $exempt_button = from_template("exempt_button.php", [
+                                            "title" => (empty($perchild_invoice["exempt"]) ? "Exempt" : "Recend Exemption"),
+                                            "invoiceid" => $perchild_invoice["id"],
+                                            "pid" => $pid,
+                                            "aid" => $aid,
+                                        ]);
+                                    }
+
+                                    $receipts .= from_template("billing_receipt_layout.php", [
+                                        "exemptbutton" => $exempt_button,
+                                        "desc" => $perchild_invoice["receipt"],
+                                    ]);
                                 }
                             }
 
-                            $returnme .= '
-                                <div class="ui-corner-all list_box invoice_week" style="padding: 5px;color: white;">
-                                    <div class="flexsection">
-                                        <a href="javascript: void(0);" style="color: white;">
-                                            <table style="width:100%;color: inherit;font: inherit;">
-                                                <tr>
-                                                    <td class="hide_mobile" style="width: 16px;">
-                                                        ' . get_icon('plusminus') . '
-                                                    </td>
-                                                    <td style="width:50%">
-                                                        Week of <span class="hide_mobile">' . date('F \t\h\e jS, Y', $result["fromdate"]) . '</span>
-                                                        <span class="show_mobile">' . date('m/d/Y', $result["fromdate"]) . '</span>
-                                                    </td>
-                                                    <td style="width:50%;text-align:right">
-                                                        <strong>Bill: </strong>$' . number_format($result["amount"], 2) . '
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </a>
-                                    </div>
-                                    <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
-                                        ' . $receipts . '
-                                    </div>
-                                </div>';
+                            $transactions .= from_template("billing_flexsection_layout.php", [
+                                "class" => "invoice_week",
+                                "style" => "padding: 5px;color: white;",
+                                "header" => from_template("billing_header_stacked.php", [
+                                    "weekof" => $result["fromdate"],
+                                    "amount" => $result["amount"],
+                                ]),
+                                "contents" => $receipts,
+                            ]);
                         }
                     }
                     $total_billed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "' $yearsql");
@@ -2661,28 +2452,20 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
             // Add current week charges.
             if (($year == "all" || $year == date("Y")) && $current_week = week_balance($pid, $account["aid"], true)) {
-                $returnme .= '
-                    <div class="ui-corner-all list_box invoice_week" style="padding: 5px;color: white;">
-                        <div>
-                            <a style="color: white;">
-                                <table style="width:100%;color: inherit;font: inherit;">
-                                    <tr>
-                                        <td style="width:50%">
-                                            Current Week
-                                        </td>
-                                        <td style="width:50%;text-align:right">
-                                            <strong>Bill: </strong>$' . number_format($current_week, 2) . '
-                                        </td>
-                                    </tr>
-                                </table>
-                            </a>
-                        </div>
-                    </div>';
+                $transactions .= from_template("billing_flexsection_layout.php", [
+                    "class" => "invoice_week",
+                    "style" => "padding: 5px;color: white;",
+                    "header" => from_template("current_header_stacked.php", [
+                        "amount" => $current_week,
+                    ]),
+                    "contents" => "",
+                ]);
+
                 $total_billed += (float) $current_week;
             }
 
             $balance = $total_billed - $total_paid + $beginning_balance;
-            $returnme .= '
+            $transactions .= '
                 <div style="padding: 0px 12px;">
                     <div style="text-align: right;color: darkred;">
                         <strong>Beginning Year Balance:</strong> $' . number_format($beginning_balance, 2) . '
@@ -2701,29 +2484,45 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
             // Expected next week if prepaid.
             if (get_db_field("payahead", "programs", "pid='$pid'")) { // if prepaid
-                $returnme .= '
-                    <div class="ui-corner-all list_box invoice_week" style="padding: 5px;color: white; background: green;">
-                        <div>
-                            <a style="color: white;">
-                                <table style="width:100%;color: inherit;font: inherit;">
-                                    <tr>
-                                        <td style="width:50%">
-                                            Next Week
-                                        </td>
-                                        <td style="width:50%;text-align:right">
-                                            <strong>Prepay Expected: </strong>$' . number_format(week_balance($pid, $account["aid"], true, true), 2) . '
-                                        </td>
-                                    </tr>
-                                </table>
-                            </a>
-                        </div>
-                    </div>';
+                $transactions .= from_template("billing_flexsection_layout.php", [
+                    "class" => "invoice_week",
+                    "style" => "padding: 5px;color: white; background: green;",
+                    "header" => from_template("current_header_stacked.php", [
+                        "amount" => week_balance($pid, $account["aid"], true, true),
+                    ]),
+                    "contents" => "",
+                ]);
             }
-            $returnme .= '</div>';
+
+            $identifier = time() . "accountpayment_" . $account["aid"];
+            $payfee_button  = get_form("add_edit_payment", [
+                "pid"          => $pid,
+                "aid"          => $account["aid"],
+                "callback"     => "billing",
+                "callbackinfo" => $aid
+            ], $identifier);
+            $payfee_button .= '<a style="font-size: 9px;" href="javascript: void(0);" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all" style="padding: 5px;">' . icon('money-bill') . ' Add Payment/Fee</span></a>';
+            $list_invoices_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoice&pid=' . $pid . '&aid=' . $account["aid"] . '&time=' . time() . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 5px;">' . icon('list') . ' List Invoices</span></a>';
+            $timeline_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoicetimeline&pid=' . $pid . '&aid=' . $account["aid"] . '&time=' . time() . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 5px;">' . icon('timeline') . ' Invoice Timeline</span></a>';
+
+            $account_invoices .= '
+                <div class="document_list_item ui-corner-all">
+                    <div style="padding: 6px;display:flex;align-items: center;">
+                        <span>
+                            <strong>Account: ' . $account["name"] . '</strong>
+                        </span>
+                        ' . $list_invoices_button . $timeline_button . $payfee_button . '
+                    </div>
+                    ' . $transactions . '
+                </div>';
         }
-        $returnme .= '</div>';
-    } else {
-        $returnme .= "<div>No Accounts</div>";
+        $returnme = '
+            <div class="scroll-pane fill_height">
+                <div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px; 5px;">
+                    Invoices: ' . $yearselector . '
+                </div>
+                ' . $account_invoices . '
+            </div>';
     }
 
     if ($return) {

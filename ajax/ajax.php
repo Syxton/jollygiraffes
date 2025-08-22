@@ -3107,21 +3107,19 @@ function get_admin_children_form($return = false, $chid = false, $recover = fals
         ]);
     }
 
-    $returnme = '
-        <div class="container_list scroll-pane ui-corner-all">
-            <div class="document_list_item ui-corner-all" style="text-align:center">
-                <span><strong>
-                    Enrolled Children
-                </strong></span>
-            </div>
-            ' . $children_list . '
-        </div>
-        <div class="container_actions ui-corner-all" id="actions_div">
-            ' . get_action_buttons(true, false, false, $chid, false, false, $recover) . '
-        </div>
-        <div class="container_info ui-corner-all fill_height" id="info_div">
-            ' . get_info(true, false, false, $chid, false, false, $recover) . '
+    $header = '
+        <div class="document_list_item ui-corner-all" style="text-align:center">
+            <span><strong>
+                Enrolled Children
+            </strong></span>
         </div>';
+
+    $returnme = from_template("admin_main_layout.php", [
+        "header" => $header,
+        "list" => $children_list,
+        "actions" => get_action_buttons(true, false, false, $chid, false, false, $recover),
+        "info" => get_info(true, false, false, $chid, false, false, $recover),
+    ]);
 
     if ($return) {
         return $returnme;
@@ -3135,30 +3133,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
     $pid      = $pid ? $pid : (empty($MYVARS->GET["pid"]) ? false : $MYVARS->GET["pid"]);
     $aid      = $aid ? $aid : (empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"]);
 
-    $program  = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
-    $returnme = '
-        <div class="container_list scroll-pane ui-corner-all">
-            <div class="ui-corner-all list_box selectablelist" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
-                    $.ajax({
-                        type: \'POST\',
-                        url: \'ajax/ajax.php\',
-                        data: { action: \'view_invoices\', pid: \'' . $pid . '\' } ,
-                        success: function(data) {
-                            $(\'#info_div\').html(data);
-                            $.ajax({
-                                type: \'POST\',
-                                url: \'ajax/ajax.php\',
-                                data: { action: \'get_billing_buttons\', pid: \'' . $pid . '\' } ,
-                                success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
-                            } );
-                        }
-                    });">
-                <div class="list_box_item_full">
-                    <span class="list_title">
-                        ' . $program["name"] . '
-                    </span>
-                </div>
-            </div>';
+    $account_list = "";
     if ($accounts = get_db_result("SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid')) ORDER BY name")) {
         $i = 0;
         while ($account = fetch_row($accounts)) {
@@ -3167,7 +3142,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
             $aid             = $selected_class == "selected_button" ? $account["aid"] : $aid;
             $account_balance = account_balance($pid, $account["aid"], true);
             $balanceclass    = $account_balance <= 0 ? "balance_good" : "balance_bad";
-            $returnme .= '
+            $account_list .= '
                 <div class="ui-corner-all list_box selectablelist ' . $selected_class . '"
                     onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                             $.ajax({
@@ -3202,14 +3177,39 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
         }
     }
 
-    $returnme .= '
-        </div>
-        <div class="container_actions ui-corner-all" id="actions_div">
-            ' . get_billing_buttons(true, $pid, $aid) . '
-        </div>
-        <div class="container_info ui-corner-all fill_height" id="info_div">
-            ' . view_invoices(true, $pid, $aid) . '
-        </div>';
+    $program  = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
+
+    $header = '
+        <div class="ui-corner-all list_box selectablelist"
+                onclick="$(this).addClass(\'selected_button\',true);
+                    $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+                    $.ajax({
+                        type: \'POST\',
+                        url: \'ajax/ajax.php\',
+                        data: { action: \'view_invoices\', pid: \'' . $pid . '\' } ,
+                        success: function(data) {
+                            $(\'#info_div\').html(data);
+                            $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                data: { action: \'get_billing_buttons\', pid: \'' . $pid . '\' } ,
+                                success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
+                            } );
+                        }
+                    });">
+                <div class="list_box_item_full">
+                    <span class="list_title">
+                        ' . $program["name"] . '
+                    </span>
+                </div>
+            </div>';
+
+    $returnme = from_template("admin_main_layout.php", [
+        "header" => $header,
+        "list" => $account_list,
+        "actions" => get_billing_buttons(true, $pid, $aid),
+        "info" => view_invoices(true, $pid, $aid),
+    ]);
 
     if ($return) {
         return $returnme;
@@ -3221,11 +3221,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
 function get_admin_contacts_form($return = false, $cid = false, $recover = false) {
     global $MYVARS;
     $cid      = $cid ? $cid : (empty($MYVARS->GET["cid"]) ? false : $MYVARS->GET["cid"]);
-    $returnme = '<div class="container_list scroll-pane ui-corner-all">';
-    $returnme .= '
-        <div class="document_list_item ui-corner-all" style="text-align:center">
-            <span><strong>Active Contacts</strong></span>
-        </div>';
+
     $SQL = "SELECT *
             FROM contacts c
             INNER JOIN accounts a ON c.aid = a.aid
@@ -3240,6 +3236,8 @@ function get_admin_contacts_form($return = false, $cid = false, $recover = false
                 )
             )
             ORDER BY a.name, c.last, c.first";
+
+    $contact_list = "";
     if ($contacts = get_db_result($SQL)) {
         while ($contact = fetch_row($contacts)) {
             $cid            = empty($cid) ? $contact["cid"] : $cid;
@@ -3255,29 +3253,46 @@ function get_admin_contacts_form($return = false, $cid = false, $recover = false
                 $contact_name = $contact["last"] != $accountname ? $contact["first"] . " " . $contact["last"] : $contact["first"];
             }
 
-            $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
-            $.ajax({
-                type: \'POST\',
-                url: \'ajax/ajax.php\',
-                data: { action: \'get_info\', cid: \'' . $contact["cid"] . '\' } ,
-                success: function(data) {
-                    $(\'#info_div\').html(data);
-                    $.ajax({
-                        type: \'POST\',
-                        url: \'ajax/ajax.php\',
-                        data: { action: \'get_action_buttons\', cid: \'' . $contact["cid"] . '\' } ,
-                        success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
-                    } );
-                }
-            });"><div class="list_box_item_full"><span class="list_title">[' . $accountname . '] ' . $contact_name . '</span></div></div>';
+            $contact_list .= '
+                <div class="ui-corner-all list_box selectablelist ' . $selected_class . '"
+                    onclick="$(this).addClass(\'selected_button\',true);
+                            $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+                            $.ajax({
+                                type: \'POST\',
+                                url: \'ajax/ajax.php\',
+                                data: { action: \'get_info\', cid: \'' . $contact["cid"] . '\' } ,
+                                success: function(data) {
+                                    $(\'#info_div\').html(data);
+                                    $.ajax({
+                                        type: \'POST\',
+                                        url: \'ajax/ajax.php\',
+                                        data: { action: \'get_action_buttons\', cid: \'' . $contact["cid"] . '\' } ,
+                                        success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
+                                    } );
+                                }
+                            });">
+                    <div class="list_box_item_full">
+                        <span class="list_title">
+                            [' . $accountname . '] ' . $contact_name . '
+                        </span>
+                    </div>
+                </div>';
         }
     } else {
-        $returnme .= '<div class="ui-corner-all list_box" ><div class="list_box_item_full"><span class="list_title">None Active</span></div></div>';
+        $contact_list .= '<div class="ui-corner-all list_box" ><div class="list_box_item_full"><span class="list_title">None Active</span></div></div>';
     }
 
-    $returnme .= '</div>';
-    $returnme .= '<div class="container_actions ui-corner-all" id="actions_div">' . get_action_buttons(true, false, false, false, $cid, false, $recover) . '</div>';
-    $returnme .= '<div class="container_info ui-corner-all fill_height" id="info_div">' . get_info(true, false, false, false, $cid, false, $recover) . '</div>';
+    $header = '
+        <div class="document_list_item ui-corner-all" style="text-align:center">
+            <span><strong>Active Contacts</strong></span>
+        </div>';
+
+    $returnme = from_template("admin_main_layout.php", [
+        "header" => $header,
+        "list" => $contact_list,
+        "actions" => get_action_buttons(true, false, false, false, $cid, false, $recover),
+        "info" => get_info(true, false, false, false, $cid, false, $recover),
+    ]);
 
     if ($return) {
         return $returnme;
@@ -3290,39 +3305,18 @@ function get_admin_employees_form($return = false, $employeeid = false, $recover
     global $MYVARS;
     $employeeid = $employeeid ? $employeeid : (empty($MYVARS->GET["employeeid"]) ? false : $MYVARS->GET["employeeid"]);
     $recover    = $recover ? $recover : (empty($MYVARS->GET["recover"]) ? false : $MYVARS->GET["recover"]);
-    $returnme   = '<div class="container_list scroll-pane ui-corner-all"><div class="ui-corner-all list_box"><div class="list_box_item_left employee_name">';
-
-    if (!$recover) {
-        $returnme .= get_form('add_edit_employee') . '<button class="list_buttons" style="float:none;margin:4px;" type="button" onclick="CreateDialog(\'add_edit_employee\', 230, 315)">Add New Employee</button>';
-        if (get_db_row("SELECT employeeid FROM employee WHERE deleted=1")) {
-            $returnme .= ' <button class="list_buttons" onclick="$.ajax({
-                  type: \'POST\',
-                  url: \'ajax/ajax.php\',
-                  data: { action: \'get_admin_employees_form\', employeeid: \'\', recover: \'true\' } ,
-                  success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                  });">See Inactive</button>';
-        }
-    } else {
-        $returnme .= '<button style="margin:4px;"  onclick="$.ajax({
-                  type: \'POST\',
-                  url: \'ajax/ajax.php\',
-                  data: { action: \'get_admin_employees_form\', employeeid: \'\'} ,
-                  success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-              });">See Active</button>';
-    }
-    $returnme .= '</div><div class="list_box_item_right"></div></div>';
-    $returnme .= '';
-
     $deleted = $recover ? "1" : "0";
+
     $SQL     = "SELECT * FROM employee WHERE deleted = '$deleted' ORDER BY last, first";
 
+    $employee_list = "";
     if ($employees = get_db_result($SQL)) {
         while ($employee = fetch_row($employees)) {
             $employeeid     = empty($employeeid) ? $employee["employeeid"] : $employeeid;
             $selected_class = $employeeid == $employee["employeeid"] ? "selected_button" : "";
             $deleted_param  = $recover ? ',recover: \'true\'' : '';
             $thisweekpay = get_wages_for_this_week($employee["employeeid"]);
-            $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+            $employee_list .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                             $.ajax({
                                 type: \'POST\',
                                 url: \'ajax/ajax.php\',
@@ -3339,9 +3333,43 @@ function get_admin_employees_form($return = false, $employeeid = false, $recover
                             });"><div class="list_box_item_left employee_name" ><span class="list_title">' . $employee["last"] . ', ' . $employee["first"] . '</span></div><div class="list_box_item_right billing_info"><div class="child_count"><span class="hide_mobile">This week: </span>$' . $thisweekpay . '</div></div></div>';
         }
     }
-    $returnme .= '</div>';
-    $returnme .= '<div class="container_actions ui-corner-all" id="actions_div">' . get_action_buttons(true, false, false, false, false, false, $recover, $employeeid) . '</div>';
-    $returnme .= '<div class="container_info ui-corner-all fill_height" id="info_div">' . get_info(true, false, false, false, false, false, $recover, $employeeid) . '</div>';
+
+    $header = '
+        <div class="ui-corner-all list_box">
+            <div class="list_box_item_left employee_name">';
+    if (!$recover) {
+        $header .= get_form('add_edit_employee') . '
+            <button class="list_buttons" style="float:none;margin:4px;" type="button" onclick="CreateDialog(\'add_edit_employee\', 230, 315)">
+                Add New Employee
+            </button>';
+
+        if (get_db_row("SELECT employeeid FROM employee WHERE deleted=1")) {
+            $header .= ' <button class="list_buttons" onclick="$.ajax({
+                  type: \'POST\',
+                  url: \'ajax/ajax.php\',
+                  data: { action: \'get_admin_employees_form\', employeeid: \'\', recover: \'true\' } ,
+                  success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
+                  });">See Inactive</button>';
+        }
+    } else {
+        $header .= '<button style="margin:4px;"  onclick="$.ajax({
+                  type: \'POST\',
+                  url: \'ajax/ajax.php\',
+                  data: { action: \'get_admin_employees_form\', employeeid: \'\'} ,
+                  success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
+              });">See Active</button>';
+    }
+    $header .= '
+            </div>
+            <div class="list_box_item_right"></div>
+        </div>';
+
+    $returnme = from_template("admin_main_layout.php", [
+        "header" => $header,
+        "list" => $employee_list,
+        "actions" => get_action_buttons(true, false, false, false, false, false, $recover, $employeeid),
+        "info" => get_info(true, false, false, false, false, false, $recover, $employeeid),
+    ]);
 
     if ($return) {
         return $returnme;
@@ -3354,19 +3382,17 @@ function get_admin_tags_form($return = false, $tagtype = false, $tag = false) {
     global $MYVARS;
     $tagtype  = $tagtype ? $tagtype : (empty($MYVARS->GET["tagtype"]) ? false : $MYVARS->GET["tagtype"]);
     $tag      = $tag ? $tag : (empty($MYVARS->GET["tag"]) ? false : $MYVARS->GET["tag"]);
-    $returnme = '<div class="container_list scroll-pane ui-corner-all">';
+
     $tagtypes = [
         "documents",
         "notes"
     ];
-    $returnme .= '
-        <div class="document_list_item ui-corner-all" style="text-align:center">
-            <span><strong>Tag Types</strong></span>
-        </div>';
+
+    $tag_list = "";
     foreach ($tagtypes as $tagrow) {
         $tagtype        = empty($tagtype) ? $tagrow : $tagtype;
         $selected_class = $tagtype && $tagtype == $tagrow ? "selected_button" : "";
-        $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+        $tag_list .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                         $.ajax({
                                 type: \'POST\',
                                 url: \'ajax/ajax.php\',
@@ -3384,9 +3410,17 @@ function get_admin_tags_form($return = false, $tagtype = false, $tag = false) {
                     "><div class="list_box_item_full"><span class="list_title">' . ucfirst($tagrow) . '</span></div></div>';
     }
 
-    $returnme .= '</div>';
-    $returnme .= '<div class="container_actions ui-corner-all" id="actions_div">' . get_tags_actions(true, $tagtype, $tag) . '</div>';
-    $returnme .= '<div class="container_info ui-corner-all fill_height" id="info_div">' . get_tags_info(true, $tagtype, $tag) . '</div>';
+    $header = '
+        <div class="document_list_item ui-corner-all" style="text-align:center">
+            <span><strong>Tag Types</strong></span>
+        </div>';
+
+    $returnme = from_template("admin_main_layout.php", [
+        "header" => $header,
+        "list" => $tag_list,
+        "actions" => get_tags_actions(true, $tagtype, $tag),
+        "info" => get_tags_info(true, $tagtype, $tag),
+    ]);
 
     if ($return) {
         return $returnme;
@@ -3485,26 +3519,15 @@ function get_admin_enrollment_form($return = false, $pid = false) {
     global $MYVARS;
     $activepid  = get_pid();
     $pid        = $pid ? $pid : (empty($MYVARS->GET["pid"]) ? $activepid : $MYVARS->GET["pid"]);
-    $returnme   = '<div class="container_list scroll-pane ui-corner-all"><div class="ui-corner-all list_box">';
-    $identifier = time() . "add_program";
-    $returnme .= get_form(
-        "add_edit_program",
-        [
-            "callback" => "programs",
-        ],
-        $identifier
-    );
-    $returnme .= '<div class="list_box_item_full" style="text-align:center"><button type="button" class="list_buttons" onclick="CreateDialog(\'add_edit_program_' . $identifier . '\', 450, 500)">Create Program</button></div>';
 
-    $returnme .= '</div>';
-
+    $enrollments_list = '';
     if ($programs = get_db_result("SELECT * FROM programs WHERE deleted = '0' ORDER BY name")) {
         while ($program = fetch_row($programs)) {
             $selected_class = $pid && $pid == $program["pid"] ? "selected_button" : "";
             $active         = $activepid && $activepid == $program["pid"] ? "<span style='float:right;margin: 10px 4px;color:white;'>[Active]</span>" : "";
 
             $notifications = get_notifications($program["pid"], false, false, true) ? 'style="background: darkred;"' : '';
-            $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" ' . $notifications . ' onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+            $enrollments_list .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" ' . $notifications . ' onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                             $.ajax({
                                 type: \'POST\',
                                 url: \'ajax/ajax.php\',
@@ -3522,9 +3545,24 @@ function get_admin_enrollment_form($return = false, $pid = false) {
         }
     }
 
-    $returnme .= '</div>';
-    $returnme .= '<div class="container_actions ui-corner-all" id="actions_div">' . get_action_buttons(true, $pid, false, false, false, false, false) . '</div>';
-    $returnme .= '<div class="container_info ui-corner-all fill_height" id="info_div">' . get_info(true, $pid, false, false, false, false, false) . '</div>';
+    $identifier = time() . "add_program";
+    $returnme = get_form("add_edit_program", ["callback" => "programs"], $identifier);
+
+    $header = '
+        <div class="ui-corner-all list_box">
+            <div class="list_box_item_full" style="text-align:center">
+                <button type="button" class="list_buttons" onclick="CreateDialog(\'add_edit_program_' . $identifier . '\', 450, 500)">
+                    Create Program
+                </button>
+            </div>
+        </div>';
+
+    $returnme .= from_template("admin_main_layout.php", [
+        "header" => $header,
+        "list" => $enrollments_list,
+        "actions" => get_action_buttons(true, $pid, false, false, false, false, false),
+        "info" => get_info(true, $pid, false, false, false, false, false),
+    ]);
 
     if ($return) {
         return $returnme;
@@ -3538,40 +3576,6 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
     $aid      = $aid ? $aid : (empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"]);
     $recover  = $recover ? $recover : (empty($MYVARS->GET["recover"]) ? false : $MYVARS->GET["recover"]);
     $pid      = get_pid();
-    $returnme = '<div class="container_list scroll-pane ui-corner-all">
-                    <div class="ui-corner-all list_box">';
-
-    if (!$recover) {
-        $returnme .= '<div class="list_box_item_left main_account_actions">' . get_form('add_edit_account') . '<button class="list_buttons" style="float:none;margin:4px;" type="button" onclick="CreateDialog(\'add_edit_account\', 200, 315)">Add New Account</button>';
-        if (get_db_row("SELECT chid FROM children WHERE deleted=1") || get_db_row("SELECT cid FROM contacts WHERE deleted=1") || get_db_row("SELECT aid FROM accounts WHERE deleted=1")) {
-            $returnme .= ' <button class="list_buttons" onclick="$.ajax({
-                  type: \'POST\',
-                  url: \'ajax/ajax.php\',
-                  data: { action: \'get_admin_accounts_form\', aid: \'\', recover: \'true\' } ,
-                  success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                  });">See Inactive</button>';
-        }
-
-        $returnme .= '</div>
-                        <div class="list_box_item_right enroll_data">
-                            <div class="show_enrolled">
-                                Show Enrolled <input type="checkbox" checked onclick="if ($(this).prop(\'checked\')) { $(\'.inactiveaccount\').hide(); } else { $(\'.inactiveaccount\').show(); } $(\'.scroll-pane\').sbscroller(\'refresh\'); smart_scrollbars();" />
-                            </div>
-                            <div class="enrolled_count">Enrolled:
-                                ' . get_db_count("SELECT * FROM enrollments WHERE pid='$pid' AND deleted='0' AND chid IN (SELECT chid FROM children WHERE deleted='0')") . '
-                            </div>
-                        </div>';
-    } else {
-        $returnme .= '<div class="list_box_item_left main_account_actions">
-                        <button style="margin:4px;"  onclick="$.ajax({
-                          type: \'POST\',
-                          url: \'ajax/ajax.php\',
-                          data: { action: \'get_admin_accounts_form\', aid: \'\'} ,
-                          success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                        });">See Active</button>
-                      </div>';
-    }
-    $returnme .= '</div>';
 
     $deleted = $recover ? "1" : "0";
     if ($deleted) {
@@ -3579,6 +3583,8 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
     } else {
         $SQL = "SELECT * FROM accounts WHERE admin=0 AND deleted = '$deleted' ORDER BY name";
     }
+
+    $accounts_list = '';
     if ($accounts = get_db_result($SQL)) {
         while ($account = fetch_row($accounts)) {
             $kid_count = get_db_count("SELECT * FROM children WHERE aid='" . $account["aid"] . "' AND deleted='$deleted'");
@@ -3595,7 +3601,7 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
             $override        = $recover ? "display:block;" : "";
             $account_balance = account_balance($pid, $account["aid"], true);
             $balanceclass    = $account_balance <= 0 ? "balance_good" : "balance_bad";
-            $returnme .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . ' ' . $active . '" style="' . $notifications . $override . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
+            $accounts_list .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . ' ' . $active . '" style="' . $notifications . $override . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
                             $.ajax({
                                 type: \'POST\',
                                 url: \'ajax/ajax.php\',
@@ -3617,9 +3623,46 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
                                                                                           });$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not($(\'#admin_menu_billing\')).toggleClass(\'selected_button\',false);">Balance: $' . $account_balance . '</a></div></div></div>';
         }
     }
-    $returnme .= '</div>';
-    $returnme .= '<div class="container_actions ui-corner-all" id="actions_div">' . get_action_buttons(true, false, $aid, false, false, false, $recover) . '</div>';
-    $returnme .= '<div class="container_info ui-corner-all fill_height" id="info_div">' . get_info(true, false, $aid, false, false, false, $recover) . '</div>';
+
+    $header = '<div class="ui-corner-all list_box">';
+    if (!$recover) {
+        $header .= '<div class="list_box_item_left main_account_actions">' . get_form('add_edit_account') . '<button class="list_buttons" style="float:none;margin:4px;" type="button" onclick="CreateDialog(\'add_edit_account\', 200, 315)">Add New Account</button>';
+        if (get_db_row("SELECT chid FROM children WHERE deleted=1") || get_db_row("SELECT cid FROM contacts WHERE deleted=1") || get_db_row("SELECT aid FROM accounts WHERE deleted=1")) {
+            $header .= ' <button class="list_buttons" onclick="$.ajax({
+                  type: \'POST\',
+                  url: \'ajax/ajax.php\',
+                  data: { action: \'get_admin_accounts_form\', aid: \'\', recover: \'true\' } ,
+                  success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
+                  });">See Inactive</button>';
+        }
+
+        $header .= '</div>
+                        <div class="list_box_item_right enroll_data">
+                            <div class="show_enrolled">
+                                Show Enrolled <input type="checkbox" checked onclick="if ($(this).prop(\'checked\')) { $(\'.inactiveaccount\').hide(); } else { $(\'.inactiveaccount\').show(); } $(\'.scroll-pane\').sbscroller(\'refresh\'); smart_scrollbars();" />
+                            </div>
+                            <div class="enrolled_count">Enrolled:
+                                ' . get_db_count("SELECT * FROM enrollments WHERE pid='$pid' AND deleted='0' AND chid IN (SELECT chid FROM children WHERE deleted='0')") . '
+                            </div>
+                        </div>';
+    } else {
+        $header .= '<div class="list_box_item_left main_account_actions">
+                        <button style="margin:4px;"  onclick="$.ajax({
+                          type: \'POST\',
+                          url: \'ajax/ajax.php\',
+                          data: { action: \'get_admin_accounts_form\', aid: \'\'} ,
+                          success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
+                        });">See Active</button>
+                      </div>';
+    }
+    $header .= '</div>';
+
+    $returnme = from_template("admin_main_layout.php", [
+        "header" => $header,
+        "list" => $accounts_list,
+        "actions" => get_action_buttons(true, false, $aid, false, false, false, $recover),
+        "info" => get_info(true, false, $aid, false, false, false, $recover),
+    ]);
 
     if ($return) {
         return $returnme;

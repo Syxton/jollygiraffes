@@ -428,8 +428,8 @@ function icon(...$icons) {
 function icon_color($icon) {
     // Certain icons have different color than others.
     switch ($icon) {
-        case "key":
-            $color = "#b2bd22";
+        case "star":
+            $color = "#cad80cff";
             break;
         case "chart-line":
             $color = "#5ed63aff";

@@ -3643,8 +3643,8 @@ function get_contacts_selector($chids, $admin = false) {
         $i = 0;
         while ($row = fetch_row($result)) {
             $selected  = $i == 0 && !$admin ? "ui-selected" : "";
-            $emergency = empty($row["emergency"]) ? "" : '<span class="emergency_contact">' . icon('circle-exclamation') . '</span>';
-            $primary   = empty($row["primary_address"]) ? "" : '<span class="primary_contact">' . icon('star') . '</span>';
+            $emergency = empty($row["emergency"]) ? "" : '<span class="emergency_contact">' . icon('circle-exclamation', "2") . '</span>';
+            $primary   = empty($row["primary_address"]) ? "" : '<span class="primary_contact">' . icon('star', "2") . '</span>';
             $returnme .= '<li class="ui-widget-content ' . $selected . '"><span class="contact" style="display:inline-block;width:30px;"><input class="cid" id="cid_' . $row["cid"] . '" name="cid_' . $row["cid"] . '" type="hidden" value="' . $row["cid"] . '" /></span>' . $row["first"] . ' ' . $row["last"] . ' - ' . $row["relation"] . $emergency . $primary . '</li>';
             $i++;
         }

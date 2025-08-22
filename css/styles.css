@@ -895,6 +895,10 @@ td.calendar-day, td.calendar-day-np {
     left: 1px;
 }
 
+svg {
+    background: initial !important;
+}
+
 .image_button img, .image_button svg {
     width: 3vw;
     height: 3vw;
@@ -1061,7 +1065,7 @@ td.calendar-day, td.calendar-day-np {
 
 .primary_contact, .emergency_contact {
     float: right;
-    background: 0;
+    background: initial !important;
 }
 
 .show_mobile, .show_tablet {

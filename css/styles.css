@@ -1088,6 +1088,9 @@ svg {
 .week_receipt {
     margin: 5px;
     vertical-align: top;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .week_receipt span {
@@ -1317,7 +1320,7 @@ svg {
         display: initial;
     }
     .ui-button {
-        padding: 2px;
+        padding: 6px;
     }
     .document_list_item .list_box {
         padding: 3px;
@@ -1329,12 +1332,7 @@ svg {
     }
     .invoice_week, .invoice_payments, .invoice_bills {
         padding: 3px !important;
-        font-size: .8em !important;
-    }
-    .invoice_week td, .invoice_payments td, invoice_bills td {
-        display: flex;
-        width: 100% !important;
-        white-space: pre-wrap;
+        font-size: .9em !important;
     }
     .invoice_week span, .invoice_payments span, .invoice_bills span {
         float: none !important;

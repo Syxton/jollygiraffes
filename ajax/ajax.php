@@ -2506,7 +2506,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
             $timeline_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoicetimeline&pid=' . $pid . '&aid=' . $account["aid"] . '&time=' . time() . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 5px;">' . icon('timeline') . ' Invoice Timeline</span></a>';
 
             $account_invoices .= '
-                <div class="document_list_item ui-corner-all">
+                <div class="ui-corner-all">
                     <div style="padding: 6px;display:flex;align-items: center;">
                         <span>
                             <strong>Account: ' . $account["name"] . '</strong>

@@ -349,13 +349,15 @@ function is_working($employeeid) {
     $lastin  = get_db_row("SELECT * FROM employee_activity WHERE employeeid='$employeeid' AND tag='in' ORDER BY timelog DESC");
     $today   = get_today();
 
+    if (!$lastin) { // have never signed in
+        return false;
+    }
+
     if ($lastout["timelog"] > $lastin["timelog"] && $lastout["timelog"] > $today) { //have signed out today
         return false;
     } elseif ($lastin["timelog"] > $lastout["timelog"] && $today > $lastin["timelog"]) { //haven't signed in today
         return false;
     } elseif ($lastout["timelog"] > $lastin["timelog"] && $today > $lastout["timelog"]) { //new day
-        return false;
-    } elseif (!$lastin["timelog"]) { //have never signed in
         return false;
     }
 
@@ -428,41 +430,90 @@ function icon(...$icons) {
 function icon_color($icon) {
     // Certain icons have different color than others.
     switch ($icon) {
-        case "star":
-            $color = "#cad80cff";
+        case "ban":
+            $color = "red";
+            break;
+        case "calculator":
+            $color = "#686868ff";
+            break;
+        case "camera":
+            $color = "red";
             break;
         case "chart-line":
             $color = "#5ed63aff";
             break;
-        case "trash":
-            $color = "grey";
-            break;
         case "child-reaching":
             $color = "#98b0ffff";
             break;
+        case "circle-exclamation":
+            $color = "red";
+            break;
+        case "clock":
+            $color = "#ff9e1eff";
+            break;
+        case "comments":
+            $color = "#ef3b9c";
+            break;
+        case "clone":
+            $color = "darkblue";
+            break;
+        case "layer-group":
+            $color = "purple";
+            break;
+        case "list-check":
+            $color = "#3b9cef";
+            break;
+        case "magnifying-glass":
+            $color = "black";
+            break;
+        case "map-pin":
+            $color = "#6744c7ff";
+            break;
         case "money-bill-1-wave":
+        case "money-bill-transfer":
             $color = "#7e8f7cff";
             break;
-        case "circle-exclamation":
+        case "paperclip":
+            $color = "yellowgreen";
+            break;
+        case "person-breastfeeding":
+            $color = "#c441a3ff";
+            break;
+        case "print":
+            $color = "#686868ff";
+            break;
+        case "sack-dollar":
+            $color = "#7e8f7cff";
+            break;
+        case "star":
+            $color = "#cad80cff";
+            break;
+        case "stopwatch":
+            $color = "#ff9e1eff";
+            break;
+        case "tags":
+            $color = "orange";
+            break;
+        case "thumbs-down":
             $color = "red";
             break;
         case "thumbs-up":
             $color = "green";
             break;
-        case "thumbs-down":
-            $color = "red";
+        case "timeline":
+            $color = "#5ed63aff";
             break;
-        case "person-breastfeeding":
-            $color = "#c441a3ff";
+        case "trash":
+            $color = "grey";
             break;
-        case "map-pin":
-            $color = "#6744c7ff";
+        case "user-pen":
+            $color = "darkorchid";
+            break;
+        case "vault":
+            $color = "#7e8f7cff";
             break;
         case "wrench":
             $color = "#686868ff";
-            break;
-        case "magnifying-glass":
-            $color = "#f0df4dff";
             break;
         default:
             return "";

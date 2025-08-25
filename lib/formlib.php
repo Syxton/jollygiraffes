@@ -64,7 +64,8 @@ function get_form($formname, $vars = null, $identifier = "") {
             $fields .= empty($vars["pid"]) ? "" : '<input type="hidden" name="pid" class="fields pid" value="' . $vars["pid"] . '" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="programs" />' : '<input type="hidden" name="callback" class="fields callback" value="' . $vars["callback"] . '" />';
 
-            $form = '<div id="add_edit_program' . $identifier . '" title="' . $title . '" style="display:none;">
+            $form = '
+                <div id="add_edit_program' . $identifier . '" title="' . $title . '" style="display:none;">
                     <form name="' . $formname . '_form' . $identifier . '">
                         ' . $fields . '
                         <table style="width:100%;">
@@ -82,17 +83,17 @@ function get_form($formname, $vars = null, $identifier = "") {
                             <tr><td><label for="multiple_discount">Multiple Discount</label></td><td>$<input style="width:125px;" class="fields" type="input" name="multiple_discount" id="multiple_discount" value="' . $multiple_discount . '" /></td></tr>
                             <tr><td><label for="discount_rule">Discount Qualifier</label></td><td>$<input style="width:125px;" class="fields" type="input" name="discount_rule" id="discount_rule" value="' . $discount_rule . '" /></td></tr>
                         </table>
-                    <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                        type: \'POST\',
-                        url: \'ajax/ajax.php\',
-                        timeout: 10000,
-                        error: function(x, t, m) {
-                        $(button).button(\'option\', \'disabled\', false);
-                        },
-                        data: { action: \'add_edit_program\',values: $(\'#' . $formname . $identifier . ' .fields\').serializeArray()},
-                        success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_program' . $identifier . '\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); if(\'' . $pid . '\' == \'' . $activepid . '\'){ $(\'#activepidname\').html(\'' . $name . '\'); } }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                        });">Save Program</button>
-                        </form>
+                        <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                            type: \'POST\',
+                            url: \'ajax/ajax.php\',
+                            timeout: 10000,
+                            error: function(x, t, m) {
+                            $(button).button(\'option\', \'disabled\', false);
+                            },
+                            data: { action: \'add_edit_program\',values: $(\'#' . $formname . $identifier . ' .fields\').serializeArray()},
+                            success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_program' . $identifier . '\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); if(\'' . $pid . '\' == \'' . $activepid . '\'){ $(\'#activepidname\').html(\'' . $name . '\'); } }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                            });">Save Program</button>
+                    </form>
                 </div>
                 <script type="text/javascript">
                     $(document).ready(function(){
@@ -149,7 +150,8 @@ function get_form($formname, $vars = null, $identifier = "") {
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="billing" />' : '<input type="hidden" name="callback" class="fields callback" value="' . $vars["callback"] . '" />';
             $fields .= '<input type="hidden" name="callbackinfo" class="fields callbackinfo" value="' . $aid . '" />';
 
-            $form = '<div id="billing_overrides' . $identifier . '" title="' . $title . '" style="display:none;">
+            $form = '
+                <div id="billing_overrides' . $identifier . '" title="' . $title . '" style="display:none;">
                     <form name="' . $formname . '_form' . $identifier . '">
                         ' . $fields . '
                         <table style="width:100%;">
@@ -164,17 +166,17 @@ function get_form($formname, $vars = null, $identifier = "") {
                             <tr><td><label for="multiple_discount">Multiple Discount</label></td><td>$<input style="width:125px;" class="fields" type="input" name="multiple_discount" id="multiple_discount" value="' . $multiple_discount . '" /></td></tr>
                             <tr><td><label for="discount_rule">Discount Qualifier</label></td><td>$<input style="width:125px;" class="fields" type="input" name="discount_rule" id="discount_rule" value="' . $discount_rule . '" /></td></tr>
                         </table>
-                    <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                        type: \'POST\',
-                        url: \'ajax/ajax.php\',
-                        timeout: 10000,
-                        error: function(x, t, m) {
-                        $(button).button(\'option\', \'disabled\', false);
-                        },
-                        data: { action: \'billing_overrides\',values: $(\'#' . $formname . $identifier . ' .fields\').serializeArray()},
-                        success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#billing_overrides' . $identifier . '\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                        });">Save Override</button>
-                        </form>
+                        <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                            type: \'POST\',
+                            url: \'ajax/ajax.php\',
+                            timeout: 10000,
+                            error: function(x, t, m) {
+                            $(button).button(\'option\', \'disabled\', false);
+                            },
+                            data: { action: \'billing_overrides\',values: $(\'#' . $formname . $identifier . ' .fields\').serializeArray()},
+                            success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#billing_overrides' . $identifier . '\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                            });">Save Override</button>
+                    </form>
                 </div>';
             break;
         case "add_edit_payment":
@@ -191,7 +193,8 @@ function get_form($formname, $vars = null, $identifier = "") {
             $fields .= empty($vars["callbackinfo"]) ? "" : '<input type="hidden" name="callbackinfo" class="fields callbackinfo" value="' . $vars["callbackinfo"] . '" />';
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="billing" />' : '<input type="hidden" name="callback" class="fields callback" value="' . $vars["callback"] . '" />';
 
-            $form = '<div id="add_edit_payment' . $identifier . '" title="' . $title . '" style="display:none;">
+            $form = '
+                <div id="add_edit_payment' . $identifier . '" title="' . $title . '" style="display:none;">
                     <form name="' . $formname . '_form' . $identifier . '">
                         ' . $fields . '
                         <div style="text-align:center;color:red">An amount less than 0 is considered a fee.</div>
@@ -468,45 +471,46 @@ function get_form($formname, $vars = null, $identifier = "") {
             $salary_history = '';
             if ($salary_entry = get_db_result("SELECT * FROM employee_wage WHERE employeeid='$employeeid' ORDER BY dategiven DESC")) {
                 while ($salary = fetch_row($salary_entry)) {
-                    $salary_history .= '<tr class="wage_' . $salary["id"] . '">
-                                        <td style="width:50%;">
-                                            <table style="width:100%;">
-                                                <tr>
-                                                    <td>
-                                                        <label for="date">Date</label>
-                                                    </td>
-                                                    <td>
-                                                        <input type="hidden" class="fields" name="id" id="id" value="' . $salary["id"] . '" />
-                                                        <input class="fields" name="date" id="date" type="text" value="' . get_date('m/d/Y', $salary["dategiven"]) . '" />
-                                                    </td>
-                                                </tr>
-                                            </table>
+                    $salary_history .= '
+                        <tr class="wage_' . $salary["id"] . '">
+                            <td style="width:50%;">
+                                <table style="width:100%;">
+                                    <tr>
+                                        <td>
+                                            <label for="date">Date</label>
                                         </td>
-                                        <td style="width:50%;">
-                                            <table style="width:100%;">
-                                                <tr>
-                                                    <td>
-                                                        <label for="wage">Wage</label>
-                                                    </td>
-                                                    <td>
-                                                        <input style="width:100px" class="fields" type="input" name="wage" id="wage" value="$' . $salary["wage"] . '" />
-                                                    </td>
-                                                    <td>
-                                                        <a href="javascript: void(0);" onclick="if(confirm(\'Are you sure you want to delete this?\')){
-                                                        $.ajax({
-                                                            type: \'POST\',
-                                                            url: \'ajax/ajax.php\',
-                                                            timeout: 10000,
-                                                            data: { action: \'delete_wage_history\',id: ' . $salary["id"] . '},
-                                                            success: function(data) { $(\'.wage_' . $salary["id"] . '\').hide(); }
-                                                            }); }">
-                                                            ' . icon('trash') . '
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                            </table>
+                                        <td>
+                                            <input type="hidden" class="fields" name="id" id="id" value="' . $salary["id"] . '" />
+                                            <input class="fields" name="date" id="date" type="text" value="' . get_date('m/d/Y', $salary["dategiven"]) . '" />
                                         </td>
-                                    </tr>';
+                                    </tr>
+                                </table>
+                            </td>
+                            <td style="width:50%;">
+                                <table style="width:100%;">
+                                    <tr>
+                                        <td>
+                                            <label for="wage">Wage</label>
+                                        </td>
+                                        <td>
+                                            <input style="width:100px" class="fields" type="input" name="wage" id="wage" value="$' . $salary["wage"] . '" />
+                                        </td>
+                                        <td>
+                                            <a href="javascript: void(0);" onclick="if(confirm(\'Are you sure you want to delete this?\')){
+                                            $.ajax({
+                                                type: \'POST\',
+                                                url: \'ajax/ajax.php\',
+                                                timeout: 10000,
+                                                data: { action: \'delete_wage_history\',id: ' . $salary["id"] . '},
+                                                success: function(data) { $(\'.wage_' . $salary["id"] . '\').hide(); }
+                                                }); }">
+                                                ' . icon('trash') . '
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>';
                 }
             }
 
@@ -554,7 +558,8 @@ function get_form($formname, $vars = null, $identifier = "") {
 
             $title = empty($vars["chid"]) ? "Add Child" : "Edit Child";
 
-            $form = '<div id="add_edit_child' . $identifier . '" title="' . $title . '" style="display:none;">
+            $form = '
+                <div id="add_edit_child' . $identifier . '" title="' . $title . '" style="display:none;">
                     <form name="' . $formname . '_form' . $identifier . '">
                         ' . $fields . '
                         <table>

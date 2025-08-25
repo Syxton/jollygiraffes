@@ -1,14 +1,5 @@
 <?php echo $home_button; ?>
 <input type="hidden" id="askme" value="1" />
-<div id="dialog-confirm" title="Confirm" style="display:none;">
-    <p>
-        <span class="ui-icon ui-icon-alert" style="margin-right: auto;margin-left: auto;">
-        </span>
-        <label>
-            Check for other children on this account?
-        </label>
-    </p>
-</div>
 <?php echo $alphabet; ?>
 <div style="clear:both;"></div>
 <div class="container_main scroll-pane ui-corner-all fill_height_middle">

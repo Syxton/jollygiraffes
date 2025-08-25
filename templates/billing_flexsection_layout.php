@@ -14,14 +14,14 @@
     </div>
     <?php
     if (!empty($contents)) { ?>
-    <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
-    <?php
+        <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
+        <?php
     }
     echo $contents;
 
     if (!empty($contents)) { ?>
-    </div>
-    <?php
+        </div>
+        <?php
     }
     ?>
 </div>

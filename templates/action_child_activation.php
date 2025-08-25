@@ -4,7 +4,7 @@
 ?>
 CreateConfirm(
     'dialog-confirm',
-    'Are you sure you want to <?php echo $action; ?> ' + $('a#a-<?php echo $chid; ?>').attr('data')+'?',
+    'Are you sure you want to <?php echo $action; ?> ' + $('a#a-<?php echo $chid; ?>').attr('data') + '?',
     'Yes',
     'No',
     function() {

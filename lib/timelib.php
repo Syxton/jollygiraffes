@@ -263,7 +263,7 @@ function draw_calendar($month, $year, $vars = false){
             }
 
             if ($result = get_db_result($SQL)) {
-                $content .= '<div style="height:20px;"></div>';
+                $content .= '';
                 while ($row = fetch_row($result)) {
                     $aid = !empty($row["aid"]) ? $row["aid"] : "";
                     $chid = !empty($row["chid"]) ? $row["chid"] : "";
@@ -362,27 +362,38 @@ function draw_calendar($month, $year, $vars = false){
 
             $content .= get_form("add_activity", ["day" => $list_day, "month" => $month, "year" => $year, "aid" => $aid,"chid" => $vars["chid"],"callback" => "children"], $identifier);
 
-            $dayadd = '<div class="day-add">
-                        <a style="" href="javascript: void(0);" onclick="CreateDialog(\'add_activity_' . $identifier . '\',300,400)">
-                            +
-                        </a>
-                   </div>';
+            $dayadd = '
+                <div class="day-add">
+                    <a style="" href="javascript: void(0);" onclick="CreateDialog(\'add_activity_' . $identifier . '\',300,400)">
+                        +
+                    </a>
+                </div>';
         } elseif ($type == "employeeid" && !empty($vars["employeeid"]) && $days_in_this_week > 1 && $days_in_this_week < 7) {
             $identifier = $list_day . "_" . $month . "_" . $year;
             $content .= get_form("add_update_employee_activity", ["day" => $list_day, "month" => $month, "year" => $year, "employeeid" => $vars["employeeid"],"callback" => "employee"], $identifier);
 
-            $dayadd = '<div class="day-add">
-                        <a style="" href="javascript: void(0);" onclick="CreateDialog(\'add_update_employee_activity_' . $identifier . '\',300,400)">
-                            +
-                        </a>
-                   </div>';
+            $dayadd = '
+                <div class="day-add">
+                    <a style="" href="javascript: void(0);" onclick="CreateDialog(\'add_update_employee_activity_' . $identifier . '\',300,400)">
+                        +
+                    </a>
+                </div>';
         } else {
             $dayadd = "";
         }
 
-        $calendar .= $dayadd;
-      /* add in the day number */
-        $calendar .= '<div class="show_mobile day-word">' . date("D", strtotime("$month/$list_day/$year")) . '</div><div class="day-number">' . $list_day . '</div>';
+        /* add in the day number */
+        $calendar .= '
+            <div class="show_mobile day-word">
+                ' . date("D", strtotime("$month/$list_day/$year")) . '
+            </div>
+            <div class="dayheader">
+                ' . $dayadd . '
+                <div class="day-number">
+                    ' . $list_day . '
+                </div>
+            </div>';
+
         $calendar .= $content;
         $calendar .= '</td>';
         if ($running_day == 6) :

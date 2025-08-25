@@ -24,6 +24,12 @@ include_once('header.html');
 
 // Main Layout
 echo get_admin_button() . get_employee_timeclock_button() . '
+    <div id="dialog-confirm" title="Confirm" style="display:none;">
+        <p>
+            <span class="ui-icon ui-icon-alert" style="margin-right: auto;margin-left: auto;"></span>
+            <label></label>
+        </p>
+    </div>
     <div id="display_level" class="display_level ui-corner-all">
         <div id="clock" class="light">
             <div class="display">

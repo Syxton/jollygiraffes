@@ -14,3 +14,5 @@ $containerstyles = isset($containerstyles) ? $containerstyles : '';
     echo $afterbutton;
     ?>
 </div>
+<?php
+echo isset($aftercontent) ? $aftercontent : '';

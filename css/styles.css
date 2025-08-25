@@ -175,12 +175,11 @@ h3 {
     color: ghostWhite;
     font-size: 10px;
     text-shadow: rgba(0, 0, 0, 0) -1px 0, rgba(0, 0, 0, 0.3) 0 -1px, rgba(255, 255, 255, 1) 0 1px, rgba(0, 0, 0, 0) -1px -2px;
-    right: 0;
     background: 0 silver;
-    padding: 2px;
+    padding: 8px;
     position: absolute;
-    margin: 5px 30px;
-    right: 40px;
+    margin: 0px 0px;
+    right: 5px;
 }
 
 .list_links {
@@ -226,6 +225,7 @@ h3 {
 }
 
 .list_box_item_full {
+    position: relative;
     white-space: nowrap;
     padding: 5px;
 }
@@ -270,6 +270,19 @@ h3 {
     color: black;
     font-weight: bold;
     background: yellow;
+}
+
+.notify_tagonly .tag {
+    border-radius: 0px;
+    margin: 1px;
+    font-size: .85em;
+    border-radius: 0 0 5px 5px;
+}
+
+.notify_tagonly {
+    position: absolute;
+    right: 2px;
+    top: 0px;
 }
 
 .caution {
@@ -337,9 +350,15 @@ h3 {
     margin: 4px;
 }
 
+.inline-button svg {
+    color: inherit !important;
+}
+
 .calendar-day .inline-button {
-    margin: 0px;
+    margin: 2px;
     border: 1px solid darkslategray;
+    padding: 5px !important;
+    background: #cbc8c8;
 }
 
 .inline-button a {
@@ -433,7 +452,6 @@ h3 {
     padding: 4px 6px 4px;
     display: inline-block;
     margin: 2px;
-    white-space: nowrap;
 }
 
 .tag-description {
@@ -825,22 +843,17 @@ div.day-number {
     padding: 5px;
     color: #fff;
     font-weight: bold;
-    float: right;
-    margin: -5px -5px 0 0;
-    width: 20px;
+    width: 15px;
     text-align: center;
 }
 
 div.day-word {
-    float: left;
     font-weight: bolder;
 }
 
 div.day-add {
     background: green;
     padding: 2px;
-    float: right;
-    margin: -5px -5px 0 5px;
     width: 15px;
     text-align: center;
 }
@@ -859,9 +872,20 @@ td.calendar-day, td.calendar-day-np {
     word-wrap: break-word;
     vertical-align: top;
     padding: 5px;
+    padding-top: 0px;
     border-bottom: 1px solid #999;
     border-right: 1px solid #999;
     height: 80px;
+}
+
+.dayheader {
+    display: flex;
+    justify-content: flex-end;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    position: relative;
+    right: -5px;
+    margin-bottom: 10px;
 }
 
 .fields {

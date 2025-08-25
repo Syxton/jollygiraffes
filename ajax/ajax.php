@@ -14,7 +14,6 @@ callfunction();
 
 function employee_timesheet($thisweekpay = false) {
     global $CFG, $MYVARS;
-    $returnme = go_home_button('Exit');
 
     // Get all active employees
     $SQL = "SELECT * FROM employee WHERE deleted = 0 ORDER BY last,first";
@@ -22,21 +21,16 @@ function employee_timesheet($thisweekpay = false) {
         $in = $out = "";
 
         while ($row = fetch_row($result)) {
+            $employee_button = '
+                <div class="employee_wrapper ui-corner-all">
+                    ' . get_employee_button($row["employeeid"]) . '
+                </div>';
+
             $checked_in = is_working($row["employeeid"]);
             if ($checked_in) {
-                $action = '';
+                $in .= $employee_button;
             } else {
-                $action = '';
-            }
-
-            $tmp = '<div class="employee_wrapper ui-corner-all">';
-            $tmp .= get_employee_button($row["employeeid"], "", "", $action);
-            $tmp .= '</div>';
-
-            if ($checked_in) {
-                $in .= $tmp;
-            } else {
-                $out .= $tmp;
+                $out .= $employee_button;
             }
         }
 
@@ -45,22 +39,13 @@ function employee_timesheet($thisweekpay = false) {
             $showpaystub = '<div class="paystub">Pay Stub: $' . $thisweekpay . '</div>';
         }
 
-        $returnme .= get_numpad("", false, "employee", "#display_level", 'employee_numpad') . '
-            <input type="hidden" id="selectedemployee" />
-            ' . $showpaystub . '
-            <div class="buttoncontainer container_list ui-corner-all fill_height">
-                <div class="eventbutton ui-corner-all list_box">
-                    Sign In
-                </div>
-                ' . $out . '
-            </div>
-            <div class="buttonspacer container_list ui-corner-all fill_height"></div>
-            <div class="buttoncontainer container_list ui-corner-all fill_height">
-                <div class="eventbutton ui-corner-all list_box">
-                    Sign Out
-                </div>
-                ' . $in . '
-            </div>';
+        $returnme = from_template("employee_signinout_layout.php", [
+            "in" => $in,
+            "out" => $out,
+            "showpaystub" => $showpaystub,
+            "home_button" => go_home_button('Exit'),
+            "numpad" => get_numpad("", false, "employee", "#display_level", 'employee_numpad'),
+        ]);
     }
 
     echo $returnme;
@@ -179,7 +164,7 @@ function check_in_out_form() {
     }
 
     // fill template variables
-    $note_headers = get_required_notes_header($type);
+    $note_header = get_required_notes_header($type);
     $notes    = get_required_notes_forms($type);
     $contacts = get_contacts_selector($chids, $admin);
 
@@ -217,59 +202,19 @@ function check_in_out_form() {
 
     // numpads
     if (!$admin) {
-        $numpads .= get_numpad($aid, true, $type, '#display_level', 'other_numpad');
+        $numpads .= get_numpad($aid, true, $type, '#display_level', 'admin_numpad');
     }
     $numpads .= get_numpad($aid, $admin, $type);
 
-    $returnme = go_home_button()  . '
-        <div id="dialog-confirm" title="Confirm" style="display:none;">
-            <p>
-                <span class="ui-icon ui-icon-alert" style="margin-right: auto;margin-left: auto;"></span>
-                <label>
-                    Confirmed?
-                </label>
-            </p>
-        </div>
-        ' . $numpads . '
-        <div class="contact_headers">
-            Who is checking them ' . $type . '?
-        </div>
-        <div class="container_main scroll-pane ui-corner-all fill_height_middle contact_select_at_checkout">
-            ' . $children . '
-        </div>
-        <div class="container_main scroll-pane ui-corner-all fill_height_middle">
-            ' . $contacts . '
-        </div>
-        <div class="bottom center ui-corner-all">
-            <div class="optional_questions">
-                <div style="display: flex;justify-content: space-evenly;">
-                    ' . $note_headers . '
-                </div>
-                <div style="display: flex;justify-content: space-evenly;">
-                    ' . $notes . '
-                </div>
-            </div>
-            <button class="submit_buttons big_button textfill"
-                onclick="if ($(\'.ui-selected\').length) {
-                            if ($(\'.ui-selected #cid_other\').length && $(\'#other_numpad\').length) {
-                                if ($(\'.ui-selected #cid_other\').val().length > 0) {
-                                    ' . $questions_open . ' numpad(\'other_numpad\'); ' . $questions_closed . '
-                                } else {
-                                    CreateAlert(\'dialog-confirm\', \'You must type a name for this person.\', \'Ok\', function() {});
-                                }
-                            } else {
-                                ' . $questions_open . ' numpad(\'numpad\'); ' . $questions_closed . '
-                            }
-                        } else {
-                            CreateAlert(\'dialog-confirm\', \'You must select a contact.\', \'Ok\', function() {});
-                        }" >
-                <span style="font-size:10px;">
-                    Check ' . ucfirst($type) . '
-                </span>
-            </button>
-        </div>';
-
-    echo $returnme;
+    echo from_template("inoutform2.php", [
+        "type" => $type,
+        "children" => $children,
+        "contacts" => $contacts,
+        "notes" => $notes,
+        "notes_header" => $note_header,
+        "numpads" => $numpads,
+        "qnum" => $qnum,
+    ]);
 }
 
 function check_in_out($chids, $cid, $type, $time = false) {
@@ -308,62 +253,61 @@ function check_in_out($chids, $cid, $type, $time = false) {
         if (!$exempt) {
             if ($method == "enrollment") { // Flat rate based on days they are expected to attend
                 if ($combined_balance <= 0) { // They have paid more than they previously owed
+                    $message1 = "You are currently paid up. Thanks!";
                     if ($payahead) {
                         $next_week          = week_balance($pid, $aid, true, true); // Next weeks total
                         $combined_balance  += (float) $next_week;
-                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
-                                              "You are currently paid up. Thanks!" .
-                                              "<br />Payment of $" . number_format($combined_balance, 2) . " is due ahead of next weeks services." .
-                                              "</span>";
+                        $params = [
+                            "message1" => $message1,
+                            "message2" => "Payment of $" . number_format($combined_balance, 2) . " is due ahead of next weeks services.",
+                        ];
                     } else {
-                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
-                                              "You are currently paid up. Thanks!" .
-                                              "</span>";
+                        $params = ["message1" => $message1];
                     }
                 } else {
+                    $message1 = "Your account has a balance of $" . number_format($combined_balance, 2) . " is due.";
                     if ($payahead) {
                         $next_week          = week_balance($pid, $aid, true, true); // Next weeks total
                         $next_week          = (float) $next_week;
-                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
-                                              "Your account is overdue $" . number_format($combined_balance, 2) . "." .
-                                              "<br />An additional payment of $" . number_format($next_week, 2) . " is due ahead of next weeks services." .
-                                              "</span>";
+                        $params = [
+                            "message1" => $message1,
+                            "message2" => "An additional payment of $" . number_format($next_week, 2) . " is due ahead of next weeks services.",
+                        ];
                     } else {
-                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
-                                              "Your account has a balance of $" . number_format($combined_balance, 2) . " due." .
-                                              "</span>";
+                        $params = ["message1" => $message1];
                     }
                 }
             } else { // Rate based on actual attendance
                 if ($combined_balance <= 0) {
+                    $message1 = "You are currently paid up. Thanks!";
                     if ($payahead) {
                         $next_week          = week_balance($pid, $aid, true, true); // Next weeks total
                         $combined_balance  += (float) $next_week;
-                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
-                                              "You are currently paid up. Thanks!" .
-                                              "<br />An estimated $" . number_format($combined_balance, 2) . " is expected for next week." .
-                                              "</span>";
+                        $params = [
+                            "message1" => $message1,
+                            "message2" => "Payment of $" . number_format($combined_balance, 2) . " is due ahead of next weeks services.",
+                        ];
                     } else {
-                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
-                                              "You are currently paid up. Thanks!" .
-                                              "</span>";
+                        $params = ["message1" => $message1];
                     }
                 } else {
+                    $message1 = "Your account has a balance of $" . number_format($combined_balance, 2) . " is due.";
                     if ($payahead) {
                         $next_week          = week_balance($pid, $aid, true, true); // Next weeks total
                         $next_week          = (float) $next_week;
-                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
-                                              "Your account is overdue $" . number_format($combined_balance, 2) . "." .
-                                              "<br />An estimated $" . number_format($next_week, 2) . " is expected for next week." .
-                                              "</span>";
+                        $params = [
+                            "message1" => $message1,
+                            "message2" => "Payment of $" . number_format($combined_balance, 2) . " is due ahead of next weeks services.",
+                        ];
                     } else {
-                        $remaining_balance .= "<span style='color:orange;font-weight:bold;font-size:24px;text-shadow: black 0px 0px 10px;'>" .
-                                              "Your account has a balance of $" . number_format($combined_balance, 2) . "." .
-                                              "<br />So far this week you owe $" . number_format($float_current, 2) . "." .
-                                              "</span>";
+                        $params = [
+                            "message1" => $message1,
+                            "message2" => "So far this week you owe $" . number_format($float_current, 2) . ".",
+                        ];
                     }
                 }
             }
+            $remaining_balance = from_template("notice_remaining_balance.php", $params);
         }
     }
 
@@ -529,7 +473,7 @@ function get_notifications($pid, $chid = false, $aid = false, $separate = false,
     }
 
     if ($tagonly) {
-        return '<span style="display:inline-flex;flex-direction: row-reverse;flex-wrap: wrap;">' . $notify . '</span>';
+        return '<span class="notify_tagonly">' . $notify . '</span>';
     } else {
         return $notify;
     }
@@ -635,12 +579,6 @@ function get_admin_page($type = false, $id = false) {
 
     $identifier  = time() . "edit_account_" . $account["aid"];
     $returnme = get_form("add_edit_account", ["account" => $account], $identifier) . '
-        <div id="dialog-confirm" title="Confirm" style="display:none;">
-            <p>
-                <span class="ui-icon ui-icon-alert" style="margin-right: auto;margin-left: auto;"></span>
-                <label></label>
-            </p>
-        </div>
         <span id="activepidname" class="top-center">' . $programname . '</span>
         <button title="Edit Admin" class="topright_button" type="button" onclick="CreateDialog(\'add_edit_account_' . $identifier . '\', 200, 315)">
             Edit Admin
@@ -3091,8 +3029,7 @@ function get_admin_children_form($return = false, $chid = false, $recover = fals
                     <span style="width: 90%;min-width: 220px;max-width: 70%;">
                         ' . $child["last"] . ", " . $child["first"] . '
                     </span>
-                    ' . $notifications . '
-                </span>';
+                </span>' . $notifications;
 
             $children_list .= from_template("selectable_list_item_layout.php", [
                 "item" => $item_text,

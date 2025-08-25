@@ -16,7 +16,7 @@ if ($results = get_db_result($SQL)) {
         // Delete / Recover Child Button
         $delete_button = "";
         if ($activepid) {
-            $recover_action = $recover ? "activate" : "delete";
+            $recover_action = $recover ? "activate" : "deactivate";
             $delete_action = from_template("action_child_activation.php", [
                 "chid" => $child["chid"],
                 "aid"  => $child["aid"],
@@ -25,13 +25,13 @@ if ($results = get_db_result($SQL)) {
 
             $delete_button = "";
             if ($recover) {
-                $label = "Recover";
+                $label = "Activate";
                 $caution = "";
-                $icon = "add";
+                $icon = "toggle-off";
             } else {
-                $label = "Delete";
+                $label = "Deactivate";
                 $caution = "caution";
-                $icon = "trash";
+                $icon = "toggle-on";
             }
 
             $delete_button .= from_template("create_link.php", [
@@ -135,7 +135,6 @@ if ($results = get_db_result($SQL)) {
             "status" => $checked_in,
             "name" => $child["first"] . ' ' . $child["last"],
             "buttons" => $buttons,
-            "notifications" => get_notifications($activepid, $child["chid"], $aid, true, true),
         ]);
 
         $children .= from_template("list_item_layout.php", [
@@ -147,6 +146,7 @@ if ($results = get_db_result($SQL)) {
                 "piconly" => true,
                 "includename" => false,
                 "afterbutton" => $afterbutton,
+                "aftercontent" => get_notifications($activepid, $child["chid"], $aid, true, true),
             ]),
         ]);
     }

@@ -110,7 +110,6 @@ if ($results = get_db_result($SQL)) {
             "status" => $status,
             "name" => $child["first"] . ' ' . $child["last"],
             "buttons" => $buttons,
-            "notifications" => get_notifications($pid, $child["chid"], false, true, true),
         ]);
 
         // Child list item.
@@ -123,6 +122,7 @@ if ($results = get_db_result($SQL)) {
                 "piconly" => true,
                 "includename" => false,
                 "afterbutton" => $afterbutton,
+                "aftercontent" => get_notifications($pid, $child["chid"], false, true, true),
             ]),
         ]);
     }

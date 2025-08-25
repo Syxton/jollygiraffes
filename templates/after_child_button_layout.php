@@ -9,4 +9,3 @@
         <?php echo $buttons; ?>
     </span>
 </div>
-<?php echo $notifications; ?>

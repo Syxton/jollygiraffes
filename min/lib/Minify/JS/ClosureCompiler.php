@@ -115,7 +115,7 @@ class Minify_JS_ClosureCompiler {
             'output_info' => ($returnErrors ? 'errors' : 'compiled_code'),
             'output_format' => 'text',
             'compilation_level' => 'SIMPLE_OPTIMIZATIONS'
-        ), null, '&');
+        ), '', '&');
     }
 
     /**

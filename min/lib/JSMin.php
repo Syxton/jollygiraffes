@@ -1,4 +1,7 @@
 <?php
+
+namespace JSMin;
+
 /**
  * JSMin.php - modified PHP implementation of Douglas Crockford's JSMin.
  *
@@ -53,10 +56,7 @@
  * @license http://opensource.org/licenses/mit-license.php MIT License
  * @link http://code.google.com/p/jsmin-php/
  */
-
 class JSMin {
-    const ORD_LF            = 10;
-    const ORD_SPACE         = 32;
     const ACTION_KEEP_A     = 1;
     const ACTION_DELETE_A   = 2;
     const ACTION_DELETE_A_B = 3;
@@ -108,6 +108,11 @@ class JSMin {
             $mbIntEnc = mb_internal_encoding();
             mb_internal_encoding('8bit');
         }
+
+        if (isset($this->input[0]) && $this->input[0] === "\xef") {
+            $this->input = substr($this->input, 3);
+        }
+
         $this->input = str_replace("\r\n", "\n", $this->input);
         $this->inputLength = strlen($this->input);
 
@@ -116,7 +121,7 @@ class JSMin {
         while ($this->a !== null) {
             // determine next command
             $command = self::ACTION_KEEP_A; // default
-            if ($this->a === ' ') {
+            if ($this->isWhiteSpace($this->a)) {
                 if (($this->lastByteOut === '+' || $this->lastByteOut === '-')
                         && ($this->b === $this->lastByteOut)) {
                     // Don't delete this space. If we do, the addition/subtraction
@@ -124,21 +129,21 @@ class JSMin {
                 } elseif (! $this->isAlphaNum($this->b)) {
                     $command = self::ACTION_DELETE_A;
                 }
-            } elseif ($this->a === "\n") {
-                if ($this->b === ' ') {
+            } elseif ($this->isLineTerminator($this->a)) {
+                if ($this->isWhiteSpace($this->b)) {
                     $command = self::ACTION_DELETE_A_B;
 
                     // in case of mbstring.func_overload & 2, must check for null b,
                     // otherwise mb_strpos will give WARNING
                 } elseif ($this->b === null
-                          || (false === strpos('{[(+-!~', $this->b)
+                          || (false === strpos('{[(+-!~#', $this->b)
                               && ! $this->isAlphaNum($this->b))) {
                     $command = self::ACTION_DELETE_A;
                 }
             } elseif (! $this->isAlphaNum($this->a)) {
-                if ($this->b === ' '
-                    || ($this->b === "\n"
-                        && (false === strpos('}])+-"\'', $this->a)))) {
+                if ($this->isWhiteSpace($this->b)
+                    || ($this->isLineTerminator($this->b)
+                        && (false === strpos('}])+-"\'`', $this->a)))) {
                     $command = self::ACTION_DELETE_A_B;
                 }
             }
@@ -158,7 +163,7 @@ class JSMin {
      * ACTION_DELETE_A_B = Get the next B.
      *
      * @param int $command
-     * @throws JSMin_UnterminatedRegExpException|JSMin_UnterminatedStringException
+     * @throws UnterminatedRegExpException|UnterminatedStringException
      */
     protected function action($command)
     {
@@ -189,7 +194,8 @@ class JSMin {
                 // fallthrough intentional
             case self::ACTION_DELETE_A: // 2
                 $this->a = $this->b;
-                if ($this->a === "'" || $this->a === '"') { // string literal
+                if ($this->a === "'" || $this->a === '"' || $this->a === '`') { // string/template literal
+                    $delimiter = $this->a;
                     $str = $this->a; // in case needed for exception
                     for(;;) {
                         $this->output .= $this->a;
@@ -199,16 +205,19 @@ class JSMin {
                         if ($this->a === $this->b) { // end quote
                             break;
                         }
-                        if ($this->isEOF($this->a)) {
-                            throw new JSMin_UnterminatedStringException(
-                                "JSMin: Unterminated String at byte {$this->inputIndex}: {$str}");
+                        if ($delimiter === '`' && $this->isLineTerminator($this->a)) {
+                            // leave the newline
+                        } elseif ($this->isEOF($this->a)) {
+                            $byte = $this->inputIndex - 1;
+                            throw new UnterminatedStringException(
+                                "JSMin: Unterminated String at byte {$byte}: {$str}");
                         }
                         $str .= $this->a;
                         if ($this->a === '\\') {
                             $this->output .= $this->a;
                             $this->lastByteOut = $this->a;
 
-                            $this->a       = $this->get();
+                            $this->a = $this->get();
                             $str .= $this->a;
                         }
                     }
@@ -237,7 +246,7 @@ class JSMin {
                                     $pattern .= $this->a;
                                 }
                                 if ($this->isEOF($this->a)) {
-                                    throw new JSMin_UnterminatedRegExpException(
+                                    throw new UnterminatedRegExpException(
                                         "JSMin: Unterminated set in RegExp at byte "
                                             . $this->inputIndex .": {$pattern}");
                                 }
@@ -251,8 +260,9 @@ class JSMin {
                             $this->a = $this->get();
                             $pattern .= $this->a;
                         } elseif ($this->isEOF($this->a)) {
-                            throw new JSMin_UnterminatedRegExpException(
-                                "JSMin: Unterminated RegExp at byte {$this->inputIndex}: {$pattern}");
+                            $byte = $this->inputIndex - 1;
+                            throw new UnterminatedRegExpException(
+                                "JSMin: Unterminated RegExp at byte {$byte}: {$pattern}");
                         }
                         $this->output .= $this->a;
                         $this->lastByteOut = $this->a;
@@ -269,27 +279,39 @@ class JSMin {
     protected function isRegexpLiteral()
     {
         if (false !== strpos("(,=:[!&|?+-~*{;", $this->a)) {
-            // we obviously aren't dividing
+            // we can't divide after these tokens
             return true;
         }
-        if ($this->a === ' ' || $this->a === "\n") {
-            $length = strlen($this->output);
+
+        // check if first non-ws token is "/" (see starts-regex.js)
+        $length = strlen($this->output);
+        if ($this->isWhiteSpace($this->a) || $this->isLineTerminator($this->a)) {
             if ($length < 2) { // weird edge case
                 return true;
             }
-            // you can't divide a keyword
-            if (preg_match('/(?:case|else|in|return|typeof)$/', $this->output, $m)) {
-                if ($this->output === $m[0]) { // odd but could happen
-                    return true;
-                }
-                // make sure it's a keyword, not end of an identifier
-                $charBeforeKeyword = substr($this->output, $length - strlen($m[0]) - 1, 1);
-                if (! $this->isAlphaNum($charBeforeKeyword)) {
-                    return true;
-                }
-            }
         }
-        return false;
+
+        // if the "/" follows a keyword, it must be a regexp, otherwise it's best to assume division
+
+        $subject = $this->output . trim($this->a);
+        if (!preg_match('/(?:case|else|in|return|typeof)$/', $subject, $m)) {
+            // not a keyword
+            return false;
+        }
+
+        // can't be sure it's a keyword yet (see not-regexp.js)
+        $charBeforeKeyword = substr($subject, 0 - strlen($m[0]) - 1, 1);
+        if ($this->isAlphaNum($charBeforeKeyword)) {
+            // this is really an identifier ending in a keyword, e.g. "xreturn"
+            return false;
+        }
+
+        // it's a regexp. Remove unneeded whitespace after keyword
+        if ($this->isWhiteSpace($this->a) || $this->isLineTerminator($this->a)) {
+            $this->a = '';
+        }
+
+        return true;
     }
 
     /**
@@ -311,13 +333,10 @@ class JSMin {
                 $c = null;
             }
         }
-        if (ord($c) >= self::ORD_SPACE || $c === "\n" || $c === null) {
-            return $c;
-        }
         if ($c === "\r") {
             return "\n";
         }
-        return ' ';
+        return $c;
     }
 
     /**
@@ -328,7 +347,7 @@ class JSMin {
      */
     protected function isEOF($a)
     {
-        return ord($a) <= self::ORD_LF;
+        return $a === null || $this->isLineTerminator($a);
     }
 
     /**
@@ -363,7 +382,7 @@ class JSMin {
         while (true) {
             $get = $this->get();
             $comment .= $get;
-            if (ord($get) <= self::ORD_LF) { // end of line reached
+            if ($this->isEOF($get)) {
                 // if IE conditional comment
                 if (preg_match('/^\\/@(?:cc_on|if|elif|else|end)\\b/', $comment)) {
                     $this->keptComment .= "/{$comment}";
@@ -376,7 +395,7 @@ class JSMin {
     /**
      * Consume a multiple line comment from input (possibly retaining it)
      *
-     * @throws JSMin_UnterminatedCommentException
+     * @throws UnterminatedCommentException
      */
     protected function consumeMultipleLineComment()
     {
@@ -401,7 +420,7 @@ class JSMin {
                     return;
                 }
             } elseif ($get === null) {
-                throw new JSMin_UnterminatedCommentException(
+                throw new UnterminatedCommentException(
                     "JSMin: Unterminated comment at byte {$this->inputIndex}: /*{$comment}");
             }
             $comment .= $get;
@@ -430,8 +449,14 @@ class JSMin {
         }
         return $get;
     }
-}
 
-class JSMin_UnterminatedStringException extends Exception {}
-class JSMin_UnterminatedCommentException extends Exception {}
-class JSMin_UnterminatedRegExpException extends Exception {}
+    protected function isWhiteSpace($s) {
+        // https://www.ecma-international.org/ecma-262/#sec-white-space
+        return $s !== null && strpos(" \t\v\f", $s) !== false;
+    }
+
+    protected function isLineTerminator($s) {
+        // https://www.ecma-international.org/ecma-262/#sec-line-terminators
+        return $s !== null && strpos("\n\r", $s) !== false;
+    }
+}

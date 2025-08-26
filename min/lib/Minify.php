@@ -4,6 +4,7 @@
  * @package Minify
  */
  
+
 /**
  * Minify - Combines, minifies, and caches JavaScript and CSS files on demand.
  *
@@ -254,7 +255,7 @@ class Minify {
         
         if (self::$_options['contentType'] === self::TYPE_CSS
             && self::$_options['rewriteCssUris']) {
-            foreach($controller->sources as $key => $source) {
+            foreach ($controller->sources as $key => $source) {
                 if ($source->filepath 
                     && !isset($source->minifyOptions['currentDir'])
                     && !isset($source->minifyOptions['prependRelativePath'])

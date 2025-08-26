@@ -1,13 +1,18 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
-<html>
+<html lang="en">
     <head>
         <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
         <meta name="viewport" content="width=device-width">
+        <meta name="msapplication-TileColor" content="#ffffff">
+        <meta name="msapplication-TileImage" content="<?php echo $CFG->wwwroot ?>/images/icons/ms-icon-144x144.png">
+        <meta name="theme-color" content="#ffffff">
+        <meta name="description" content="Jolly Giraffe Daycare dashboard for signing in and out and admin duties.">
+
         <title><?php echo $CFG->sitename ?></title>
         <link rel="shortcut icon" href="favicon.ico" />
         <script type="text/javascript">	var dirfromroot = "<?php echo $CFG->directory ? "/".$CFG->directory."/" : ""; ?>"; </script>
-        <link type="text/css" rel="stylesheet" href="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory."/" : ""; ?>css&amp;f=jquery-ui.css,keyboard.css,nyroModal.css,styles.css,colorpicker.css,tablesorter.css,toggleswitch.css,jquery.timepicker.css,clockstyles.css" />
-        <link type="text/css" rel="stylesheet" href="<?php echo $CFG->wwwroot ?>/css/background.php">
+        <link type="text/css" rel="stylesheet preload" href="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory."/" : ""; ?>css&amp;f=jquery-ui.css,keyboard.css,nyroModal.css,styles.css,colorpicker.css,tablesorter.css,toggleswitch.css,jquery.timepicker.css,clockstyles.css" />
+        <link type="text/css" rel="stylesheet preload" href="<?php echo $CFG->wwwroot ?>/css/background.php">
         <!-- Favicon icons -->
         <link rel="apple-touch-icon" sizes="57x57" href="<?php echo $CFG->wwwroot ?>/images/icons/apple-icon-57x57.png">
         <link rel="apple-touch-icon" sizes="60x60" href="<?php echo $CFG->wwwroot ?>/images/icons/apple-icon-60x60.png">
@@ -28,9 +33,7 @@
         <link rel="icon" type="image/png" sizes="96x96" href="<?php echo $CFG->wwwroot ?>/images/icons/favicon-96x96.png">
         <link rel="icon" type="image/png" sizes="16x16" href="<?php echo $CFG->wwwroot ?>/images/icons/favicon-16x16.png">
         <link rel="manifest" href="<?php echo $CFG->wwwroot ?>/manifest.json">
-        <meta name="msapplication-TileColor" content="#ffffff">
-        <meta name="msapplication-TileImage" content="<?php echo $CFG->wwwroot ?>/images/icons/ms-icon-144x144.png">
-        <meta name="theme-color" content="#ffffff">
+
 
         <!-- Important Javascript -->
         <script
@@ -39,9 +42,15 @@
         </script>
 
         <!-- Font Awesome -->
-        <script
+        <script defer
             type="text/javascript"
             src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
+        </script>
+
+        <!-- Run at the end and non essential Javascript -->
+        <script defer
+            type="text/javascript"
+            src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts&amp;f=jquery.print.js,jquery.clipboard.js,jquery.keyboard.js,jquery.colorPicker.js,jquery.tablesorter.js,jquery.tablesorterw.js,jquery.toggle.js,jquery.timepicker.js,script.js,html2canvas.js,moment.js,clock.js,confetti.min.js">
         </script>
 
         <!-- Global site tag (gtag.js) - Google Analytics -->

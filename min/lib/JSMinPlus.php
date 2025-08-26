@@ -200,7 +200,7 @@ class JSMinPlus
 		static $instance;
 
 		// this is a singleton
-		if(!$instance)
+		if (!$instance)
 			$instance = new JSMinPlus();
 
 		return $instance->min($js, $filename);
@@ -284,11 +284,11 @@ class JSMinPlus
 				$params = $n->params;
 				for ($i = 0, $j = count($params); $i < $j; $i++)
 					$s .= ($i ? ',' : '') . $params[$i];
-				$s .= '){' . $this->parseTree($n->body, true) . '}';
+				$s .= ') {' . $this->parseTree($n->body, true) . '}';
 			break;
 
 			case KEYWORD_IF:
-				$s = 'if(' . $this->parseTree($n->condition) . ')';
+				$s = 'if (' . $this->parseTree($n->condition) . ')';
 				$thenPart = $this->parseTree($n->thenPart);
 				$elsePart = $n->elsePart ? $this->parseTree($n->elsePart) : null;
 
@@ -317,7 +317,7 @@ class JSMinPlus
 			break;
 
 			case KEYWORD_SWITCH:
-				$s = 'switch(' . $this->parseTree($n->discriminant) . '){';
+				$s = 'switch(' . $this->parseTree($n->discriminant) . ') {';
 				$cases = $n->cases;
 				for ($i = 0, $j = count($cases); $i < $j; $i++)
 				{
@@ -340,7 +340,7 @@ class JSMinPlus
 			break;
 
 			case KEYWORD_FOR:
-				$s = 'for(' . ($n->setup ? $this->parseTree($n->setup) : '')
+				$s = 'for (' . ($n->setup ? $this->parseTree($n->setup) : '')
 					. ';' . ($n->condition ? $this->parseTree($n->condition) : '')
 					. ';' . ($n->update ? $this->parseTree($n->update) : '') . ')';
 
@@ -352,7 +352,7 @@ class JSMinPlus
 			break;
 
 			case KEYWORD_WHILE:
-				$s = 'while(' . $this->parseTree($n->condition) . ')';
+				$s = 'while (' . $this->parseTree($n->condition) . ')';
 
 				$body  = $this->parseTree($n->body);
 				if ($body == '')
@@ -362,7 +362,7 @@ class JSMinPlus
 			break;
 
 			case JS_FOR_IN:
-				$s = 'for(' . ($n->varDecl ? $this->parseTree($n->varDecl) : $this->parseTree($n->iterator)) . ' in ' . $this->parseTree($n->object) . ')';
+				$s = 'for (' . ($n->varDecl ? $this->parseTree($n->varDecl) : $this->parseTree($n->iterator)) . ' in ' . $this->parseTree($n->object) . ')';
 
 				$body  = $this->parseTree($n->body);
 				if ($body == '')
@@ -372,7 +372,7 @@ class JSMinPlus
 			break;
 
 			case KEYWORD_DO:
-				$s = 'do{' . $this->parseTree($n->body, true) . '}while(' . $this->parseTree($n->condition) . ')';
+				$s = 'do{' . $this->parseTree($n->body, true) . '}while (' . $this->parseTree($n->condition) . ')';
 			break;
 
 			case KEYWORD_BREAK:
@@ -386,7 +386,7 @@ class JSMinPlus
 				for ($i = 0, $j = count($catchClauses); $i < $j; $i++)
 				{
 					$t = $catchClauses[$i];
-					$s .= 'catch(' . $t->varName . ($t->guard ? ' if ' . $this->parseTree($t->guard) : '') . '){' . $this->parseTree($t->block, true) . '}';
+					$s .= 'catch(' . $t->varName . ($t->guard ? ' if ' . $this->parseTree($t->guard) : '') . ') {' . $this->parseTree($t->block, true) . '}';
 				}
 				if ($n->finallyBlock)
 					$s .= 'finally{' . $this->parseTree($n->finallyBlock, true) . '}';
@@ -617,7 +617,7 @@ class JSMinPlus
 						$params = $t->params;
 						for ($i = 0, $j = count($params); $i < $j; $i++)
 							$s .= ($i ? ',' : '') . $params[$i];
-						$s .= '){' . $this->parseTree($t->body, true) . '}';
+						$s .= ') {' . $this->parseTree($t->body, true) . '}';
 					}
 				}
 				$s .= '}';
@@ -1826,7 +1826,7 @@ class JSTokenizer
 
 	public function get($chunksize = 1000)
 	{
-		while($this->lookahead)
+		while ($this->lookahead)
 		{
 			$this->lookahead--;
 			$this->tokenIndex = ($this->tokenIndex + 1) & 3;
@@ -1838,7 +1838,7 @@ class JSTokenizer
 		$conditional_comment = false;
 
 		// strip whitespace and comments
-		while(true)
+		while (true)
 		{
 			$input = $this->getInput($chunksize);
 

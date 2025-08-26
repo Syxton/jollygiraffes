@@ -59,7 +59,7 @@ public class CssCompressor {
     		boolean foundTerminator = false;
 
     		int endIndex = m.end() - 1;
-    		while(foundTerminator == false && endIndex+1 <= maxIndex) {
+    		while (foundTerminator == false && endIndex+1 <= maxIndex) {
     			endIndex = css.indexOf(terminator, endIndex+1);
 
     			if ((endIndex > 0) && (css.charAt(endIndex-1) != '\\')) {

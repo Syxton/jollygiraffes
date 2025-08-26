@@ -377,7 +377,18 @@ function check_in_out($chids, $cid, $type, $time = false) {
     $returnme .= $bday . '<div class="heading" style="margin:0px 10px;"><h1>Checked ' . ucwords($type) . ' on ' . $readabletime . ' by ' . $contact . '</h1>' . $remaining_balance . '</div>
                  <div class="container_main scroll-pane ui-corner-all fill_height_middle">' . $content . '</div>';
 
-    $returnme .= $type == "out" && !empty($notify) ? '<br /><div class="bottom center ui-corner-all" style="padding-bottom:10px;position:initial;max-height:initial;height:30%;">' . icon("circle-exclamation") . ' <span style="position:relative;top:-8px;font-size:24px"><strong>Attention</strong></span><br />' . $notify . '</div>' : '';
+    if ($type == "out" && !empty($notify)) {
+        $returnme .= '
+            <div class="bottom center ui-corner-all">
+                <span style="display:inline-flex;font-size:2em;align-items:center;justify-content:center;padding:10px;">
+                    ' . icon("circle-exclamation") . '
+                    <span style="padding-left: 10px;">
+                        <strong>Attention</strong>
+                    </span>
+                </span>
+                ' . $notify . '
+            </div>';
+    }
 
     $returnme .= '<script type="text/javascript">
         ' . $confetti_start . '
@@ -461,10 +472,12 @@ function get_notifications($pid, $chid = false, $aid = false, $separate = false,
                     <span class="tag ui-corner-all" style="color:' . $tag["textcolor"] . ';background-color:' . $tag["color"] . '">
                     ' . $tag["title"] . '
                     </span>
-                    <strong>
-                    ' . $name . '
-                    </strong>:
-                    ' . $notification["note"] . '
+                    <span>
+                        <strong>
+                        ' . $name . ':
+                        </strong>
+                        ' . $notification["note"] . '
+                    </span>
                 </div>';
             }
         }

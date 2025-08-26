@@ -265,11 +265,14 @@ h3 {
 }
 
 .notify {
+    display: flex;
     padding: 5px;
-    font-size: 14px;
+    font-size: 2em;
     color: black;
     font-weight: bold;
     background: yellow;
+    align-items: center;
+    justify-content: center;
 }
 
 .notify_tagonly .tag {

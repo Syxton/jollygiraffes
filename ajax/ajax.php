@@ -462,34 +462,26 @@ function get_notifications($pid, $chid = false, $aid = false, $separate = false,
 
             // save bulletins and compare so duplicates are not shown
             if ($tagonly) {
-                $notify .= '
-                <span class="tag ui-corner-all" style="display:inline-block;color:' . $tag["textcolor"] . ';background-color:' . $tag["color"] . '">
-                    ' . $tag["title"] . '
-                </span>';
+                $notify .= from_template("notify_tagonly_layout.php", [
+                    "tag" => $tag,
+                ]);
             } else {
-                $notify .= '
-                <div class="notify">
-                    <span class="tag ui-corner-all" style="color:' . $tag["textcolor"] . ';background-color:' . $tag["color"] . '">
-                    ' . $tag["title"] . '
-                    </span>
-                    <span>
-                        <strong>
-                        ' . $name . ':
-                        </strong>
-                        ' . $notification["note"] . '
-                    </span>
-                </div>';
+                $notify .= from_template("notify_layout.php", [
+                    "tag" => $tag,
+                    "name" => $name,
+                    "note" => $notification["note"],
+                ]);
             }
+        }
+
+        if ($tagonly) {
+            $notify = '<div class="notify_tagonly">' . $notify . '</div>';
         }
     } else {
         return false;
     }
 
-    if ($tagonly) {
-        return '<span class="notify_tagonly">' . $notify . '</span>';
-    } else {
-        return $notify;
-    }
+    return $notify;
 }
 
 function get_contact_name($cid) {
@@ -3541,7 +3533,7 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
             $active    = get_db_count("SELECT * FROM enrollments WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND deleted='$deleted'") ? "activeaccount" : "inactiveaccount";
 
             $selected_class = '';
-            if (empty($aid) && $active == 'activeaccount') {
+            if (!empty($aid) && $active == 'activeaccount') {
                 $aid            = empty($aid) ? $account["aid"] : $aid;
                 $selected_class = $active == 'activeaccount' && !empty($aid) && $aid == $account["aid"] ? "selected_button" : "";
             }

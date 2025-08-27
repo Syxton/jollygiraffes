@@ -3,10 +3,10 @@
 <div class="contact_headers">
     Who is checking them <?php echo $type; ?>?
 </div>
-<div class="container_main scroll-pane ui-corner-all fill_height_middle contact_select_at_checkout">
+<div class="list_of_children container_main scroll-pane ui-corner-all fill_height_middle contact_select_at_checkout">
     <?php echo $children; ?>
 </div>
-<div class="container_main scroll-pane ui-corner-all fill_height_middle">
+<div class="list_of_contacts container_main scroll-pane ui-corner-all fill_height_middle">
     <?php echo $contacts; ?>
 </div>
 <div class="bottom center ui-corner-all">

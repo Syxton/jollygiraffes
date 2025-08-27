@@ -3614,31 +3614,28 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
 }
 
 function get_contacts_selector($chids, $admin = false) {
-    $children = $returnme = "";
+    $children = "";
     foreach ($chids as $chid) {
         $children .= $children == "" ? "chid='" . $chid["value"] . "'" : " OR chid='" . $chid["value"] . "'";
     }
-
     $SQL = "SELECT * FROM contacts WHERE aid IN (SELECT aid FROM children WHERE $children AND deleted=0) AND deleted=0 ORDER by primary_address DESC,last,first";
-    $returnme .= '<ol class="selectable" id="selectable" style="width:100%">';
-    if (!empty($admin)) {
-        $returnme .= '<li class="ui-widget-content ui-selected"><span class="contact" style="display:inline-block;width:30px;"><input class="cid" id="cid_admin" name="cid_admin" type="hidden" value="admin" /></span>Admin</li>';
-    }
+
+    $contacts = "";
     if ($result = get_db_result($SQL)) {
         $i = 0;
         while ($row = fetch_row($result)) {
-            $selected  = $i == 0 && !$admin ? "ui-selected" : "";
-            $emergency = empty($row["emergency"]) ? "" : '<span class="emergency_contact">' . icon('circle-exclamation', "2") . '</span>';
-            $primary   = empty($row["primary_address"]) ? "" : '<span class="primary_contact">' . icon('star', "2") . '</span>';
-            $returnme .= '<li class="ui-widget-content ' . $selected . '"><span class="contact" style="display:inline-block;width:30px;"><input class="cid" id="cid_' . $row["cid"] . '" name="cid_' . $row["cid"] . '" type="hidden" value="' . $row["cid"] . '" /></span>' . $row["first"] . ' ' . $row["last"] . ' - ' . $row["relation"] . $emergency . $primary . '</li>';
+            $contacts .= from_template("checkinout_contact.php", [
+                "contact" => $row,
+                "selected" => ($i == 0 && !$admin),
+            ]);
             $i++;
         }
     }
-    if (!$admin) {
-        $returnme .= '<li class="ui-widget-content" id="other_li" rel="$(\'.keyboard\').getkeyboard().reveal();"><span class="contact" style="display:inline-block;width:30px;"></span><span class="contact fill_width" style="display:inline-block;background-color:initial;">Other<input style="width:85% !important;font-size: 18px;margin:0px 0px 0px 25px; background-color:white;" class="cid keyboard fill_width autocapitalizewords" id="cid_other" name="cid_other" type="text" value="" onMousedown="SelectSelectableElements($(\'#selectable\'),$(\'#other_li\'));" /></span></li>';
-    }
-    $returnme .= '</ol>';
-    return $returnme;
+
+    return from_template("checkinout_contact_selector.php", [
+        "contacts" => $contacts,
+        "admin" => $admin,
+    ]);
 }
 
 function copy_program() {

@@ -1,7 +1,7 @@
 <table style="width:100%;color: inherit;font: inherit;">
     <tr>
         <td class="hide_mobile" style="width: 16px;">
-            <?php echo get_icon('plusminus'); ?>
+            <?php echo icon('square-caret-right'); ?>
         </td>
         <td class="hide_mobile">
             Payments

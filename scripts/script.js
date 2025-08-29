@@ -41,6 +41,9 @@ function refresh_all() {
         $(this).next().toggle('blind', function() {
            $(".scroll-pane").sbscroller("refresh");
         });
+
+        $(this).find(".area_toggler svg").toggleClass("flexsection_open");
+
         setTimeout(function() {
             smart_scrollbars();
         },

@@ -1234,6 +1234,10 @@ svg {
     border: 1px solid grey;
 }
 
+.flexsection_open {
+    rotate: 90deg;
+}
+
 /* tablet devices (tablets, 850px and down) */
 
 @media only screen and (max-width: 850px) {

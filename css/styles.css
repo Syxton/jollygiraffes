@@ -1171,7 +1171,7 @@ svg {
 }
 
 .list_title.leftselector {
-    white-space:normal;
+    white-space: normal !important;
     display: flex;
 }
 

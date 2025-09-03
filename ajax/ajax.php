@@ -1705,15 +1705,8 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
         $child      = get_db_row("SELECT * FROM children WHERE chid='$chid'");
         $did        = get_db_field("did", "documents", "tag='avatar' AND chid='$chid'");
 
-        $display .= '<button title="Go to account" class="image_button" type="button" onclick="$.ajax({
-                type: \'POST\',
-                url: \'ajax/ajax.php\',
-                data: { action: \'get_admin_accounts_form\', aid: \'' . $child["aid"] . '\' } ,
-                success: function(data) {
-                    $(\'#admin_display\').html(data); refresh_all();
-                    $(\'.keypad_buttons\').toggleClass(\'selected_button\', true); $(\'.keypad_buttons\').not($(\'#accounts\')).toggleClass(\'selected_button\', false);
-                }
-            });">' . icon('magnifying-glass', "2") . '</button>';
+        // View Account Button
+        $display .= from_template("get_account_button.php", ["aid" => $child["aid"]]);
 
         $forms .= get_form("avatar", [
             "did"         => $did,
@@ -1723,7 +1716,13 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
             "param1value" => $child["chid"],
             "child"       => $child
         ], $identifier);
-        $display .= '<button title="Edit Picture" class="image_button" type="button" onclick="CreateDialog(\'avatar_' . $identifier . '\', 300, 400)">' . icon('camera', "2") . '</button>';
+        $display .= from_template("image_button_dialog.php", [
+            "identifier" => 'avatar_' . $identifier,
+            "title"      => "Edit Picture",
+            "icon"       => "camera",
+            "height"     => 300,
+            "width"      => 400
+        ]);
 
         $forms .= get_form("attach_doc", [
             "chid"        => $child["chid"],
@@ -1732,7 +1731,13 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
             "param1value" => $child["chid"],
             "child"       => $child
         ], $identifier);
-        $display .= '<button title="Attach Document" class="image_button" type="button" onclick="CreateDialog(\'attach_doc_' . $identifier . '\', 300, 400)">' . icon('paperclip', "2") . '</button>';
+        $display .= from_template("image_button_dialog.php", [
+            "identifier" => 'attach_doc_' . $identifier,
+            "title"      => "Attach Document",
+            "icon"       => "paperclip",
+            "height"     => 300,
+            "width"      => 400
+        ]);
 
         $forms .= get_form("attach_note", [
             "nid"      => "",
@@ -1740,30 +1745,26 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
             "callback" => "children",
             "child"    => $child
         ], $identifier);
-        $display .= '<button title="Attach Note" class="image_button" type="button" onclick="CreateDialog(\'attach_note_' . $identifier . '\', 360, 400)">' . icon('comments', "2") . '</button>';
+        $display .= from_template("image_button_dialog.php", [
+            "identifier" => 'attach_note_' . $identifier,
+            "title"      => "Attach Note",
+            "icon"       => "comments",
+            "height"     => 360,
+            "width"      => 400
+        ]);
 
         $forms .= get_form("add_edit_child", [
             "aid"      => $child["aid"],
             "callback" => "children",
             "child"    => $child
         ], $identifier);
-        $display .= '<button title="Edit Child" class="image_button" type="button" onclick="CreateDialog(\'add_edit_child_' . $identifier . '\', 300, 300)">' . icon('user-pen', "2") . '</button>';
-
-        $enroll_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to unenroll ' . $child["first"] . ' ' . $child["last"] . '?\', \'Yes\', \'No\', function(){ $.ajax({
-            type: \'POST\',
-            url: \'ajax/ajax.php\',
-            data: { action: \'toggle_enrollment\',pid:\'' . $activepid . '\',chid: \'' . $child["chid"] . '\' } ,
-            success: function(data) {
-            $.ajax({
-                type: \'POST\',
-                url: \'ajax/ajax.php\',
-                data: { action: \'get_admin_children_form\', chid: \'\' } ,
-                success: function(data) {
-                    $(\'#admin_display\').html(data); refresh_all();
-                }
-            } );
-            }
-            });},function(){});';
+        $display .= from_template("image_button_dialog.php", [
+            "identifier" => 'add_edit_child_' . $identifier,
+            "title"      => "Edit Child",
+            "icon"       => "user-pen",
+            "height"     => 300,
+            "width"      => 300
+        ]);
 
         $forms .= get_form("add_edit_enrollment", [
             "eid"      => get_db_field("eid", "enrollments", "chid='" . $child["chid"] . "' AND pid='$activepid'"),
@@ -1773,42 +1774,75 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
             "pid"      => $activepid,
             "chid"     => $child["chid"]
         ], $identifier);
-        $display .= '<button title="Edit Enrollment" class="image_button" type="button" onclick="CreateDialog(\'add_edit_enrollment_' . $identifier . '\', 200, 400)">' . icon('list-check', "2") . '</button>';
-
-
-        $display .= '<button title="Unenroll" class="image_button" type="button" onclick="' . $enroll_action . '">' . icon('toggle-on', "2") . '</button>';
-
-        $delete_action = from_template("action_child_activation.php", [
-            "chid" => $child["chid"],
-            "aid"  => $child["aid"],
-            "action" => "delete",
-            "onsuccess" => "get_admin_children_form",
-            "onsuccessdata" => "chid: '',",
+        $display .= from_template("image_button_dialog.php", [
+            "identifier" => 'add_edit_enrollment_' . $identifier,
+            "title"      => "Edit Enrollment",
+            "icon"       => "list-check",
+            "height"     => 200,
+            "width"      => 400
         ]);
 
-        // Delete Child Button
-        $display .= '
-            <button title="Delete Child" class="image_button" type="button" onclick="' . $delete_action . '">
-                ' . icon('trash', "2") . '
-            </button>';
+        $display .= from_template("image_button_confirm.php", [
+            "title" => "Unenroll",
+            "icon"  => "ban",
+            "question" => 'unenroll ' . $child["first"] . ' ' . $child["last"],
+            "actions" => [
+                [
+                    "action" => "toggle_enrollment",
+                    "params" => [
+                        "pid" => $activepid,
+                        "chid" => $child["chid"],
+                    ]
+                ],
+                [
+                    "action" => "get_admin_children_form",
+                    "params" => [
+                        "chid" => "",
+                    ]
+                ],
+            ]
+        ]);
+
+        // Deactivate Child Button
+        $display .= from_template("image_button_confirm.php", [
+            "title" => "Deactivate Child",
+            "icon"  => "toggle-on",
+            "question" => 'deactivate ' . $child["first"] . ' ' . $child["last"],
+            "actions" => [
+                [
+                    "action" => "toggle_child_activation",
+                    "params" => [
+                        "chid" => $child["chid"],
+                    ]
+                ],
+                [
+                    "action" => "get_admin_children_form",
+                    "params" => [
+                        "chid" => "",
+                    ]
+                ],
+            ]
+        ]);
     } elseif ($cid) { // Contact Buttons
         $identifier = time() . "contact_$cid";
         $contact    = get_db_row("SELECT * FROM contacts WHERE cid='$cid'");
-        $display .= '<button title="Go to account" class="image_button" type="button" onclick="$.ajax({
-                        type: \'POST\',
-                        url: \'ajax/ajax.php\',
-                        data: { action: \'get_admin_accounts_form\', aid: \'' . $contact["aid"] . '\' } ,
-                        success: function(data) {
-                            $(\'#admin_display\').html(data); refresh_all();
-                            $(\'.keypad_buttons\').toggleClass(\'selected_button\', true); $(\'.keypad_buttons\').not($(\'#accounts\')).toggleClass(\'selected_button\', false);
-                        }
-                    });">' . icon('magnifying-glass', "2") . '</button>';
+
+        // View Account Button
+        $display .= from_template("get_account_button.php", ["aid" => $contact["aid"]]);
+
         $forms .= get_form("add_edit_contact", [
             "callback" => "contacts",
             "contact"  => $contact
         ], $identifier);
-        $display .= '<button title="Edit Contact" class="image_button" type="button" onclick="CreateDialog(\'add_edit_contact_' . $identifier . '\', 520, 400)">' . icon('user-pen', '2') . '</button>';
-        // Delete Contact Button
+        $display .= from_template("image_button_dialog.php", [
+            "identifier" => 'add_edit_contact_' . $identifier,
+            "title"      => "Edit Contact",
+            "icon"       => "user-pen",
+            "height"     => 520,
+            "width"      => 400
+        ]);
+
+         // Delete Contact Button
         $display .= '<button title="Delete Contact" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to delete this contact?\', \'Yes\', \'No\', function(){ $.ajax({
                         type: \'POST\',
                         url: \'ajax/ajax.php\',
@@ -1834,36 +1868,64 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
             "employee"      => $employee,
             "recover_param" => $recover_param
         ], $identifier);
-        $display .= '<button title="Wage History" class="image_button" type="button" onclick="CreateDialog(\'edit_employee_wage_history_' . $identifier . '\', 400, 500)">' . icon('sack-dollar', "2") . '</button>';
+        $display .= from_template("image_button_dialog.php", [
+            "identifier" => 'edit_employee_wage_history_' . $identifier,
+            "title"      => "Wage History",
+            "icon"       => "sack-dollar",
+            "height"     => 400,
+            "width"      => 500
+        ]);
 
         // Timecards
         $forms .= get_form("edit_employee_timecards", [
             "employee"      => $employee,
             "recover_param" => $recover_param
         ], $identifier);
-        $display .= '<button title="Timecards" class="image_button" type="button" onclick="CreateDialog(\'edit_employee_timecards_' . $identifier . '\', 400, 500)">' . icon('stopwatch', "2") . '</button>';
+        $display .= from_template("image_button_dialog.php", [
+            "identifier" => 'edit_employee_timecards_' . $identifier,
+            "title"      => "Timecards",
+            "icon"       => "stopwatch",
+            "height"     => 400,
+            "width"      => 500
+        ]);
 
         // Edit Employee
         $forms .= get_form("add_edit_employee", [
             "employee"      => $employee,
             "recover_param" => $recover_param
         ], $identifier);
-        $display .= '<button title="Edit Employee" class="image_button" type="button" onclick="CreateDialog(\'add_edit_employee_' . $identifier . '\', 230, 315)">' . icon('wrench', '2') . '</button>';
+        $display .= from_template("image_button_dialog.php", [
+            "identifier" => 'add_edit_employee_' . $identifier,
+            "title"      => "Edit Employee",
+            "icon"       => "wrench",
+            "height"     => 230,
+            "width"      => 315
+        ]);
 
         if (!$recover) {
-            $display .= '<button title="Deactivate Employee" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to deactivate this employee?\', \'Yes\', \'No\', function(){ $.ajax({
-                            type: \'POST\',
-                            url: \'ajax/ajax.php\',
-                            data: { action: \'deactivate_employee\', employeeid: \'' . $employeeid . '\' } ,
-                            success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                        });}, function(){})">' . icon('toggle-on', '2') . '</button>';
+            $display .= from_template("image_button_confirm.php", [
+                "title" => "Deactivate Employee",
+                "icon"  => "toggle-on",
+                "question" => "deactivate this employee",
+                "actions" => [
+                    [
+                        "action" => "deactivate_employee",
+                        "params" => ["employeeid" => $employeeid],
+                    ],
+                ],
+            ]);
         } else {
-            $display .= '<button title="Reactivate Employee" class="image_button" type="button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to reactivate this employee?\', \'Yes\', \'No\', function(){ $.ajax({
-                            type: \'POST\',
-                            url: \'ajax/ajax.php\',
-                            data: { action: \'activate_employee\', employeeid: \'' . $employeeid . '\' } ,
-                            success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
-                        });}, function(){})">' . icon('toggle-off', '2') . '</button>';
+            $display .= from_template("image_button_confirm.php", [
+                "title" => "Reactivate Employee",
+                "icon"  => "toggle-off",
+                "question" => "activate this employee",
+                "actions" => [
+                    [
+                        "action" => "activate_employee",
+                        "params" => ["employeeid" => $employeeid],
+                    ],
+                ],
+            ]);
         }
     } elseif ($actid) {
     }
@@ -1905,20 +1967,26 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
 
     if (!empty($pid)) {
         // view invoices group
-        $returnme .= '<button title="Show Invoices Grouped" class="image_button" type="button" onclick="$.ajax({
-            type: \'POST\',
-            url: \'ajax/ajax.php\',
-            data: { action: \'view_invoices\', aid: \'' . $aid . '\',pid: \'' . $pid . '\' } ,
-            success: function(data) { $(\'#info_div\').html(data); refresh_all(); }
-        });">' . icon('layer-group', "2") . '</button>';
+        $action = from_template("view_invoices_action.php", [
+            "pid" => $pid,
+            "aid" => $aid,
+        ]);
+
+        $returnme .= '
+            <button title="Show Invoices Grouped" class="image_button" type="button" onclick="' . $action . '">
+                ' . icon('layer-group', "2") . '
+            </button>';
 
         // view invoices timeline
-        $returnme .= '<button title="Show Invoice Timeline" class="image_button" type="button" onclick="$.ajax({
-            type: \'POST\',
-            url: \'ajax/ajax.php\',
-            data: { action: \'view_invoices\', aid: \'' . $aid . '\',pid: \'' . $pid . '\',orderbytime: true } ,
-            success: function(data) { $(\'#info_div\').html(data); refresh_all(); }
-        });">' . icon('timeline', "2") . '</button>';
+        $action = from_template("view_invoices_action.php", [
+            "pid" => $pid,
+            "aid" => $aid,
+            "orderbytime" => true,
+        ]);
+        $returnme .= '
+            <button title="Show Invoice Timeline" class="image_button" type="button" onclick="' . $action . '">
+                ' . icon('timeline', "2") . '
+            </button>';
     }
 
     if (empty($aid)) {
@@ -2619,10 +2687,14 @@ function get_documents_list($return = false, $aid = null, $chid = null, $cid = n
 
     if ($documents = get_db_result($SQL)) {
         // View All button
-        $returnme .= '
-                <div class="document_list_item ui-corner-all" style="text-align:center">
-                    <a href="ajax/fileviewer.php?chid=' . $chid . '" class="nyroModal"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View All</span></a>
-                </div>';
+        $returnme .= from_template("selectable_list_header_layout.php", [
+            "content" => '
+                <a href="ajax/fileviewer.php?chid=' . $chid . '" class="nyroModal">
+                    <span class="inline-button ui-corner-all">
+                        ' . icon('magnifying-glass') . ' View All
+                    </span>
+                </a>',
+        ]);
         while ($document = fetch_row($documents)) {
             $delete_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this \'+$(\'a#a-' . $document["did"] . '\').attr(\'data\')+\' document?\', \'Yes\', \'No\',
             function() { $.ajax({
@@ -2666,10 +2738,9 @@ function get_documents_list($return = false, $aid = null, $chid = null, $cid = n
                 </div>';
         }
     } else {
-        $returnme .= '
-            <div class="document_list_item ui-corner-all" style="text-align:center">
-                None
-            </div>';
+        $returnme .= from_template("selectable_list_header_layout.php", [
+            "content" => '<span><strong>None</strong></span>',
+        ]);
     }
 
     if ($return) {
@@ -2704,14 +2775,14 @@ function get_notes_list($return = false, $aid = null, $chid = null, $cid = null,
     $SQL = "SELECT * FROM notes WHERE $type='$id' AND tag IN (SELECT tag FROM notes_tags) ORDER BY timelog DESC";
     if ($notes = get_db_result($SQL)) {
         // View All button
-        $returnme .= '
-            <div class="document_list_item ui-corner-all" style="text-align:center">
+        $returnme .= from_template("selectable_list_header_layout.php", [
+            "content" => '
                 <a href="ajax/reports.php?report=allnotes&type=' . $type . '&id=' . $id . '" class="nyroModal">
                     <span class="inline-button ui-corner-all">
                         ' . icon('magnifying-glass') . ' View All
                     </span>
-                </a>
-            </div>';
+                </a>',
+        ]);
         while ($note = fetch_row($notes)) {
             $delete_action = 'CreateConfirm(\'dialog-confirm\',\'Are you sure you want to delete this \'+$(\'a#a-' . $note["nid"] . '\').attr(\'data\')+\' note?\', \'Yes\', \'No\',
             function() { $.ajax({
@@ -2758,10 +2829,9 @@ function get_notes_list($return = false, $aid = null, $chid = null, $cid = null,
                 </div>';
         }
     } else {
-        $returnme .= '
-            <div class="document_list_item ui-corner-all" style="text-align:center">
-                None
-            </div>';
+        $returnme .= from_template("selectable_list_header_layout.php", [
+            "content" => '<span><strong>None</strong></span>',
+        ]);
     }
 
     if ($return) {
@@ -2952,10 +3022,16 @@ function get_activity_list($return = false, $aid = null, $chid = null, $cid = nu
     $nextmonth = ($month + 1) == 13 ? 1 : $month + 1;
     $nextyear  = ($month + 1) == 13 ? $year + 1 : $year;
     // View All button
+    $returnme .= from_template("selectable_list_header_layout.php", [
+        "content" => '
+            <a href="ajax/reports.php?month1=' . $month . '&year1=' . $year . '&report=activity&type=' . $type . '&id=' . $id . '" class="nyroModal">
+                <span class="inline-button ui-corner-all">
+                    ' . icon('magnifying-glass') . ' View All ' . date('F', mktime(0, 0, 0, $month, 1, $year)) . '
+                </span>
+            </a>',
+    ]);
+
     $returnme .= '
-        <div class="document_list_item ui-corner-all" style="text-align:center">
-            <a href="ajax/reports.php?month1=' . $month . '&year1=' . $year . '&report=activity&type=' . $type . '&id=' . $id . '" class="nyroModal"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View All ' . date('F', mktime(0, 0, 0, $month, 1, $year)) . '</span></a>
-        </div>
         <div class="document_list_item ui-corner-all" style="text-align:center;">
             <table id="document_list_item" style="width:100%" cellpadding="0" cellspacing="0">
                 <tr>
@@ -3026,21 +3102,22 @@ function get_admin_children_form($return = false, $chid = false, $recover = fals
             $selected_class = $chid && $chid == $child["chid"] ? "selected_button" : "";
             $checked_in     = $recover ? '' : (is_checked_in($child["chid"]) ? active_icon(true) : active_icon(false));
             $notifications  = get_notifications(get_pid(), $child["chid"], false, true, true);
-            $item_text = '
-                <span class="list_title leftselector">
-                    <span class="hide_mobile" style="padding: 5px;">
-                        ' . $checked_in . '
-                    </span>
-                    <span style="width: 90%;min-width: 220px;max-width: 70%;">
-                        ' . $child["last"] . ", " . $child["first"] . '
-                    </span>
-                </span>' . $notifications;
 
-            $children_list .= from_template("selectable_list_item_layout.php", [
-                "item" => $item_text,
+            $children_list .= from_template("selectable_list_item_get_info.php", [
                 "class" => $selected_class,
                 "tabid" => "chid",
                 "chid" => $child["chid"],
+                "item" => from_template("selectable_list_full_item.php", [
+                    "item" => '
+                        <span class="list_title leftselector">
+                            <span style="padding: 5px;">
+                                ' . $checked_in . '
+                            </span>
+                            <span style="width: 90%;min-width: 220px;max-width: 70%;">
+                                ' . $child["last"] . ", " . $child["first"] . '
+                            </span>
+                        </span>' . $notifications,
+                ]),
             ]);
         }
     } else {
@@ -3049,12 +3126,9 @@ function get_admin_children_form($return = false, $chid = false, $recover = fals
         ]);
     }
 
-    $header = '
-        <div class="document_list_item ui-corner-all" style="text-align:center">
-            <span><strong>
-                Enrolled Children
-            </strong></span>
-        </div>';
+    $header = from_template("selectable_list_header_layout.php", [
+        "content" => '<span><strong>Enrolled Children</strong></span>',
+    ]);
 
     $returnme = from_template("admin_main_layout.php", [
         "header" => $header,
@@ -3084,67 +3158,45 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
             $aid             = $selected_class == "selected_button" ? $account["aid"] : $aid;
             $account_balance = account_balance($pid, $account["aid"], true);
             $balanceclass    = $account_balance <= 0 ? "balance_good" : "balance_bad";
-            $account_list .= '
-                <div class="ui-corner-all list_box selectablelist ' . $selected_class . '"
-                    onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
-                            $.ajax({
-                                type: \'POST\',
-                                url: \'ajax/ajax.php\',
-                                data: { action: \'view_invoices\', aid: \'' . $account["aid"] . '\',pid: \'' . $pid . '\' } ,
-                                success: function(data) {
-                                    $(\'#info_div\').html(data);
-                                    $.ajax({
-                                        type: \'POST\',
-                                        url: \'ajax/ajax.php\',
-                                        data: { action: \'get_billing_buttons\', aid: \'' . $account["aid"] . '\',pid: \'' . $pid . '\' } ,
-                                        success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
-                                    } );
-                                }
-                            });">
-                    <div class="list_box_item_left account_name">
+
+            $account_list .= from_template("selectable_list_item_view_invoices.php", [
+                "class" => $selected_class,
+                "tab1id" => "aid",
+                "aid" => $account["aid"],
+                "tab2id" => "pid",
+                "pid" => $pid,
+                "item" => from_template("selectable_list_split_item.php", [
+                    "leftclass" => "account_name",
+                    "left" => '
                         <span class="list_title">
                             ' . $account["name"] . '
-                        </span>
-                    </div>
-                    <div class="list_box_item_right billing_info">
+                        </span>',
+                    "rightclass" => "billing_info",
+                    "right" => '
                         <div class="child_count">
                             Children: ' . $kid_count . '<br />
                             <span class="' . $balanceclass . '">
                                 Balance: $' . $account_balance . '
                             </span>
-                        </div>
-                    </div>
-                </div>';
+                        </div>',
+                ]),
+            ]);
             $i++;
         }
     }
 
     $program  = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
 
-    $header = '
-        <div class="ui-corner-all list_box selectablelist"
-                onclick="$(this).addClass(\'selected_button\',true);
-                    $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
-                    $.ajax({
-                        type: \'POST\',
-                        url: \'ajax/ajax.php\',
-                        data: { action: \'view_invoices\', pid: \'' . $pid . '\' } ,
-                        success: function(data) {
-                            $(\'#info_div\').html(data);
-                            $.ajax({
-                                type: \'POST\',
-                                url: \'ajax/ajax.php\',
-                                data: { action: \'get_billing_buttons\', pid: \'' . $pid . '\' } ,
-                                success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
-                            } );
-                        }
-                    });">
-                <div class="list_box_item_full">
-                    <span class="list_title">
-                        ' . $program["name"] . '
-                    </span>
-                </div>
-            </div>';
+    $header = from_template("selectable_list_item_view_invoices.php", [
+        "tab1id" => "pid",
+        "pid" => $pid,
+        "item" => from_template("selectable_list_full_item.php", [
+            "item" => '
+                <span class="list_title">
+                    ' . $program["name"] . '
+                </span>',
+        ]),
+    ]);
 
     $returnme = from_template("admin_main_layout.php", [
         "header" => $header,
@@ -3195,39 +3247,22 @@ function get_admin_contacts_form($return = false, $cid = false, $recover = false
                 $contact_name = $contact["last"] != $accountname ? $contact["first"] . " " . $contact["last"] : $contact["first"];
             }
 
-            $contact_list .= '
-                <div class="ui-corner-all list_box selectablelist ' . $selected_class . '"
-                    onclick="$(this).addClass(\'selected_button\',true);
-                            $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
-                            $.ajax({
-                                type: \'POST\',
-                                url: \'ajax/ajax.php\',
-                                data: { action: \'get_info\', cid: \'' . $contact["cid"] . '\' } ,
-                                success: function(data) {
-                                    $(\'#info_div\').html(data);
-                                    $.ajax({
-                                        type: \'POST\',
-                                        url: \'ajax/ajax.php\',
-                                        data: { action: \'get_action_buttons\', cid: \'' . $contact["cid"] . '\' } ,
-                                        success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
-                                    } );
-                                }
-                            });">
-                    <div class="list_box_item_full">
-                        <span class="list_title">
-                            [' . $accountname . '] ' . $contact_name . '
-                        </span>
-                    </div>
-                </div>';
+            $contact_list .= from_template("selectable_list_item_get_info.php", [
+                "class" => $selected_class,
+                "tabid" => "cid",
+                "cid" => $contact["cid"],
+                "item" => from_template("selectable_list_full_item.php", [
+                    "item" => '<span class="list_title">[' . $accountname . '] ' . $contact_name . '</span>',
+                ]),
+            ]);
         }
     } else {
-        $contact_list .= '<div class="ui-corner-all list_box" ><div class="list_box_item_full"><span class="list_title">None Active</span></div></div>';
+        $contact_list .= from_template("empty_list_item_layout.php", ["item" => 'None Active']);
     }
 
-    $header = '
-        <div class="document_list_item ui-corner-all" style="text-align:center">
-            <span><strong>Active Contacts</strong></span>
-        </div>';
+    $header = from_template("selectable_list_header_layout.php", [
+        "content" => '<span><strong>Active Contacts</strong></span>',
+    ]);
 
     $returnme = from_template("admin_main_layout.php", [
         "header" => $header,
@@ -3256,23 +3291,31 @@ function get_admin_employees_form($return = false, $employeeid = false, $recover
         while ($employee = fetch_row($employees)) {
             $employeeid     = empty($employeeid) ? $employee["employeeid"] : $employeeid;
             $selected_class = $employeeid == $employee["employeeid"] ? "selected_button" : "";
-            $deleted_param  = $recover ? ',recover: \'true\'' : '';
+            $deleted_param  = $recover ? "recover: 'true'," : '';
             $thisweekpay = get_wages_for_this_week($employee["employeeid"]);
-            $employee_list .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
-                            $.ajax({
-                                type: \'POST\',
-                                url: \'ajax/ajax.php\',
-                                data: { action: \'get_info\', employeeid: \'' . $employee["employeeid"] . '\'' . $deleted_param . ' } ,
-                                success: function(data) {
-                                    $(\'#info_div\').html(data);
-                                    $.ajax({
-                                        type: \'POST\',
-                                        url: \'ajax/ajax.php\',
-                                        data: { action: \'get_action_buttons\', employeeid: \'' . $employee["employeeid"] . '\'' . $deleted_param . ' } ,
-                                        success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
-                                    } );
-                                }
-                            });"><div class="list_box_item_left employee_name" ><span class="list_title">' . $employee["last"] . ', ' . $employee["first"] . '</span></div><div class="list_box_item_right billing_info"><div class="child_count"><span class="hide_mobile">This week: </span>$' . $thisweekpay . '</div></div></div>';
+            $employee_list .= from_template("selectable_list_item_get_info.php", [
+                "class" => $selected_class,
+                "tabid" => "employeeid",
+                "employeeid" => $employee["employeeid"],
+                "extraparams2" => $deleted_param,
+                "item" => from_template("selectable_list_split_item.php", [
+                    "leftclass" => "employee_name",
+                    "left" => '
+                        <span class="list_title">
+                            ' . $employee["last"] . ', ' . $employee["first"] . '
+                        </span>',
+                    "rightclass" => "billing_info",
+                    "right" => '
+                        <div class="child_count">
+                            <span class="hide_mobile">
+                                This week:
+                            </span>
+                            <span>
+                                &nbps;$' . $thisweekpay . '
+                            </span>
+                        </div>',
+                ]),
+            ]);
         }
     }
 
@@ -3352,10 +3395,9 @@ function get_admin_tags_form($return = false, $tagtype = false, $tag = false) {
                     "><div class="list_box_item_full"><span class="list_title">' . ucfirst($tagrow) . '</span></div></div>';
     }
 
-    $header = '
-        <div class="document_list_item ui-corner-all" style="text-align:center">
-            <span><strong>Tag Types</strong></span>
-        </div>';
+    $header = from_template("selectable_list_header_layout.php", [
+        "content" => '<span><strong>Tag Types</strong></span>',
+    ]);
 
     $returnme = from_template("admin_main_layout.php", [
         "header" => $header,
@@ -3468,22 +3510,19 @@ function get_admin_enrollment_form($return = false, $pid = false) {
             $selected_class = $pid && $pid == $program["pid"] ? "selected_button" : "";
             $active         = $activepid && $activepid == $program["pid"] ? "<span style='float:right;margin: 10px 4px;color:white;'>[Active]</span>" : "";
 
-            $notifications = get_notifications($program["pid"], false, false, true) ? 'style="background: darkred;"' : '';
-            $enrollments_list .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . '" ' . $notifications . ' onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
-                            $.ajax({
-                                type: \'POST\',
-                                url: \'ajax/ajax.php\',
-                                data: { action: \'get_info\', pid: \'' . $program["pid"] . '\' } ,
-                                success: function(data) {
-                                    $(\'#info_div\').html(data);
-                                    $.ajax({
-                                        type: \'POST\',
-                                        url: \'ajax/ajax.php\',
-                                        data: { action: \'get_action_buttons\', pid: \'' . $program["pid"] . '\' } ,
-                                        success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
-                                    } );
-                                }
-                            });"><div class="list_box_item_left program_name" style="white-space:nowrap;"><span class="list_title">' . $program["name"] . '</span></div><div class="list_box_item_right">' . $active . '</div></div>';
+            $notifications = get_notifications($program["pid"], false, false, true);
+
+            $enrollments_list .= from_template("selectable_list_item_get_info.php", [
+                "class" => $selected_class,
+                "style" => ($notifications ? 'background: darkred;' : ''),
+                "tabid" => "pid",
+                "pid" => $program["pid"],
+                "item" => from_template("selectable_list_split_item.php", [
+                    "leftclass" => "program_name",
+                    "left" => '<span class="list_title">' . $program["name"] . '</span>',
+                    "right" => $active,
+                ]),
+            ]);
         }
     }
 
@@ -3538,31 +3577,54 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
                 $selected_class = $active == 'activeaccount' && !empty($aid) && $aid == $account["aid"] ? "selected_button" : "";
             }
 
-            $deleted_param   = $recover ? ',recover: \'true\'' : '';
+            $deleted_param   = $recover ? 'recover: \'true\',' : '';
             $notifications   = get_notifications($pid, false, $account["aid"], true) ? 'background: darkred;' : '';
             $override        = $recover ? "display:block;" : "";
             $account_balance = account_balance($pid, $account["aid"], true);
             $balanceclass    = $account_balance <= 0 ? "balance_good" : "balance_bad";
-            $accounts_list .= '<div class="ui-corner-all list_box selectablelist ' . $selected_class . ' ' . $active . '" style="' . $notifications . $override . '" onclick="$(this).addClass(\'selected_button\',true); $(\'.list_box\').not(this).removeClass(\'selected_button\',false);
-                            $.ajax({
-                                type: \'POST\',
-                                url: \'ajax/ajax.php\',
-                                data: { action: \'get_info\', aid: \'' . $account["aid"] . '\'' . $deleted_param . ' } ,
-                                success: function(data) {
-                                    $(\'#info_div\').html(data);
-                                    $.ajax({
-                                        type: \'POST\',
-                                        url: \'ajax/ajax.php\',
-                                        data: { action: \'get_action_buttons\', aid: \'' . $account["aid"] . '\'' . $deleted_param . ' } ,
-                                        success: function(data) { $(\'#actions_div\').html(data); refresh_all(); }
-                                    } );
-                                }
-                            } );"><div class="list_box_item_left account_name"><span class="list_title">' . $account["name"] . '</span></div><div class="list_box_item_right billing_info"><div class="child_count">Children: ' . $kid_count . '<br /><a class="' . $balanceclass . '" href="javascript: void(0);" onclick="$.ajax({
-                                                                                              type: \'POST\',
-                                                                                              url: \'ajax/ajax.php\',
-                                                                                              data: { action: \'get_admin_billing_form\', aid:\'' . $account["aid"] . '\' ,pid: \'' . $pid . '\' } ,
-                                                                                              success: function(data) { $(\'#admin_display\').hide(\'fade\', null, null, function() { $(\'#admin_display\').html(data); refresh_all(); $(\'#admin_display\').show(\'fade\'); } );  }
-                                                                                          });$(\'.keypad_buttons\').toggleClass(\'selected_button\',true); $(\'.keypad_buttons\').not($(\'#admin_menu_billing\')).toggleClass(\'selected_button\',false);">Balance: $' . $account_balance . '</a></div></div></div>';
+
+            $accounts_list .= from_template("selectable_list_item_get_info.php", [
+                "class" => $selected_class . " " . $active,
+                "style" => $notifications . $override,
+                "tabid" => "aid",
+                "aid" => $account["aid"],
+                "extraparams1" => $deleted_param,
+                "extraparams2" => $deleted_param,
+                "item" => from_template("selectable_list_split_item.php", [
+                    "leftclass" => "account_name",
+                    "left" => '
+                        <span class="list_title">
+                            ' . $account["name"] . '
+                        </span>',
+                    "rightclass" => "billing_info",
+                    "right" => '
+                        <div class="child_count">
+                            Children: ' . $kid_count . '<br />
+                            <a class="' . $balanceclass . '"
+                                href="javascript: void(0);"
+                                onclick="$.ajax({
+                                    type: \'POST\',
+                                    url: \'ajax/ajax.php\',
+                                    data: {
+                                        action: \'get_admin_billing_form\',
+                                        aid:\'' . $account["aid"] . '\' ,
+                                        pid: \'' . $pid . '\',
+                                    },
+                                    success: function(data) {
+                                        $(\'#admin_display\').hide(\'fade\', null, null, function() {
+                                            $(\'#admin_display\').html(data);
+                                            refresh_all();
+                                            $(\'#admin_display\').show(\'fade\');
+                                        });
+                                    }
+                                });
+                                $(\'.keypad_buttons\').toggleClass(\'selected_button\',true);
+                                $(\'.keypad_buttons\').not($(\'#admin_menu_billing\')).toggleClass(\'selected_button\',false);">
+                                Balance: $' . $account_balance . '
+                            </a>
+                        </div>',
+                ]),
+            ]);
         }
     }
 

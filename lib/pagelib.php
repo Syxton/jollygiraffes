@@ -156,6 +156,38 @@ function make_select_from_array($name, $values, $valuename, $displayname, $selec
     return $returnme;
 }
 
+function ajax_builder($actions = [], $index = 0) {
+    $ajax = "";
+    while (isset($actions[$index])) {
+        $action = $actions[$index];
+        $parameters = "";
+        if (isset($action["params"])) {
+            foreach ($action["params"] as $key => $value) {
+                $parameters .= "$key: '$value',";
+            }
+        }
+
+        $onsuccess = "";
+        if (isset($actions[$index + 1])) {
+            $onsuccess = ajax_builder($actions, $index + 1);
+            $index++;
+        } else {
+            $onsuccess = "$('#admin_display').html(data); refresh_all();";
+        }
+
+        $ajax .= <<<EX
+        $.ajax({
+            type: 'POST',
+            url: 'ajax/ajax.php',
+            data: { action: '{$action["action"]}', {$parameters} },
+            success: function(data) { {$onsuccess} }
+        });
+        EX;
+        $index++;
+    }
+    return $ajax;
+}
+
 function checked_in_children($count = false) {
     $pid = get_pid();
     $SQL = "SELECT * FROM children WHERE deleted=0 AND chid IN (SELECT chid FROM enrollments WHERE deleted=0 AND pid='$pid')";

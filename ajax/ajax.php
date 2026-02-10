@@ -3440,9 +3440,13 @@ function get_tags_info($return = false, $tagtype = null, $tag = null) {
     $tag      = $tag ? $tag : (empty($MYVARS->GET["tag"]) ? false : $MYVARS->GET["tag"]);
     $returnme = "";
     // Tags
-    $SQL      = "SELECT * FROM $tagtype" . "_tags WHERE tag != 'avatar' ORDER BY title";
+    $SQL      = "SELECT * FROM $tagtype" . "_tags WHERE tag != 'avatar' AND tag != '' ORDER BY title";
     if ($tags = get_db_result($SQL)) {
-        $returnme .= '<div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px;">Tags:</div><div id="tags" class="scroll-pane infobox fill_height">';
+        $returnme .= '
+            <div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px;">
+                Tags:
+            </div>
+            <div id="tags" class="scroll-pane infobox fill_height">';
         while ($tagrow = fetch_row($tags)) {
             $identifier = time() . "note_$tagtype" . "_" . $tagrow["tag"];
 
@@ -3485,11 +3489,23 @@ function get_tags_info($return = false, $tagtype = null, $tag = null) {
             $edit_button   = ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_tag_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all">' . icon('wrench') . ' Edit</span></a>';
             $delete_button = ' <a href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . icon('trash') . ' Delete</span></a>';
 
-            $returnme .= '<div class="ui-corner-all list_box"><div class="list_title"><span id="tag_template' . $identifier . '" class="tag ui-corner-all" style="color:' . $tagrow["textcolor"] . ';background-color:' . $tagrow["color"] . '">' . $tagrow["title"] . '</span>';
-            $returnme .= ' <span class="list_links" style="float:right;">' . $edit_button . $delete_button . '</span></div>';
-            $returnme .= '</div><div style="clear:both;"></div>';
+            $returnme .= '
+                <div class="ui-corner-all list_box">
+                    <div class="list_title">
+                        <span id="tag_template' . $identifier . '" class="tag ui-corner-all" style="color:' . $tagrow["textcolor"] . ';background-color:' . $tagrow["color"] . '">
+                        ' . $tagrow["title"] . '
+                        </span>
+                        &nbsp;
+                        <span class="list_links" style="float:right;">
+                        ' . $edit_button . $delete_button . '
+                        </span>
+                    </div>
+                </div>
+                <div style="clear:both;"></div>';
         }
-        $returnme .= '</div><div style="clear:both;"></div>';
+        $returnme .= '
+            </div>
+            <div style="clear:both;"></div>';
     }
 
     if ($return) {

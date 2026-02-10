@@ -715,6 +715,11 @@ button.selected_button:hover {
     box-sizing: border-box;
 }
 
+.scroll-content:has(.child_wrapper .child) {
+    display: flex;
+    flex-wrap: wrap;
+}
+
 .scroll-content .scroll-pane>.scroll-content {
     padding: 0px;
 }
@@ -814,9 +819,12 @@ li.ui-widget-content.ui-selectee.ui-selected {
 }
 
 .list_of_contacts li {
-    display:flex;
+    height: auto !important;
+    display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: space-evenly;
+    flex-wrap: wrap;
+    flex-direction: column;
 }
 
 .list_of_contacts li span {

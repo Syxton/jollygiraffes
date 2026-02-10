@@ -3311,7 +3311,7 @@ function get_admin_employees_form($return = false, $employeeid = false, $recover
                                 This week:
                             </span>
                             <span>
-                                &nbps;$' . $thisweekpay . '
+                                &nbsp;$' . $thisweekpay . '
                             </span>
                         </div>',
                 ]),

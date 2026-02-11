@@ -18,7 +18,7 @@ if (!empty($_POST["action"])) {
 }
 
 
-$fields = ["pid","aid","chid","cid","actid","from","to","tag","att_tag","report","type","id","month1","year1","month2","year2","sort","view"];
+$fields = ["pid","aid","chid","cid","actid","from","to","tag","att_tag","report","type","id","month1","year","year1","month2","year2","sort","view"];
 foreach ($fields as $field) {
     $$field = empty($MYVARS->GET[$field]) ? false : $MYVARS->GET[$field];
 }
@@ -48,6 +48,16 @@ $returnme .= '
 
 $fromnum = strtotime($from);
 $tonum = strtotime($to);
+
+if (!empty($year)) {
+    $fromyear = $year;
+    $toyear = $year;
+    $fromyear = $year == "all" ? 2000 : $year;
+    $toyear = $year == "all" ? date('Y') : $year;
+
+    $fromnum = mktime(0, 0, 0, 1, 1, $fromyear);
+    $tonum = mktime(0, 0, 0, 12, 31, $toyear);
+}
 
 if (!empty($fromnum) && !empty($tonum)) {
     $tonum += 86399; //go through end of day selected 86400 seconds is one day...minus 1 second
@@ -239,51 +249,107 @@ switch ($report) {
         if ($accounts = get_db_result($SQL)) {
             while ($account = fetch_row($accounts)) {
                 $totalpaid = $total_owed = $totalfee = 0;
-                $returnme .= '<div>
-                                    <div style="font-size:20px;text-align:center;"><strong>Account: ' . $account["name"] . '</strong></div>';
-                $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 ORDER BY timelog,payid";
+                $returnme .= '
+                    <div>
+                        <div style="font-size:20px;text-align:center;">
+                            <strong>Account: ' . $account["name"] . '</strong>
+                        </div>';
+                $SQL = "SELECT *
+                        FROM billing_payments
+                        WHERE pid='$pid'
+                        AND aid='" . $account["aid"] . "'
+                        AND payment < 0
+                        AND timelog >= '" . $fromnum . "'
+                        AND timelog <= '" . $tonum . "'
+                        ORDER BY timelog,payid";
                 if ($payments = get_db_result($SQL)) {
-                    $totalfee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 "));
+                    $totalfee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 AND timelog >= '" . $fromnum . "' AND timelog <= '" . $tonum . "'"));
                     $totalfee = empty($totalfee) ? "0.00" : $totalfee;
-                    $returnme .= '<div style="font-size:16px;"><strong>Fees</strong></div>
-                                        <div style="padding: 5px;">';
+
+                    $feelist = "";
                     while ($payment = fetch_row($payments)) {
-                        $returnme .= '  <div>
-                                                <div style="padding: 0px 10px;"><strong>' . date('m/d/Y', display_time($payment["timelog"])) . '</strong> - Fee of $' . number_format(abs($payment["payment"]), 2) . '</div>
-                                                <div style="padding: 0px 50px;"><em>' . $payment["note"] . '</em></div>
-                                             </div><br />';
+                        $feelist .= '
+                            <div style="padding-left: 10px;">
+                                <div style="padding: 0px 10px;">
+                                    <strong>' . date('m/d/Y', display_time($payment["timelog"])) . '</strong> - Fee of $' . number_format(abs($payment["payment"]), 2) . '
+                                </div>
+                                <div style="padding: 0px 50px;">
+                                    <em>' . $payment["note"] . '</em>
+                                </div>
+                            </div>
+                            <br />';
                     }
-                    $returnme .= '</div>';
+                    $returnme .= '
+                        <div style="font-size:16px;">
+                            <strong>Fees</strong>
+                        </div>
+                        <div style="padding: 5px;">
+                        ' . $feelist . '
+                        </div>';
                 }
 
-                $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 ORDER BY timelog,payid";
+                $SQL = "SELECT *
+                        FROM billing_payments
+                        WHERE pid='$pid'
+                        AND aid='" . $account["aid"] . "'
+                        AND payment >= 0
+                        AND timelog >= '" . $fromnum . "'
+                        AND timelog <= '" . $tonum . "'
+                        ORDER BY timelog,payid";
                 if ($payments = get_db_result($SQL)) {
-                    $totalpaid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 ");
+                    $totalpaid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 AND timelog >= '" . $fromnum . "' AND timelog <= '" . $tonum . "'");
                     $totalpaid = empty($totalpaid) ? "0.00" : $totalpaid;
-                    $returnme .= '<div style="font-size:16px;"><strong>Payments</strong></div>
-                                        <div style="padding: 5px;">';
+
+                    $paymentlist = "";
                     while ($payment = fetch_row($payments)) {
-                        $returnme .= '  <div>
-                                                <div style="padding: 0px 10px;"><strong>' . date('m/d/Y', display_time($payment["timelog"])) . '</strong> - Payment of $' . number_format($payment["payment"], 2) . '</div>
-                                                <div style="padding: 0px 50px;"><em>' . $payment["note"] . '</em></div>
-                                             </div><br />';
+                        $paymentlist .= '
+                            <div style="padding-left: 10px;">
+                                <div style="padding: 0px 10px;">
+                                    <strong>' . date('m/d/Y', display_time($payment["timelog"])) . '</strong> - Payment of $' . number_format($payment["payment"], 2) . '
+                                </div>
+                                <div style="padding: 0px 50px;">
+                                    <em>' . $payment["note"] . '</em>
+                                </div>
+                            </div>
+                            <br />';
                     }
-                    $returnme .= '</div>';
+                    $returnme .= '
+                        <div style="font-size:16px;">
+                            <strong>Payments</strong>
+                        </div>
+                        <div style="padding: 5px;">
+                            ' . $paymentlist . '
+                        </div>';
                 }
-                $SQL = "SELECT * FROM billing WHERE pid='$pid' AND aid='" . $account["aid"] . "' ORDER BY fromdate";
+                $SQL = "SELECT * FROM billing WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND fromdate >= '" . $fromnum . "' AND fromdate <= '" . $tonum . "' ORDER BY fromdate";
                 if ($invoices = get_db_result($SQL)) {
                     $returnme .= '<div style="font-size:16px;"><strong>Activity</strong></div>';
                     while ($invoice = fetch_row($invoices)) {
-                        $returnme .= '<div class="week" style="vertical-align: top;padding: 5px;">
-                                                <div><strong>Week of ' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</strong></div>';
-                        $returnme .= '<div style="padding-left: 30px;">' . $invoice["receipt"] . '</div>';
-                        $returnme .= '</div>';
+                        $returnme .= '
+                            <div class="week" style="vertical-align: top;padding: 5px;">
+                                <div>
+                                    <strong>Week of ' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</strong>
+                                </div>
+                                <div style="padding-left: 30px;">
+                                    ' . $invoice["receipt"] . '
+                                </div>
+                            </div>';
                     }
-                    $total_owed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "'");
+                    $total_owed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "' AND fromdate >= '" . $fromnum . "' AND fromdate <= '" . $tonum . "'");
                     $total_owed += $totalfee;
                     $total_owed = empty($total_owed) ? "0.00" : $total_owed;
                     $balance   = $total_owed - $totalpaid;
-                    $returnme .= "<div style='text-align:right;color:darkred;'><strong>Owed:</strong> $" . number_format($total_owed, 2) . "</div><div style='text-align:right;color:blue;'><strong>Paid:</strong> $" . number_format($totalpaid, 2) . "</div><hr align='right' style='width:100px;'/><div style='text-align:right'><strong>Balance:</strong> $" . number_format($balance, 2) . "</div>";
+                    $returnme .= "
+                        <div style='text-align:right;color:darkred;'>
+                            <strong>Owed:</strong> $" . number_format($total_owed, 2) . "
+                        </div>
+                        <div style='text-align:right;color:blue;'>
+                            <strong>Paid:</strong> $" . number_format($totalpaid, 2) . "
+                        </div>
+                        <hr align='right' style='width:100px;'/>
+                        <div style='text-align:right'>
+                            <strong>Balance:</strong> $" . number_format($balance, 2) . "
+                        </div>";
                 } else {
                     $returnme .= "<div style='text-align:center'>No Invoices</div>";
                 }
@@ -297,86 +363,147 @@ switch ($report) {
             while ($account = fetch_row($accounts)) {
                 $totalpaid = $total_owed = $totalfee = $lasttodate = 0;
                 $firstrun = true;
-                $returnme .= '<div>
-                                    <div style="font-size:20px;text-align:center;"><strong>Account: ' . $account["name"] . '</strong></div>';
+                $returnme .= '
+                    <div>
+                        <div style="font-size:20px;text-align:center;">
+                            <strong>Account: ' . $account["name"] . '</strong>
+                        </div>';
 
-                $SQL = "SELECT * FROM billing WHERE pid='$pid' AND aid='" . $account["aid"] . "' ORDER BY fromdate";
+                $SQL = "SELECT *
+                        FROM billing
+                        WHERE pid='$pid'
+                        AND aid='" . $account["aid"] . "'
+                        AND fromdate >= '" . $fromnum . "'
+                        AND fromdate <= '" . $tonum . "'
+                        ORDER BY fromdate";
                 if ($invoices = get_db_result($SQL)) {
-                    $returnme .= '<div style="font-size:16px;"><strong>Activity</strong></div>';
+                    $returnme .= '
+                        <div style="font-size:16px;">
+                            <strong>Activity</strong>
+                        </div>';
                     while ($invoice = fetch_row($invoices)) {
                         if ($firstrun) { // check for payment or Fee prior to an invoice
-                            $SQL = "SELECT * FROM billing_payments WHERE pid = '$pid' AND aid = '" . $account["aid"] . "' AND timelog < '" . $invoice["fromdate"] . "' ORDER BY timelog,payid";
+                            $SQL = "SELECT *
+                                    FROM billing_payments
+                                    WHERE pid = '$pid'
+                                    AND aid = '" . $account["aid"] . "'
+                                    AND timelog < '" . $invoice["fromdate"] . "'
+                                    AND timelog >= '" . $fromnum . "'
+                                    AND timelog <= '" . $tonum . "'
+                                    ORDER BY timelog,payid";
                             if ($transactions = get_db_result($SQL)) {
-                                $returnme .= '<div class="week" style="vertical-align: top;padding: 5px;">
-                                                        <div><strong>Payments/Fees Prior to 1st Invoice</strong></div>';
-                                $returnme .= '<div style="padding-left: 30px;">';
+                                $transactionlist = "";
                                 while ($transaction = fetch_row($transactions)) {
                                     if ($transaction["payment"] < 0) {
-                                        $returnme .= '  <div>
-                                                                <strong>Fee: $' . number_format(abs($transaction["payment"]), 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
-                                                            </div>';
+                                        $transactionlist .= '
+                                            <div style="padding-left:10px">
+                                                <strong>Fee: $' . number_format(abs($transaction["payment"]), 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
+                                            </div>';
                                     } else {
-                                        $returnme .= '  <div>
-                                                                <strong>Payment: $' . number_format($transaction["payment"], 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
-                                                            </div>';
+                                        $transactionlist .= '
+                                            <div style="padding-left:10px">
+                                                <strong>Payment: $' . number_format($transaction["payment"], 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
+                                            </div>';
                                     }
                                 }
-                                $returnme .= '</div></div>';
-                            } //Logic end
+                                $returnme .= '
+                                    <div class="week" style="vertical-align: top;padding: 5px;">
+                                        <div>
+                                            <strong>Payments/Fees Prior to 1st Invoice</strong>
+                                        </div>
+                                        <div style="padding-left: 30px;">
+                                            ' . $transactionlist . '
+                                        </div>
+                                    </div>';
+                            }
                             $firstrun = false;
                         }
-                        $returnme .= '<div class="week" style="vertical-align: top;padding: 5px;">
-                                                <div><strong>Week of ' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</strong></div>';
-                        $returnme .= '<div style="padding-left: 30px;">' . str_replace("Week Total", "Invoice Amount", $invoice["receipt"]);
 
                         // check for payment or Fee
                         $SQL = "SELECT * FROM billing_payments WHERE pid = '$pid' AND aid = '" . $account["aid"] . "' AND (timelog >= '" . $invoice["fromdate"] . "' AND timelog < '" . $invoice["todate"] . "') ORDER BY timelog,payid";
+                        $paymentlist = "";
                         if ($transactions = get_db_result($SQL)) {
                             while ($transaction = fetch_row($transactions)) {
                                 if ($transaction["payment"] < 0) {
-                                    $returnme .= '  <div>
-                                                            <strong>Fee: $' . number_format(abs($transaction["payment"]), 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
-                                                        </div>';
+                                    $paymentlist .= '
+                                        <div style="padding-left:10px">
+                                            <strong>Fee: $' . number_format(abs($transaction["payment"]), 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
+                                        </div>';
                                 } else {
-                                    $returnme .= '  <div>
-                                                            <strong>Payment: $' . number_format($transaction["payment"], 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
-                                                        </div>';
+                                    $paymentlist .= '
+                                        <div style="padding-left:10px">
+                                            <strong>Payment: $' . number_format($transaction["payment"], 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
+                                        </div>';
                                 }
                             }
-                        } //Logic end
-                        $returnme .= '</div></div>';
+                        }
+
+                        $returnme .= '
+                            <div class="week" style="vertical-align: top;padding: 5px;">
+                                <div>
+                                    <strong>Week of ' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</strong>
+                                </div>
+                                <div style="padding-left: 30px;">
+                                    ' . str_replace("Week Total", "Invoice Amount", $invoice["receipt"]) . '
+                                    ' . $paymentlist . '
+                                </div>
+                            </div>';
                         $lasttodate = $invoice["todate"];
                     }
 
                     // check for payment or Fee after last invoice
-                    $SQL = "SELECT * FROM billing_payments WHERE pid = '$pid' AND aid = '" . $account["aid"] . "' AND timelog >= '$lasttodate' ORDER BY timelog,payid";
+                    $SQL = "SELECT *
+                            FROM billing_payments
+                            WHERE pid = '$pid'
+                            AND aid = '" . $account["aid"] . "'
+                            AND timelog >= '$lasttodate'
+                            AND timelog <= '" . $tonum . "'
+                            ORDER BY timelog,payid";
                     if ($transactions = get_db_result($SQL)) {
-                        $returnme .= '<div class="week" style="vertical-align: top;padding: 5px;">
-                                                <div><strong>More Recent Activity</strong></div>';
-                        $returnme .= '<div style="padding-left: 30px;">';
+                        $transactionlist = "";
                         while ($transaction = fetch_row($transactions)) {
                             if ($transaction["payment"] < 0) {
-                                $returnme .= '  <div>
-                                                        <strong>Fee: $' . number_format(abs($transaction["payment"]), 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
-                                                    </div>';
+                                $transactionlist .= '
+                                    <div style="padding-left:10px">
+                                        <strong>Fee: $' . number_format(abs($transaction["payment"]), 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
+                                    </div>';
                             } else {
-                                $returnme .= '  <div>
-                                                        <strong>Payment: $' . number_format($transaction["payment"], 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
-                                                    </div>';
+                                $transactionlist .= '
+                                    <div style="padding-left:10px">
+                                        <strong>Payment: $' . number_format($transaction["payment"], 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
+                                    </div>';
                             }
                         }
-                        $returnme .= '</div></div>';
-                    } //Logic end
+                        $returnme .= '
+                            <div class="week" style="vertical-align: top;padding: 5px;">
+                                <div>
+                                    <strong>More Recent Activity</strong>
+                                </div>
+                                <div style="padding-left: 30px;">
+                                    ' . $transactionlist . '
+                                </div>
+                            </div>';
+                    }
 
-                    $totalpaid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 ");
+                    $totalpaid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 AND timelog >= '" . $fromnum . "' AND timelog <= '" . $tonum . "'");
                     $totalpaid = empty($totalpaid) ? "0.00" : $totalpaid;
-                    $totalfee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 "));
+                    $totalfee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 AND timelog >= '" . $fromnum . "' AND timelog <= '" . $tonum . "'"));
                     $totalfee = empty($totalfee) ? "0.00" : $totalfee;
-                    $total_owed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "'");
+                    $total_owed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "' AND fromdate >= '" . $fromnum . "' AND fromdate <= '" . $tonum . "'");
                     $total_owed += $totalfee;
                     $total_owed = empty($total_owed) ? "0.00" : $total_owed;
                     $balance   = $total_owed - $totalpaid;
-                    $returnme .= "<div style='text-align:right;color:darkred;'><strong>Owed:</strong> $" . number_format($total_owed, 2) . "</div><div style='text-align:right;color:blue;'><strong>Paid:</strong> $" . number_format($totalpaid, 2) . "</div><hr align='right' style='width:100px;'/><div style='text-align:right'><strong>Balance:</strong> $" . number_format($balance, 2) . "</div>";
+                    $returnme .= "
+                        <div style='text-align:right;color:darkred;'>
+                            <strong>Owed:</strong> $" . number_format($total_owed, 2) . "
+                        </div>
+                        <div style='text-align:right;color:blue;'>
+                            <strong>Paid:</strong> $" . number_format($totalpaid, 2) . "
+                        </div>
+                        <hr align='right' style='width:100px;'/>
+                        <div style='text-align:right'>
+                            <strong>Balance:</strong> $" . number_format($balance, 2) . "
+                        </div>";
                 } else {
                     $returnme .= "<div style='text-align:center'>No Invoices</div>";
                 }

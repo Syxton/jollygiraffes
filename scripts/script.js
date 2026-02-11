@@ -36,6 +36,7 @@ function refresh_all() {
     $("button").click(function() {
         this.blur();
     });
+
     $(".toggleswitch").toggleSwitch(); // Make toggle switches
     $('.flexsection').off("click").click(function() {
         $(this).next().toggle('blind', function() {

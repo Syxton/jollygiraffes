@@ -2512,9 +2512,24 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 "callback"     => "billing",
                 "callbackinfo" => $aid
             ], $identifier);
-            $payfee_button .= '<a style="font-size: 9px;" href="javascript: void(0);" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all" style="padding: 5px;">' . icon('money-bill') . ' Add Payment/Fee</span></a>';
-            $list_invoices_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoice&pid=' . $pid . '&aid=' . $account["aid"] . '&time=' . time() . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 5px;">' . icon('list') . ' List Invoices</span></a>';
-            $timeline_button = '<a style="font-size: 9px;" href="ajax/reports.php?report=invoicetimeline&pid=' . $pid . '&aid=' . $account["aid"] . '&time=' . time() . '" class="nyroModal"><span class="inline-button ui-corner-all" style="padding: 5px;">' . icon('timeline') . ' Invoice Timeline</span></a>';
+            $payfee_button .= '
+                <a style="font-size: 9px;" href="javascript: void(0);" onclick="CreateDialog(\'add_edit_payment_' . $identifier . '\', 300, 400)">
+                    <span class="inline-button ui-corner-all" style="padding: 5px;">
+                    ' . icon('money-bill') . ' Add Payment/Fee
+                    </span>
+                </a>';
+            $list_invoices_button = '
+                <a style="font-size: 9px;" href="ajax/reports.php?report=invoice&pid=' . $pid . '&aid=' . $account["aid"] . '&year=' . $year . '" class="nyroModal">
+                    <span class="inline-button ui-corner-all" style="padding: 5px;">
+                    ' . icon('list') . ' List Invoices
+                    </span>
+                </a>';
+            $timeline_button = '
+                <a style="font-size: 9px;"href="ajax/reports.php?report=invoicetimeline&pid=' . $pid . '&aid=' . $account["aid"] . '&year=' . $year . '" class="nyroModal">
+                    <span class="inline-button ui-corner-all" style="padding: 5px;">
+                    ' . icon('timeline') . ' Invoice Timeline
+                    </span>
+                </a>';
 
             $account_invoices .= '
                 <div class="ui-corner-all">

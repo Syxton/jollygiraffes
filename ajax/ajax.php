@@ -2671,7 +2671,7 @@ function delete_document() {
             $folder = "activities/" . $existing["actid"];
         }
 
-        delete_file($CFG->docroot . "/files/$folder/" . $existing["filename"]);
+        delete_file($CFG->userfilespath . "/$folder/" . $existing["filename"]);
         execute_db_sql("DELETE FROM documents WHERE did='$did'");
 
         get_documents_list(false, $aid, $chid, $cid, $actid);
@@ -3933,7 +3933,7 @@ function toggle_exemption() {
 function children_document_link($chid, $tag) {
     global $CFG;
     if ($document = get_db_row("SELECT * FROM documents WHERE chid='$chid' AND tag='$tag'")) {
-        return $CFG->wwwroot . "/files/children/$chid/" . $document["filename"];
+        return $CFG->userfilesurl . "/children/$chid/" . $document["filename"];
     }
     return false;
 }

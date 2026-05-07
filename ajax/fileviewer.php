@@ -77,7 +77,7 @@ if ($documents) {
             })
 
             // *finally*, set the src attribute of the new image to our image
-            .attr(\'src\', \'' . $CFG->wwwroot . '/files/' . $folder . '/' . $document["filename"] . '\');
+            .attr(\'src\', \'' . $CFG->userfilesurl . "/$folder/" . $document["filename"] . '\');
         });
         ';
     }

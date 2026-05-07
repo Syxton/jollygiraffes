@@ -58,18 +58,18 @@ if ((empty($aid) && empty($chid) && empty($cid) && empty($actid)) || empty($tag)
 } else {
     if (!empty($chid)) {
         $folder = "children/$chid";
-        recursive_mkdir($CFG->docroot . "/files/children");
+        recursive_mkdir($CFG->userfilespath . "/children");
     } elseif (!empty($cid)) {
         $folder = "contacts/$cid";
-        recursive_mkdir($CFG->docroot . "/files/contacts");
+        recursive_mkdir($CFG->userfilespath . "/contacts");
     } elseif (!empty($actid)) {
         $folder = "activities/$actid";
-        recursive_mkdir($CFG->docroot . "/files/activities");
+        recursive_mkdir($CFG->userfilespath . "/activities");
     } elseif (!empty($aid)) {
         $folder = "accounts/$aid";
-        recursive_mkdir($CFG->docroot . "/files/accounts");
+        recursive_mkdir($CFG->userfilespath . "/accounts");
     }
-    recursive_mkdir($CFG->docroot . "/files/$folder");
+    recursive_mkdir($CFG->userfilespath . "/$folder");
 }
 
 // Insert into DB
@@ -83,10 +83,10 @@ if (!empty($did)) {
     } else {
         $path_parts = pathinfo($fileName);
         $newname = "$tag" . "_" . time() . "." . $path_parts["extension"]; //unique name
-        $file = $CFG->docroot . "/files/$folder/$newname";
+        $file = $CFG->userfilespath . "/$folder/$newname";
 
         $existing = get_db_row("SELECT * FROM documents WHERE did='$did'");
-        delete_file($CFG->docroot . "/files/$folder/" . $existing["filename"]);
+        delete_file($CFG->userfilespath . "/$folder/" . $existing["filename"]);
         execute_db_sql("UPDATE documents SET description='$description',filename='$newname',tag='$tag',timelog='$time' WHERE did='$did'");
         // Write the contents back to the file
         file_put_contents($file, $fileContent);
@@ -115,7 +115,7 @@ if (!empty($did)) {
     }
     execute_db_sql($SQL);
 
-    $file = $CFG->docroot . "/files/$folder/$newname";
+    $file = $CFG->userfilespath . "/$folder/$newname";
 
     // Write the contents back to the file
     file_put_contents($file, $fileContent);

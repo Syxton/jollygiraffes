@@ -3930,14 +3930,6 @@ function toggle_exemption() {
     make_account_invoice($perchild["pid"], $aid, $perchild["fromdate"]);
 }
 
-function children_document_link($chid, $tag) {
-    global $CFG;
-    if ($document = get_db_row("SELECT * FROM documents WHERE chid='$chid' AND tag='$tag'")) {
-        return $CFG->userfilesurl . "/children/$chid/" . $document["filename"];
-    }
-    return false;
-}
-
 function view_required_notes_form($pid = false, $evid = false) {
     global $CFG, $MYVARS;
     $pid  = $pid ? $pid : (empty($MYVARS->GET["pid"]) ? false : $MYVARS->GET["pid"]);

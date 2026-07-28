@@ -701,6 +701,14 @@ function get_required_notes_forms($tag) {
     return $notes;
 }
 
+function children_document_link($chid, $tag) {
+    global $CFG;
+    if ($document = get_db_row("SELECT * FROM documents WHERE chid='$chid' AND tag='$tag'")) {
+        return $CFG->userfilesurl . "/children/$chid/" . $document["filename"];
+    }
+    return false;
+}
+
 function get_children_button($chid, $class = "", $style = "", $action = "", $piconly = false, $name = true) {
     global $CFG;
     $row = get_db_row("SELECT * FROM children WHERE chid='$chid'");

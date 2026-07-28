@@ -75,8 +75,11 @@ if ((empty($aid) && empty($chid) && empty($cid) && empty($actid)) || empty($tag)
 // Insert into DB
 $time = get_timestamp();
 if (!empty($did)) {
-    $existing = get_db_row("SELECT * FROM documents WHERE did='$did'");
-    $folder = "children/" . $existing["chid"];
+    if ($existing = get_db_row("SELECT * FROM documents WHERE did='$did'")) {
+        $folder = "children/" . $existing["chid"];
+    } else {
+        $folder = "children/$chid";
+    }
 
     if (empty($fileContent)) {
         execute_db_sql("UPDATE documents SET description='$description',tag='$tag',timelog='$time' WHERE did='$did'");

@@ -229,7 +229,7 @@ function fill_height_width_once() {
 
 function uploader(id, callback, fields) {
     var fd = new FormData();
-    fd.append("afile", $('.uploader' + id + ' :file')[0].files[0]);
+    fd.append("afile", $('.uploader' + id + ' input[type="file"]')[0].files[0]);
     //These extra params aren't necessary but show that you can include other data.
     var i = 0;
     $.each(fields, function(i) {
@@ -242,7 +242,7 @@ function uploader(id, callback, fields) {
     xhr.open('POST', 'ajax/upload.php', true);
 
     xhr.upload.onprogress = function(e) {
-        if (e.lengthComputable && typeof $('.uploader' + id + ' :file')[0].files[0] != "undefined") {
+        if (e.lengthComputable && typeof $('.uploader' + id + ' input[type="file"]')[0].files[0] != "undefined") {
             var percentComplete = (e.loaded / e.total) * 100;
             $('.uploader' + id + ' .progress').css("width", percentComplete + '%');
             if (percentComplete == 100) {

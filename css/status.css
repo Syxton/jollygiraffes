@@ -9,7 +9,7 @@ html, body {
     -webkit-tap-highlight-color: transparent;
 }
 
-.muted { color: #7A828A; }
+.muted { color: #727272; }
 
 /* ---------- Login ---------- */
 .status-screen {
@@ -265,17 +265,96 @@ html, body {
 .tally-buttons .undo-btn { background: #F1F3F5; color: #7A828A; }
 
 /* ---------- Menu / Notes ---------- */
+.menu-copy-item input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  background-color: #ffffff;
+  border-radius: 8px; /* Soft, pill-like corners */
+  outline: none;
+  cursor: pointer;
+  margin-right: 15px;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Squish effect when clicked/active */
+.menu-copy-item input[type="checkbox"]:active {
+  transform: scale(0.85); /* Shrinks down like a soft cushion */
+}
+
+/* Checked state with a squishy bounce or pop color */
+.menu-copy-item input[type="checkbox"]:checked {
+  background-color: #ff6b6b;
+  transform: scale(1.05);
+}
+
+.menu-copy-item input[type="checkbox"]:checked::after {
+  content: "\2714";
+  color: white;
+  font-size: 14px;
+}
+
 .menu-text {
     white-space: pre-wrap;
     font-size: 15px;
     line-height: 1.5;
 }
 
+.menu-suggestions {
+    margin-bottom: 10px;
+}
+.menu-suggestions-label {
+    font-size: 12px;
+    color: #7A828A;
+    margin-bottom: 6px;
+}
+.menu-suggestions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.menu-suggestion-chip {
+    border: 1px solid #D0D5DA;
+    background: #F1F3F5;
+    color: #333;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.menu-suggestion-chip:hover {
+    background: #E3E7EA;
+}
+
+.menu-copy-panel {
+    margin: 10px 0;
+    padding: 1px 10px;
+    background: #91ffcd;
+    border-radius: 10px;
+}
+.menu-copy-group-title {
+    font-weight: bold;
+}
+.menu-copy-group {
+    margin-bottom: 10px;
+}
 #admin_menu_input {
     width: 100%;
     box-sizing: border-box;
     padding: 10px;
     margin-bottom: 10px;
+}
+.menu-copy-item {
+    display: flex;
+    align-items: center;
 }
 
 .notes-list {
@@ -342,6 +421,17 @@ html, body {
     font-size: 15px;
     font-weight: 600;
 }
+
+.secondary-button {
+    background: #119e40;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
 .save-status {
     font-size: 12px;
     color: #40C057;

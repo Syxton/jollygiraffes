@@ -122,9 +122,22 @@ $sitename = htmlspecialchars($CFG->sitename);
 
             <section class="card">
                 <h2>Menu</h2>
+                <div class="menu-suggestions" id="menu_suggestions"></div>
                 <textarea id="admin_menu_input" rows="3" placeholder="Today's menu..."></textarea>
-                <button class="primary-button" id="save_menu_btn">Save Menu</button>
-                <span class="save-status" id="menu_save_status"></span>
+                <div class="menu-actions">
+                    <button class="primary-button" id="save_menu_btn">Save Menu</button>
+                    <button class="secondary-button" id="copy_menu_btn">Copy to Kids&hellip;</button>
+                    <span class="save-status" id="menu_save_status"></span>
+                </div>
+                <div class="menu-copy-panel" id="menu_copy_panel" style="display:none;">
+                    <p class="muted menu-copy-hint">Copy this menu to:</p>
+                    <div class="menu-copy-list" id="menu_copy_list"></div>
+                    <div class="menu-copy-buttons">
+                        <button class="link-button" id="menu_copy_cancel">Cancel</button>
+                        <button class="primary-button" id="menu_copy_confirm">Copy</button>
+                    </div>
+                    <span class="save-status" id="menu_copy_status"></span>
+                </div>
             </section>
 
             <section class="card">

@@ -155,6 +155,24 @@ switch ($action) {
         status_json(["success" => true, "day" => $day]);
         break;
 
+    case 'copy_menu_to_children':
+        status_require_admin();
+        $menu = isset($_POST['menu']) ? $_POST['menu'] : '';
+        $chids_raw = isset($_POST['chids']) ? $_POST['chids'] : '';
+        $chids = array_filter(array_map('intval', explode(',', $chids_raw)));
+        if (empty($chids)) {
+            status_json(["success" => false, "message" => "Choose at least one child."]);
+        }
+        $written = status_copy_menu($menu, $chids);
+        status_json(["success" => true, "written" => $written]);
+        break;
+
+    case 'get_menu_suggestions':
+        status_require_admin();
+        $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_json(["success" => true, "suggestions" => status_menu_suggestions($chid)]);
+        break;
+
     case 'add_note':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;

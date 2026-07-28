@@ -437,6 +437,100 @@
                 }
             });
         });
+
+        document.getElementById('copy_menu_btn').addEventListener('click', function () {
+            var panel = document.getElementById('menu_copy_panel');
+            var opening = panel.style.display === 'none';
+            panel.style.display = opening ? '' : 'none';
+            if (opening) { renderMenuCopyList(); }
+        });
+        document.getElementById('menu_copy_cancel').addEventListener('click', function () {
+            document.getElementById('menu_copy_panel').style.display = 'none';
+        });
+        document.getElementById('menu_copy_confirm').addEventListener('click', function () {
+            var menu = document.getElementById('admin_menu_input').value;
+            var checked = document.querySelectorAll('#menu_copy_list input[type="checkbox"]:checked');
+            var chids = Array.prototype.map.call(checked, function (cb) { return cb.value; });
+            var status = document.getElementById('menu_copy_status');
+            if (!chids.length) {
+                status.textContent = 'Select at least one child.';
+                return;
+            }
+            chids.push(state.chid); // keeps the current child's saved menu in sync too
+            post('copy_menu_to_children', { menu: menu, chids: chids.join(',') }).then(function (res) {
+                if (res.success) {
+                    var count = res.written.length;
+                    status.textContent = 'Copied to ' + count + ' kid' + (count === 1 ? '' : 's') + '.';
+                    document.getElementById('menu_copy_panel').style.display = 'none';
+                    fetchMenuSuggestions();
+                } else {
+                    status.textContent = res.message || 'Could not copy.';
+                }
+                setTimeout(function () { status.textContent = ''; }, 2500);
+            });
+        });
+    }
+
+    function renderMenuCopyList() {
+        var wrap = document.getElementById('menu_copy_list');
+        wrap.innerHTML = '';
+        var others = state.children.filter(function (c) { return c.chid !== state.chid; });
+        if (!others.length) {
+            wrap.innerHTML = '<p class="muted">No other kids to copy to.</p>';
+            return;
+        }
+        var groups = {};
+        others.forEach(function (c) {
+            var fam = c.family_name || 'Family';
+            if (!groups[fam]) {
+                var group = document.createElement('div');
+                group.className = 'menu-copy-group';
+                var title = document.createElement('div');
+                title.className = 'menu-copy-group-title';
+                title.textContent = fam;
+                group.appendChild(title);
+                groups[fam] = group;
+                wrap.appendChild(group);
+            }
+            var label = document.createElement('label');
+            label.className = 'menu-copy-item';
+            label.innerHTML = '<input type="checkbox" value="' + c.chid + '"> ' + escapeHtml(c.name);
+            groups[fam].appendChild(label);
+        });
+    }
+
+    function fetchMenuSuggestions() {
+        if (!state.chid) { return; }
+        post('get_menu_suggestions', { chid: state.chid }).then(function (res) {
+            if (res.success) { renderMenuSuggestions(res.suggestions); }
+        });
+    }
+
+    function renderMenuSuggestions(suggestions) {
+        var wrap = document.getElementById('menu_suggestions');
+        wrap.innerHTML = '';
+        if (!suggestions || !suggestions.length) { return; }
+
+        var label = document.createElement('div');
+        label.className = 'menu-suggestions-label';
+        label.textContent = 'Quick fill from today:';
+        wrap.appendChild(label);
+
+        var chipRow = document.createElement('div');
+        chipRow.className = 'menu-suggestions-row';
+        suggestions.forEach(function (s) {
+            var chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'menu-suggestion-chip';
+            if (s.kids) { chip.title = 'Same as: ' + s.kids; }
+            var preview = s.menu.length > 44 ? s.menu.slice(0, 44) + '\u2026' : s.menu;
+            chip.textContent = preview + (s.count > 1 ? ' (' + s.count + ')' : '');
+            chip.addEventListener('click', function () {
+                document.getElementById('admin_menu_input').value = s.menu;
+            });
+            chipRow.appendChild(chip);
+        });
+        wrap.appendChild(chipRow);
     }
 
     function fetchDayAdmin() {
@@ -467,6 +561,8 @@
         renderAdminTallyButtons(day.counts);
 
         document.getElementById('admin_menu_input').value = day.menu || '';
+        document.getElementById('menu_copy_panel').style.display = 'none';
+        fetchMenuSuggestions();
 
         var notesWrap = document.getElementById('admin_notes_list');
         notesWrap.innerHTML = '';

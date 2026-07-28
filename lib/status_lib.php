@@ -494,6 +494,63 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
+    // Writes the same menu text to today's status_menu row for each chid
+    // given (upsert, same as status_save_menu). Used by the admin
+    // "Copy to Kids" action so staff can fill one child's menu, then
+    // duplicate it to classmates/siblings without retyping. Returns the
+    // list of chids actually written.
+    function status_copy_menu($menu, $chids) {
+        $day  = status_daykey();
+        $time = get_timestamp();
+        $menu = dbescape($menu);
+        $written = [];
+        foreach ($chids as $chid) {
+            $chid = intval($chid);
+            if (!$chid) {
+                continue;
+            }
+            if (get_db_count("SELECT id FROM status_menu WHERE chid='$chid' AND daykey='$day'")) {
+                execute_db_sql("UPDATE status_menu SET menu='$menu', timelog='$time' WHERE chid='$chid' AND daykey='$day'");
+            } else {
+                execute_db_sql("INSERT INTO status_menu (chid, daykey, menu, timelog) VALUES ('$chid','$day','$menu','$time')");
+            }
+            $written[] = $chid;
+        }
+        return $written;
+    }
+
+    // Distinct menu texts already entered today for *other* children,
+    // so staff can quick-fill instead of retyping the same menu for
+    // every kid on a shared menu day. Grouped by exact text match, most
+    // widely-used / most recently-saved first. Excludes the child
+    // currently being edited (their own menu, if any, isn't a
+    // suggestion for themselves).
+    function status_menu_suggestions($chid) {
+        $chid = intval($chid);
+        $day  = status_daykey();
+        $suggestions = [];
+        $SQL = "SELECT sm.menu,
+                       COUNT(DISTINCT sm.chid) AS cnt,
+                       MAX(sm.timelog) AS last_used,
+                       GROUP_CONCAT(DISTINCT CONCAT(c.first,' ',c.last) ORDER BY c.first SEPARATOR ', ') AS kids
+                  FROM status_menu sm
+                  JOIN children c ON c.chid = sm.chid
+                 WHERE sm.daykey='$day' AND sm.chid != '$chid' AND sm.menu != ''
+                 GROUP BY sm.menu
+                 ORDER BY cnt DESC, last_used DESC
+                 LIMIT 8";
+        if ($result = get_db_result($SQL)) {
+            while ($row = fetch_row($result)) {
+                $suggestions[] = [
+                    "menu"  => $row["menu"],
+                    "count" => (int) $row["cnt"],
+                    "kids"  => $row["kids"],
+                ];
+            }
+        }
+        return $suggestions;
+    }
+
     // Adds a new note-area entry for today: staff picks a tag from
     // notes_tags, writes text, and optionally flags it to notify the
     // parent at sign-out (sets notes.notify=1, the same field the app's

@@ -418,14 +418,14 @@ if (!isset($STATUSLIB)) {
 
         $menu = get_db_field("menu", "status_menu", "chid='$chid' AND daykey='$daykey'");
 
+        $nokidpic = "";
+        if (!$kidpic = get_child_picture_style($chid)) {
+            $nokidpic = 'class="blank_pic"';
+        }
+
         return [
             "chid"       => $chid,
-            "avatar" => from_template("childbutton.php", [
-                "chid" => $chid,
-                "containerstyles" => "text-align:center;",
-                "buttonstyles" => "position: relative;width:100px;height:100px;color:white;font-weight:bold;",
-                "piconly" => true,
-            ]),
+            "avatar"     => '<div style="text-align:center;' . $kidpic . '" ' . $nokidpic . '></div>',
             "name"       => $child["first"] . " " . $child["last"],
             "daykey"     => $daykey,
             "date_label" => get_date("l, F j, Y", $daykey + get_offset()),

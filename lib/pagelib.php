@@ -709,22 +709,29 @@ function children_document_link($chid, $tag) {
     return false;
 }
 
-function get_children_button($chid, $class = "", $style = "", $action = "", $piconly = false, $name = true) {
+function get_child_picture_style($chid) {
     global $CFG;
-    $row = get_db_row("SELECT * FROM children WHERE chid='$chid'");
-    $pic = children_document_link($row["chid"], "avatar");
 
-    if ($pic) {
+    if ($pic = children_document_link($chid, "avatar")) {
         if (file_exists($CFG->docroot . str_replace($CFG->wwwroot, "", $pic))) {
-            $style .= 'background: whitesmoke url(\'' . $pic . '\') no-repeat;';
+            return 'background: whitesmoke url(\'' . $pic . '\') no-repeat;';
         } else {
-            // File doesn't exist so clean it up.
-            execute_db_sql("DELETE FROM documents WHERE tag='avatar' AND chid='" . $row["chid"] . "'");
-            $class .= 'blank_pic';
+           // File doesn't exist so clean it up.
+           execute_db_sql("DELETE FROM documents WHERE tag='avatar' AND chid='$chid'");
         }
+    }
+    return false;
+}
+
+function get_children_button($chid, $class = "", $style = "", $action = "", $piconly = false, $name = true) {
+    $row = get_db_row("SELECT * FROM children WHERE chid='$chid'");
+
+    if ($kidpic = get_child_picture_style($row["chid"])) {
+        $style .= $kidpic;
     } else {
         $class .= 'blank_pic';
     }
+
     $letter  = strtoupper(substr($row["last"], 0, 1));
     $piconly = $piconly ? "" : "button";
     $class .= empty($action) ? " noaction" : "";

@@ -251,8 +251,12 @@
         document.getElementById('day_next').disabled = (state.daykey >= state.todayDaykey);
         document.getElementById('day_prev').disabled = (state.daykey <= state.todayDaykey - MIN_DAYS_BACK * 86400);
 
+        // Name
+        var name = document.querySelector('#screen_parent #name');
+        name.innerHTML = day.name;
+
         // Avatar
-        var avatar = document.getElementById('avatar');
+        var avatar = document.querySelector('#screen_parent #avatar');
         avatar.innerHTML = day.avatar;
 
         // Mood
@@ -445,6 +449,10 @@
     function renderAdminDay(day) {
         document.getElementById('admin_day_label').textContent = day.date_label + ' (today)';
 
+        // Avatar
+        var avatar = document.querySelector('#screen_admin #avatar');
+        avatar.innerHTML = day.avatar;
+
         // Mood timeline (recent taps today)
         var moodWrap = document.getElementById('admin_mood_timeline');
         moodWrap.innerHTML = '';
@@ -526,13 +534,49 @@
                 var aid = btn.getAttribute('data-aid');
                 var input = wrap.querySelector('input[data-aid="' + aid + '"]');
                 var url = base + '?c=' + input.value;
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(url);
-                    btn.textContent = 'Copied!';
-                    setTimeout(function () { btn.textContent = 'Copy Link'; }, 1500);
-                }
+
+                copyText(url);
+                btn.textContent = 'Copied!';
+                setTimeout(function () { btn.textContent = 'Copy Link'; }, 1500);
             });
         });
+    }
+
+    function fallbackCopyTextToClipboard(text) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+
+        // Move textarea out of the viewport to prevent scrolling
+        textarea.style.position = "fixed";
+        textarea.style.top = "0";
+        textarea.style.left = "0";
+        textarea.style.opacity = "0";
+
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        try {
+            const successful = document.execCommand('copy');
+            if (!successful) {
+            console.error('Fallback: Copying text command was unsuccessful');
+            }
+        } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+        }
+
+        document.body.removeChild(textarea);
+        }
+
+    function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).catch(err => {
+            console.warn("Clipboard API failed, using fallback", err);
+            fallbackCopyTextToClipboard(text);
+            });
+        } else {
+            fallbackCopyTextToClipboard(text);
+        }
     }
 
     // ------------------------------------------------------------------

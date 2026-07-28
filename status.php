@@ -27,6 +27,11 @@ $sitename = htmlspecialchars($CFG->sitename);
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Daily Status - <?php echo $sitename; ?></title>
+    <!-- Font Awesome -->
+    <script data-search-pseudo-elements defer
+        type="text/javascript"
+        src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
+    </script>
 <link rel="stylesheet" href="css/status.css">
 </head>
 <body>
@@ -55,6 +60,8 @@ $sitename = htmlspecialchars($CFG->sitename);
         <div class="child-tabs" id="parent_child_tabs"></div>
 
         <div class="child_avatar" id="avatar"></div>
+        <div class="child_name" id="name"></div>
+
         <div class="day-nav">
             <button class="day-nav-btn" id="day_prev" aria-label="Previous day">&#8249;</button>
             <div class="day-label" id="day_label">Today</div>
@@ -96,6 +103,8 @@ $sitename = htmlspecialchars($CFG->sitename);
         </header>
 
         <select id="admin_child_select" class="child-select"></select>
+
+        <div class="child_avatar" id="avatar"></div>
 
         <div class="day-label" id="admin_day_label">Today</div>
 

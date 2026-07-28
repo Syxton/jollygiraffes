@@ -20,8 +20,6 @@ is_installed();
 // Start Page
 include_once('header.html');
 
-//echo "Server offset is: " . get_date('P',time(),$CFG->servertz);
-
 // Main Layout
 echo get_admin_button() . get_employee_timeclock_button() . '
     <div id="dialog-confirm" title="Confirm" style="display:none;">

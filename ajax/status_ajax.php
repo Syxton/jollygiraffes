@@ -2,11 +2,8 @@
 
 /***************************************************************************
 * status_ajax.php - AJAX backend for the Daily Status Report feature.
-* -------------------------------------------------------------------------
-* Session-based (unlike the rest of this app's stateless numpad flows)
-* since this is a page people stay logged into for a while, not a single
-* kiosk action. All actions are POSTed with an "action" field and return
-* JSON.
+* Session-based (unlike the rest of the app's stateless numpad flows).
+* Actions are POSTed with an "action" field and return JSON.
 ***************************************************************************/
 
 $LIBHEADER = true;
@@ -19,6 +16,9 @@ if (!isset($DBLIB)) {
 }
 if (!isset($TIMELIB)) {
     include_once($CFG->dirroot . '/lib/timelib.php');
+}
+if (!isset($FILELIB)) {
+    include_once($CFG->dirroot . '/lib/filelib.php');
 }
 if (!isset($STATUSLIB)) {
     include_once($CFG->dirroot . '/lib/status_lib.php');
@@ -68,7 +68,13 @@ switch ($action) {
                 "role"     => "admin",
                 "children" => status_all_children(),
                 "moods"    => $GLOBALS['STATUS_MOODS'],
-                "tallies"  => $GLOBALS['STATUS_TALLIES'],
+                "pottyTypes" => $GLOBALS['STATUS_POTTY_TYPES'],
+                "quickNotes" => $GLOBALS['STATUS_QUICK_NOTES'],
+                "incidentTypes" => $GLOBALS['STATUS_INCIDENT_TYPES'],
+                "napDurations"  => $GLOBALS['STATUS_NAP_DURATIONS'],
+                "bottleOunces"  => $GLOBALS['STATUS_BOTTLE_OUNCES'],
+                "meals"    => $GLOBALS['STATUS_MEALS'],
+                "bottle"   => $GLOBALS['STATUS_BOTTLE_INFO'],
                 "tags"     => status_notes_tags(),
             ]);
         } else {
@@ -79,7 +85,9 @@ switch ($action) {
                 "role"     => "parent",
                 "children" => $children,
                 "moods"    => $GLOBALS['STATUS_MOODS'],
-                "tallies"  => $GLOBALS['STATUS_TALLIES'],
+                "pottyTypes" => $GLOBALS['STATUS_POTTY_TYPES'],
+                "meals"    => $GLOBALS['STATUS_MEALS'],
+                "bottle"   => $GLOBALS['STATUS_BOTTLE_INFO'],
             ]);
         }
         break;
@@ -90,6 +98,10 @@ switch ($action) {
         $result = status_login_parent($code, $pin);
         if ($result['success']) {
             $result['children'] = status_children_for_aid(status_current_aid());
+            $result['moods']    = $GLOBALS['STATUS_MOODS'];
+            $result['pottyTypes'] = $GLOBALS['STATUS_POTTY_TYPES'];
+            $result['meals']    = $GLOBALS['STATUS_MEALS'];
+            $result['bottle']   = $GLOBALS['STATUS_BOTTLE_INFO'];
         }
         status_json($result);
         break;
@@ -100,7 +112,13 @@ switch ($action) {
         if ($result['success']) {
             $result['children'] = status_all_children();
             $result['moods']    = $GLOBALS['STATUS_MOODS'];
-            $result['tallies']  = $GLOBALS['STATUS_TALLIES'];
+            $result['pottyTypes'] = $GLOBALS['STATUS_POTTY_TYPES'];
+            $result['quickNotes'] = $GLOBALS['STATUS_QUICK_NOTES'];
+            $result['incidentTypes'] = $GLOBALS['STATUS_INCIDENT_TYPES'];
+            $result['napDurations']  = $GLOBALS['STATUS_NAP_DURATIONS'];
+            $result['bottleOunces']  = $GLOBALS['STATUS_BOTTLE_OUNCES'];
+            $result['meals']    = $GLOBALS['STATUS_MEALS'];
+            $result['bottle']   = $GLOBALS['STATUS_BOTTLE_INFO'];
             $result['tags']     = status_notes_tags();
         }
         status_json($result);
@@ -131,46 +149,218 @@ switch ($action) {
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't log that."]);
         break;
 
-    case 'add_tally':
+    case 'add_potty':
+        status_require_admin();
+        $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $type   = isset($_POST['type']) ? $_POST['type'] : '';
+        $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
+        $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
+        $cream  = !empty($_POST['cream']);
+        $peed   = !empty($_POST['peed']);
+        $pooped = !empty($_POST['pooped']);
+        $result = status_add_potty($chid, $type, $hour, $minute, $cream, $peed, $pooped);
+        status_json($result ? ["success" => true, "day" => $result['day'], "evid" => $result['evid']] : ["success" => false, "message" => "Couldn't log that."]);
+        break;
+
+    case 'edit_potty':
+        status_require_admin();
+        $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $type   = isset($_POST['type']) ? $_POST['type'] : '';
+        $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
+        $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
+        $cream  = !empty($_POST['cream']);
+        $peed   = !empty($_POST['peed']);
+        $pooped = !empty($_POST['pooped']);
+        $day    = status_edit_potty($chid, $evid, $type, $hour, $minute, $cream, $peed, $pooped);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't update that."]);
+        break;
+
+    case 'delete_potty':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
-        $tag  = isset($_POST['tag']) ? $_POST['tag'] : '';
-        $day  = status_add_tally($chid, $tag);
+        $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $day  = status_delete_potty($chid, $evid);
+        status_json(["success" => true, "day" => $day]);
+        break;
+
+    case 'add_incident':
+        status_require_admin();
+        $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $type   = isset($_POST['type']) ? $_POST['type'] : '';
+        $result = status_add_incident($chid, $type);
+        status_json($result ? ["success" => true, "day" => $result['day'], "evid" => $result['evid']] : ["success" => false, "message" => "Couldn't log that."]);
+        break;
+
+    case 'edit_incident':
+        status_require_admin();
+        $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $type   = isset($_POST['type']) ? $_POST['type'] : '';
+        $note   = isset($_POST['note']) ? $_POST['note'] : '';
+        $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
+        $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
+        $day    = status_edit_incident($chid, $evid, $type, $note, $hour, $minute);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't update that."]);
+        break;
+
+    case 'delete_incident':
+        status_require_admin();
+        $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $day  = status_delete_incident($chid, $evid);
+        status_json(["success" => true, "day" => $day]);
+        break;
+
+    case 'add_nap':
+        status_require_admin();
+        $chid    = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $minutes = isset($_POST['minutes']) ? intval($_POST['minutes']) : 0;
+        $day     = status_add_nap($chid, $minutes);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't log that."]);
         break;
 
-    case 'undo_tally':
+    case 'delete_nap':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
-        $tag  = isset($_POST['tag']) ? $_POST['tag'] : '';
-        $day  = status_undo_tally($chid, $tag);
-        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't undo that."]);
+        $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $day  = status_delete_nap($chid, $evid);
+        status_json(["success" => true, "day" => $day]);
+        break;
+
+    case 'upload_attachment':
+        status_require_admin();
+        $chid    = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $evid    = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $context = isset($_POST['context']) ? $_POST['context'] : 'attachment';
+        status_require_child_access($chid);
+        if (empty($_FILES['file']['name']) || empty($_FILES['file']['tmp_name']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+            status_json(["success" => false, "message" => "No file received."]);
+        }
+        // Photos plus common document types, capped at 15MB.
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'pdf'];
+        $ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowed)) {
+            status_json(["success" => false, "message" => "That file type isn't supported."]);
+        }
+        if ($_FILES['file']['size'] > 15 * 1024 * 1024) {
+            status_json(["success" => false, "message" => "File is too large (15MB max)."]);
+        }
+        $folder = $CFG->userfilespath . "/children/$chid";
+        recursive_mkdir($folder);
+        $newname = preg_replace('/[^a-z0-9]/', '', $context) . "_" . time() . "_" . mt_rand(1000, 9999) . "." . $ext;
+        if (!move_uploaded_file($_FILES['file']['tmp_name'], "$folder/$newname")) {
+            status_json(["success" => false, "message" => "Upload failed."]);
+        }
+        $attachments = status_add_attachment($chid, $evid, $newname, $context);
+        status_json(["success" => true, "attachments" => $attachments]);
+        break;
+
+    case 'delete_attachment':
+        status_require_admin();
+        $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $did  = isset($_POST['did']) ? intval($_POST['did']) : 0;
+        $attachments = status_delete_attachment($chid, $did);
+        status_json(["success" => true, "attachments" => $attachments]);
+        break;
+
+    case 'quick_note':
+        status_require_admin();
+        $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $key  = isset($_POST['key']) ? $_POST['key'] : '';
+        $day  = status_quick_note($chid, $key);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't add that note."]);
+        break;
+
+    case 'edit_mood_time':
+        status_require_admin();
+        $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
+        $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
+        $day    = status_edit_mood_time($chid, $evid, $hour, $minute);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't update that."]);
+        break;
+
+    case 'edit_bottle_time':
+        status_require_admin();
+        $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
+        $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
+        $day    = status_edit_bottle_time($chid, $evid, $hour, $minute);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't update that."]);
+        break;
+
+    case 'edit_mood':
+        status_require_admin();
+        $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $mood = isset($_POST['mood']) ? $_POST['mood'] : '';
+        $day  = status_edit_mood($chid, $evid, $mood);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't update that."]);
+        break;
+
+    case 'delete_mood':
+        status_require_admin();
+        $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $day  = status_delete_mood($chid, $evid);
+        status_json(["success" => true, "day" => $day]);
+        break;
+
+    case 'add_bottle':
+        status_require_admin();
+        $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $ounces = (isset($_POST['ounces']) && $_POST['ounces'] !== '') ? intval($_POST['ounces']) : false;
+        $day    = status_add_bottle($chid, $ounces);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't log that."]);
+        break;
+
+    case 'edit_bottle_ounces':
+        status_require_admin();
+        $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $ounces = isset($_POST['ounces']) ? intval($_POST['ounces']) : 0;
+        $day    = status_edit_bottle_ounces($chid, $evid, $ounces);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't update that."]);
+        break;
+
+    case 'delete_bottle':
+        status_require_admin();
+        $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $day  = status_delete_bottle($chid, $evid);
+        status_json(["success" => true, "day" => $day]);
         break;
 
     case 'save_menu':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $meal = isset($_POST['meal']) ? $_POST['meal'] : '';
         $menu = isset($_POST['menu']) ? $_POST['menu'] : '';
-        $day  = status_save_menu($chid, $menu);
-        status_json(["success" => true, "day" => $day]);
+        $day  = status_save_menu($chid, $meal, $menu);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Invalid meal."]);
         break;
 
     case 'copy_menu_to_children':
         status_require_admin();
+        $meal = isset($_POST['meal']) ? $_POST['meal'] : '';
         $menu = isset($_POST['menu']) ? $_POST['menu'] : '';
         $chids_raw = isset($_POST['chids']) ? $_POST['chids'] : '';
         $chids = array_filter(array_map('intval', explode(',', $chids_raw)));
         if (empty($chids)) {
             status_json(["success" => false, "message" => "Choose at least one child."]);
         }
-        $written = status_copy_menu($menu, $chids);
+        $written = status_copy_menu($meal, $menu, $chids);
         status_json(["success" => true, "written" => $written]);
         break;
 
     case 'get_menu_suggestions':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
-        status_json(["success" => true, "suggestions" => status_menu_suggestions($chid)]);
+        $meal = isset($_POST['meal']) ? $_POST['meal'] : '';
+        status_json(["success" => true, "suggestions" => status_menu_suggestions($chid, $meal)]);
         break;
 
     case 'add_note':

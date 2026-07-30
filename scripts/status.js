@@ -8,13 +8,32 @@
         role: null,
         children: [],
         moods: {},
-        tallies: {},
+        pottyTypes: {},
+        quickNotes: {},
+        incidentTypes: {},
+        napDurations: [30, 60, 90, 120],
+        bottleOunces: [1, 2, 3, 4, 5, 6, 7, 8],
+        meals: {},
+        bottle: { label: 'Bottle', emoji: '\ud83c\udf7c', color: '#4DABF7' },
         tags: [],
         chid: null,
         todayDaykey: null,
         daykey: null,
-        pin: ''
+        pin: '',
+        lastAdminDay: null
     };
+
+    var MEAL_ORDER = ['breakfast', 'lunch', 'dinner'];
+    function orderedMealKeys() {
+        var keys = Object.keys(state.meals);
+        keys.sort(function (a, b) {
+            var ia = MEAL_ORDER.indexOf(a), ib = MEAL_ORDER.indexOf(b);
+            if (ia === -1) { ia = 99; }
+            if (ib === -1) { ib = 99; }
+            return ia - ib;
+        });
+        return keys;
+    }
 
     // ------------------------------------------------------------------
     // Networking
@@ -111,9 +130,15 @@
             }
             state.role = code ? 'parent' : 'admin';
             state.children = res.children || [];
+            state.moods = res.moods || {};
+            state.pottyTypes = res.pottyTypes || {};
+            state.meals = res.meals || {};
+            state.bottle = res.bottle || state.bottle;
             if (state.role === 'admin') {
-                state.moods = res.moods || {};
-                state.tallies = res.tallies || {};
+                state.quickNotes = res.quickNotes || {};
+                state.incidentTypes = res.incidentTypes || {};
+                state.napDurations = res.napDurations || state.napDurations;
+                state.bottleOunces = res.bottleOunces || state.bottleOunces;
                 state.tags = res.tags || [];
                 startAdmin();
             } else {
@@ -131,14 +156,18 @@
             if (res.success && res.loggedIn) {
                 state.role = res.role;
                 state.children = res.children || [];
+                state.moods = res.moods || {};
+                state.pottyTypes = res.pottyTypes || {};
+                state.meals = res.meals || {};
+                state.bottle = res.bottle || state.bottle;
                 if (res.role === 'admin') {
-                    state.moods = res.moods || {};
-                    state.tallies = res.tallies || {};
+                    state.quickNotes = res.quickNotes || {};
+                    state.incidentTypes = res.incidentTypes || {};
+                    state.napDurations = res.napDurations || state.napDurations;
+                    state.bottleOunces = res.bottleOunces || state.bottleOunces;
                     state.tags = res.tags || [];
                     startAdmin();
                 } else {
-                    state.moods = res.moods || {};
-                    state.tallies = res.tallies || {};
                     startParent();
                 }
             } else {
@@ -154,6 +183,65 @@
         var div = document.createElement('div');
         div.textContent = str == null ? '' : String(str);
         return div.innerHTML;
+    }
+
+    // Formats "HH:MM" as a friendly "h:mm am/pm" label. Shared by the
+    // inline chip time editor and the Potty Time panel's time field.
+    function updateTimeLabel(labelEl, hm) {
+        var parts = (hm || '00:00').split(':');
+        var h = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10) || 0;
+        var suffix = h >= 12 ? 'pm' : 'am';
+        var h12 = h % 12;
+        if (h12 === 0) { h12 = 12; }
+        labelEl.textContent = h12 + ':' + (m < 10 ? '0' : '') + m + ' ' + suffix;
+    }
+
+    // Swaps a chip's contents for an inline <input type="time"> plus a
+    // persistent, live-updating text label (native time inputs can look
+    // blank mid-interaction on some mobile browsers, so the label is the
+    // reliable "what will be saved" indicator) plus confirm/cancel.
+    function openTimeEditor(chip, currentHm, onConfirm) {
+        var input = document.createElement('input');
+        input.type = 'time';
+        input.className = 'time-edit-input';
+
+        var label = document.createElement('span');
+        label.className = 'time-edit-label';
+
+        var okBtn = document.createElement('button');
+        okBtn.type = 'button';
+        okBtn.className = 'chip-icon-btn';
+        okBtn.textContent = '\u2713';
+        okBtn.title = 'Save time';
+
+        var cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'chip-icon-btn';
+        cancelBtn.textContent = '\u2715';
+        cancelBtn.title = 'Cancel';
+
+        chip.innerHTML = '';
+        chip.appendChild(input);
+        chip.appendChild(label);
+        chip.appendChild(okBtn);
+        chip.appendChild(cancelBtn);
+
+        // Assign as a property (not just the HTML attribute) after the
+        // input is in the DOM - more reliable across mobile browsers.
+        input.value = currentHm || '';
+        updateTimeLabel(label, input.value);
+        input.focus();
+
+        input.addEventListener('input', function () { updateTimeLabel(label, input.value); });
+
+        okBtn.addEventListener('click', function () {
+            var parts = (input.value || '00:00').split(':');
+            onConfirm(parseInt(parts[0], 10), parseInt(parts[1], 10));
+        });
+        cancelBtn.addEventListener('click', function () {
+            if (state.lastAdminDay) { renderAdminDay(state.lastAdminDay); }
+        });
     }
 
     function logout(reload) {
@@ -271,23 +359,50 @@
             moodWrap.appendChild(chip);
         });
 
-        // Tallies
-        var tallyWrap = document.getElementById('tally_grid');
-        tallyWrap.innerHTML = '';
-
-        Object.keys(day.counts).forEach(function (key) {
-            var info = state.tallies[key] || { label: key, emoji: '', color: '#999' };
-            var item = document.createElement('div');
-            item.className = 'tally-item';
-            item.innerHTML = '<div class="emoji">' + (info.emoji || '') + '</div>' +
-                '<div class="count">' + day.counts[key] + '</div>' +
-                '<div class="label">' + escapeHtml(info.label || key) + '</div>';
-            tallyWrap.appendChild(item);
+        // Potty Time (read-only)
+        var pottyWrap = document.getElementById('potty_timeline');
+        pottyWrap.innerHTML = '';
+        document.getElementById('potty_empty').style.display = day.potty.length ? 'none' : '';
+        day.potty.forEach(function (p) {
+            pottyWrap.appendChild(buildPottyChip(p, false));
         });
 
-        // Menu
-        document.getElementById('menu_text').textContent = day.menu || '';
-        document.getElementById('menu_empty').style.display = day.menu ? 'none' : '';
+        // Incidents (read-only; card hidden entirely if none today)
+        var incCard = document.getElementById('parent_incidents_card');
+        incCard.style.display = day.incidents.length ? '' : 'none';
+        if (day.incidents.length) {
+            var incWrap = document.getElementById('parent_incidents_timeline');
+            incWrap.innerHTML = '';
+            day.incidents.forEach(function (inc) {
+                incWrap.appendChild(buildIncidentChip(inc, false));
+            });
+        }
+
+        // Naptime history (read-only; card hidden entirely if none today)
+        var napsCard = document.getElementById('parent_naps_card');
+        napsCard.style.display = day.naps.length ? '' : 'none';
+        if (day.naps.length) {
+            var napsWrap = document.getElementById('parent_naps_timeline');
+            napsWrap.innerHTML = '';
+            day.naps.forEach(function (nap) {
+                napsWrap.appendChild(buildNapChip(nap, false));
+            });
+        }
+
+        // Bottles
+        var bottleCard = document.getElementById('parent_bottle_card');
+        bottleCard.style.display = day.show_bottles ? '' : 'none';
+        if (day.show_bottles) {
+            var bWrap = document.getElementById('parent_bottle_timeline');
+            bWrap.innerHTML = '';
+            document.getElementById('parent_bottle_empty').style.display = day.bottles.length ? 'none' : '';
+            day.bottles.forEach(function (b) {
+                bWrap.appendChild(buildBottleChip(b, false));
+            });
+        }
+
+        // Menu (Breakfast / Lunch / Dinner)
+        renderParentMealSections(day);
 
         // Notes
         var notesWrap = document.getElementById('notes_list');
@@ -304,6 +419,112 @@
         });
     }
 
+    function buildNapChip(nap, editable) {
+        var chip = document.createElement('div');
+        chip.className = 'mood-chip';
+        chip.style.background = '#748FFC';
+
+        var content = document.createElement('span');
+        content.className = 'mood-chip-content';
+        content.innerHTML = '<span class="emoji">\ud83d\ude34</span><span>' + nap.minutes + ' min nap \u00b7 started ' + escapeHtml(nap.time) + '</span>';
+        chip.appendChild(content);
+
+        if (editable) {
+            var delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'chip-icon-btn';
+            delBtn.textContent = '\u2715';
+            delBtn.title = 'Delete';
+            delBtn.addEventListener('click', function () {
+                post('delete_nap', { chid: state.chid, evid: nap.evid }).then(function (res) {
+                    if (res.success) { renderAdminDay(res.day); }
+                });
+            });
+            chip.appendChild(delBtn);
+        }
+
+        return chip;
+    }
+
+    // ------------------------------------------------------------------
+    // Bottles - shared chip builder (read-only for parents, deletable
+    // for admin)
+    // ------------------------------------------------------------------
+    function buildBottleChip(b, editable) {
+        var chip = document.createElement('div');
+        chip.className = 'mood-chip';
+        chip.style.background = state.bottle.color;
+
+        var amountStr = b.amount ? ' \u00b7 ' + b.amount + 'oz' : '';
+        var content = document.createElement('span');
+        content.className = 'mood-chip-content';
+        content.innerHTML = '<span class="emoji">' + state.bottle.emoji + '</span><span>' + escapeHtml(state.bottle.label) + amountStr + ' \u00b7 ' + escapeHtml(b.time) + '</span>';
+        chip.appendChild(content);
+
+        if (editable) {
+            var ozBtn = document.createElement('button');
+            ozBtn.type = 'button';
+            ozBtn.className = 'chip-icon-btn';
+            ozBtn.textContent = '\ud83c\udf7c';
+            ozBtn.title = 'Change amount';
+            ozBtn.addEventListener('click', function () {
+                openBottlePanel(function (ounces) {
+                    post('edit_bottle_ounces', { chid: state.chid, evid: b.evid, ounces: ounces }).then(function (res) {
+                        if (res.success) { renderAdminDay(res.day); }
+                    });
+                });
+            });
+            chip.appendChild(ozBtn);
+
+            var clockBtn = document.createElement('button');
+            clockBtn.type = 'button';
+            clockBtn.className = 'chip-icon-btn';
+            clockBtn.textContent = '\ud83d\udd50';
+            clockBtn.title = 'Change time';
+            clockBtn.addEventListener('click', function () {
+                openTimeEditor(chip, b.hm, function (hour, minute) {
+                    post('edit_bottle_time', { chid: state.chid, evid: b.evid, hour: hour, minute: minute }).then(function (res) {
+                        if (res.success) { renderAdminDay(res.day); }
+                    });
+                });
+            });
+            chip.appendChild(clockBtn);
+
+            var delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'chip-icon-btn';
+            delBtn.textContent = '\u2715';
+            delBtn.title = 'Delete';
+            delBtn.addEventListener('click', function () {
+                post('delete_bottle', { chid: state.chid, evid: b.evid }).then(function (res) {
+                    if (res.success) { renderAdminDay(res.day); }
+                });
+            });
+            chip.appendChild(delBtn);
+        }
+        return chip;
+    }
+
+    // ------------------------------------------------------------------
+    // Menu (Breakfast / Lunch / Dinner) - read-only cards for parents
+    // ------------------------------------------------------------------
+    function renderParentMealSections(day) {
+        var container = document.getElementById('parent_meal_sections');
+        container.innerHTML = '';
+        orderedMealKeys().forEach(function (mealKey) {
+            var info = state.meals[mealKey];
+            var text = (day.menus && day.menus[mealKey]) || '';
+            var section = document.createElement('section');
+            section.className = 'card';
+            section.innerHTML = '<h2>' + info.emoji + ' ' + escapeHtml(info.label) + '</h2>' +
+                '<div class="menu-text"></div>' +
+                '<div class="empty-note" style="display:none;">No ' + escapeHtml(info.label.toLowerCase()) + ' menu posted for this day.</div>';
+            section.querySelector('.menu-text').textContent = text;
+            section.querySelector('.empty-note').style.display = text ? 'none' : '';
+            container.appendChild(section);
+        });
+    }
+
     // ==================================================================
     // ADMIN VIEW
     // ==================================================================
@@ -316,7 +537,9 @@
             state.chid = state.children[0].chid;
         }
         renderMoodButtons();
-        renderAdminTallyButtons(null);
+        renderPottyTypeButtons();
+        renderQuickNoteButtons();
+        renderIncidentButtons();
         bindAdminEvents();
         fetchDayAdmin();
     }
@@ -359,32 +582,481 @@
         });
     }
 
-    function renderAdminTallyButtons(counts) {
-        var wrap = document.getElementById('admin_tally_grid');
-        wrap.innerHTML = '';
-        Object.keys(state.tallies).forEach(function (key) {
-            var info = state.tallies[key];
-            var item = document.createElement('div');
-            item.className = 'tally-item';
-            var count = counts ? counts[key] : 0;
-            item.innerHTML = '<div class="emoji">' + info.emoji + '</div>' +
-                '<div class="count" data-tag="' + key + '">' + count + '</div>' +
-                '<div class="label">' + escapeHtml(info.label) + '</div>' +
-                '<div class="tally-buttons">' +
-                '<button type="button" class="undo-btn" data-tag="' + key + '" data-act="undo">\u2212</button>' +
-                '<button type="button" class="tap-btn" data-tag="' + key + '" data-act="tap">+</button>' +
-                '</div>';
-            wrap.appendChild(item);
+    function findPotty(day, evid) {
+        for (var i = 0; i < day.potty.length; i++) {
+            if (day.potty[i].evid === evid) { return day.potty[i]; }
+        }
+        return null;
+    }
+
+    // Shared chip builder: read-only for parents, edit/delete for admin.
+    // A prominent, visually distinct badge button (not tiny inline text)
+    // showing an attachment count exists; tapping opens a viewer with all
+    // of them as thumbnails, each opening full-size in a new tab - works
+    // the same on desktop (click) and mobile (tap).
+    function buildAttachmentBadge(attachments) {
+        var badge = document.createElement('button');
+        badge.type = 'button';
+        badge.className = 'attachment-badge';
+        badge.innerHTML = '\ud83d\udcf7 ' + attachments.length;
+        badge.title = attachments.length === 1 ? 'View attachment' : 'View ' + attachments.length + ' attachments';
+        badge.addEventListener('click', function (e) {
+            e.stopPropagation();
+            openAttachmentViewer(attachments);
         });
-        wrap.querySelectorAll('button').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var tag = btn.getAttribute('data-tag');
-                var act = btn.getAttribute('data-act') === 'tap' ? 'add_tally' : 'undo_tally';
-                post(act, { chid: state.chid, tag: tag }).then(function (res) {
+        return badge;
+    }
+
+    function openAttachmentViewer(attachments) {
+        var overlay = document.getElementById('attachment_viewer_overlay');
+        var panel = document.getElementById('attachment_viewer_panel');
+        var html = '<div class="potty-panel-header"><span>Attachments</span>' +
+            '<button type="button" class="link-button" data-role="close">Done</button></div>' +
+            '<div class="attachment-viewer-grid">';
+        attachments.forEach(function (a) {
+            var isImage = /\.(jpg|jpeg|png|gif|webp|heic)$/i.test(a.filename);
+            html += '<a href="' + a.url + '" target="_blank" class="attachment-viewer-item">' +
+                (isImage ? '<img src="' + a.url + '" alt="attachment">' : '\ud83d\udcc4 ' + escapeHtml(a.filename)) +
+                '</a>';
+        });
+        html += '</div>';
+        panel.innerHTML = html;
+        panel.querySelector('[data-role="close"]').addEventListener('click', function () {
+            overlay.style.display = 'none';
+        });
+        overlay.style.display = '';
+    }
+
+    function buildPottyChip(p, editable) {
+        var chip = document.createElement('div');
+        chip.className = 'mood-chip potty-chip';
+        chip.style.background = p.color;
+
+        var extras = '';
+        if (p.cream)  { extras += ' \ud83e\uddf4'; }
+        if (p.peed)   { extras += ' \ud83d\udca7'; }
+        if (p.pooped) { extras += ' \ud83d\udca9'; }
+        var typeInfo = state.pottyTypes[p.type];
+        if (typeInfo && typeInfo.asks_potty && !p.peed && !p.pooped) { extras += ' \ud83d\udeab'; }
+
+        var content = document.createElement('span');
+        content.className = 'mood-chip-content';
+        content.innerHTML = '<span class="emoji">' + p.emoji + '</span><span>' + escapeHtml(p.label) + extras + ' \u00b7 ' + escapeHtml(p.time) + '</span>';
+        chip.appendChild(content);
+
+        if (p.attachments && p.attachments.length) {
+            chip.appendChild(buildAttachmentBadge(p.attachments));
+        }
+
+        if (editable) {
+            var editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'chip-icon-btn';
+            editBtn.textContent = '\u270e';
+            editBtn.title = 'Edit';
+            editBtn.addEventListener('click', function () { openPottyPanel(p); });
+            chip.appendChild(editBtn);
+
+            var delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'chip-icon-btn';
+            delBtn.textContent = '\u2715';
+            delBtn.title = 'Delete';
+            delBtn.addEventListener('click', function () {
+                post('delete_potty', { chid: state.chid, evid: p.evid }).then(function (res) {
                     if (res.success) { renderAdminDay(res.day); }
                 });
             });
+            chip.appendChild(delBtn);
+        }
+
+        return chip;
+    }
+
+    function renderPottyTypeButtons() {
+        var wrap = document.getElementById('potty_type_buttons');
+        wrap.innerHTML = '';
+        Object.keys(state.pottyTypes).forEach(function (key) {
+            var info = state.pottyTypes[key];
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.style.background = info.color;
+            btn.innerHTML = '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>';
+            btn.addEventListener('click', function () {
+                post('add_potty', { chid: state.chid, type: key }).then(function (res) {
+                    if (res.success) {
+                        renderAdminDay(res.day);
+                        var entry = findPotty(res.day, res.evid);
+                        if (entry) { openPottyPanel(entry); }
+                    }
+                });
+            });
+            wrap.appendChild(btn);
         });
+    }
+
+    function renderQuickNoteButtons() {
+        var wrap = document.getElementById('quick_note_buttons');
+        wrap.innerHTML = '';
+        Object.keys(state.quickNotes).forEach(function (key) {
+            var info = state.quickNotes[key];
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'quick-note-btn';
+            btn.innerHTML = '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>';
+            btn.addEventListener('click', function () {
+                post('quick_note', { chid: state.chid, key: key }).then(function (res) {
+                    if (res.success) {
+                        renderAdminDay(res.day);
+                        btn.classList.add('sent');
+                        setTimeout(function () { btn.classList.remove('sent'); }, 1200);
+                    }
+                });
+            });
+            wrap.appendChild(btn);
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // Incidents Quick Report - one tap creates the entry (pre-filled note)
+    // and opens the editor immediately for extra detail + attachments.
+    // ------------------------------------------------------------------
+    function renderIncidentButtons() {
+        var wrap = document.getElementById('incident_buttons');
+        wrap.innerHTML = '';
+        Object.keys(state.incidentTypes).forEach(function (key) {
+            var info = state.incidentTypes[key];
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'incident-btn';
+            btn.style.background = info.color;
+            btn.title = info.label;
+            btn.textContent = info.emoji;
+            btn.addEventListener('click', function () {
+                post('add_incident', { chid: state.chid, type: key }).then(function (res) {
+                    if (res.success) {
+                        renderAdminDay(res.day);
+                        var entry = findByEvid(res.day.incidents, res.evid);
+                        if (entry) { openIncidentPanel(entry); }
+                    }
+                });
+            });
+            wrap.appendChild(btn);
+        });
+    }
+
+    function findByEvid(list, evid) {
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].evid === evid) { return list[i]; }
+        }
+        return null;
+    }
+
+    function buildIncidentChip(inc, editable) {
+        var chip = document.createElement('div');
+        chip.className = 'mood-chip potty-chip';
+        chip.style.background = inc.color;
+
+        var content = document.createElement('span');
+        content.className = 'mood-chip-content';
+        content.innerHTML = '<span class="emoji">' + inc.emoji + '</span><span>' + escapeHtml(inc.label) + ' \u00b7 ' + escapeHtml(inc.time) + '</span>';
+        chip.appendChild(content);
+
+        if (inc.attachments && inc.attachments.length) {
+            chip.appendChild(buildAttachmentBadge(inc.attachments));
+        }
+
+        if (editable) {
+            var editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'chip-icon-btn';
+            editBtn.textContent = '\u270e';
+            editBtn.title = 'Edit';
+            editBtn.addEventListener('click', function () { openIncidentPanel(inc); });
+            chip.appendChild(editBtn);
+
+            var delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'chip-icon-btn';
+            delBtn.textContent = '\u2715';
+            delBtn.title = 'Delete';
+            delBtn.addEventListener('click', function () {
+                post('delete_incident', { chid: state.chid, evid: inc.evid }).then(function (res) {
+                    if (res.success) { renderAdminDay(res.day); }
+                });
+            });
+            chip.appendChild(delBtn);
+        }
+
+        return chip;
+    }
+
+    var incidentPanelState = null;
+
+    function openIncidentPanel(entry) {
+        incidentPanelState = JSON.parse(JSON.stringify(entry));
+        document.getElementById('incident_panel_overlay').style.display = '';
+        renderIncidentPanel();
+    }
+
+    function closeIncidentPanel() {
+        document.getElementById('incident_panel_overlay').style.display = 'none';
+        incidentPanelState = null;
+    }
+
+    function saveIncidentPanelState() {
+        var inc = incidentPanelState;
+        var parts = (inc.hm || '00:00').split(':');
+        post('edit_incident', {
+            chid: state.chid, evid: inc.evid, type: inc.type, note: inc.note,
+            hour: parts[0], minute: parts[1]
+        }).then(function (res) {
+            if (!res.success) { return; }
+            renderAdminDay(res.day);
+            var updated = findByEvid(res.day.incidents, inc.evid);
+            if (updated) {
+                incidentPanelState = updated;
+                renderIncidentPanel();
+            }
+        });
+    }
+
+    function renderIncidentPanel() {
+        var panel = document.getElementById('incident_panel');
+        var inc = incidentPanelState;
+        var info = state.incidentTypes[inc.type];
+
+        var html = '<div class="potty-panel-header">' +
+            '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>' +
+            '<button type="button" class="link-button" data-role="close">Done</button>' +
+            '</div>';
+
+        html += '<div class="potty-type-switch">';
+        Object.keys(state.incidentTypes).forEach(function (key) {
+            var t = state.incidentTypes[key];
+            html += '<button type="button" class="potty-type-btn' + (key === inc.type ? ' active' : '') +
+                '" data-type="' + key + '" style="background:' + t.color + '">' + t.emoji + '</button>';
+        });
+        html += '</div>';
+
+        html += '<label class="potty-time-row">Time <input type="time" data-role="time"></label>';
+
+        html += '<textarea class="app-textarea" data-role="note" rows="3" placeholder="What happened?"></textarea>';
+
+        html += '<div class="potty-attachments" data-role="attachments"></div>' +
+            '<label class="secondary-button potty-attach-btn">\ud83d\udcf7 Add Photo' +
+            '<input type="file" data-role="file" accept="image/*,.pdf" multiple style="display:none;"></label>';
+
+        panel.innerHTML = html;
+
+        panel.querySelector('[data-role="close"]').addEventListener('click', closeIncidentPanel);
+
+        panel.querySelectorAll('.potty-type-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var newType = btn.getAttribute('data-type');
+                // Only auto-update the note if it's still the old type's
+                // default (untouched) - never overwrite a customized note.
+                var oldDefault = (state.incidentTypes[incidentPanelState.type] || {}).default_note || '';
+                if (incidentPanelState.note === oldDefault) {
+                    incidentPanelState.note = (state.incidentTypes[newType] || {}).default_note || '';
+                }
+                incidentPanelState.type = newType;
+                saveIncidentPanelState();
+            });
+        });
+
+        var timeInput = panel.querySelector('[data-role="time"]');
+        timeInput.value = inc.hm || '';
+        timeInput.addEventListener('change', function (e) {
+            incidentPanelState.hm = e.target.value;
+            saveIncidentPanelState();
+        });
+
+        var noteInput = panel.querySelector('[data-role="note"]');
+        noteInput.value = inc.note || '';
+        noteInput.addEventListener('change', function (e) {
+            incidentPanelState.note = e.target.value;
+            saveIncidentPanelState();
+        });
+
+        renderAttachmentGrid(panel.querySelector('[data-role="attachments"]'), incidentPanelState, function () { return incidentPanelState.evid; });
+
+        panel.querySelector('[data-role="file"]').addEventListener('change', function (e) {
+            uploadAttachments(e.target.files, incidentPanelState.evid, 'incident', incidentPanelState, function () {
+                renderAttachmentGrid(panel.querySelector('[data-role="attachments"]'), incidentPanelState, function () { return incidentPanelState.evid; });
+                fetchDayAdmin();
+            });
+            e.target.value = '';
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // Potty Time entry panel - opened after a type tap or an edit (\u270e).
+    // pottyPanelState holds a working copy; each field change saves via
+    // edit_potty right away (no separate Save button needed).
+    // ------------------------------------------------------------------
+    var pottyPanelState = null;
+
+    function openPottyPanel(entry) {
+        pottyPanelState = JSON.parse(JSON.stringify(entry));
+        document.getElementById('potty_panel_overlay').style.display = '';
+        renderPottyPanel();
+    }
+
+    function closePottyPanel() {
+        document.getElementById('potty_panel_overlay').style.display = 'none';
+        pottyPanelState = null;
+    }
+
+    function savePottyPanelState() {
+        var p = pottyPanelState;
+        var parts = (p.hm || '00:00').split(':');
+        post('edit_potty', {
+            chid: state.chid, evid: p.evid, type: p.type,
+            hour: parts[0], minute: parts[1],
+            cream: p.cream ? '1' : '', peed: p.peed ? '1' : '', pooped: p.pooped ? '1' : ''
+        }).then(function (res) {
+            if (!res.success) { return; }
+            renderAdminDay(res.day);
+            var updated = findPotty(res.day, p.evid);
+            if (updated) {
+                pottyPanelState = updated;
+                renderPottyPanel();
+            }
+        });
+    }
+
+    function renderPottyPanel() {
+        var panel = document.getElementById('potty_panel');
+        var p = pottyPanelState;
+        var info = state.pottyTypes[p.type];
+
+        var html = '<div class="potty-panel-header">' +
+            '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>' +
+            '<button type="button" class="link-button" data-role="close">Done</button>' +
+            '</div>';
+
+        html += '<div class="potty-type-switch">';
+        Object.keys(state.pottyTypes).forEach(function (key) {
+            var t = state.pottyTypes[key];
+            html += '<button type="button" class="potty-type-btn' + (key === p.type ? ' active' : '') +
+                '" data-type="' + key + '" style="background:' + t.color + '">' + t.emoji + '</button>';
+        });
+        html += '</div>';
+
+        html += '<label class="potty-time-row">Time <input type="time" data-role="time"></label>';
+
+        if (info.asks_cream) {
+            html += '<div class="potty-extra-row"><span>Cream used?</span>' +
+                '<label><input type="checkbox" data-role="cream"' + (p.cream ? ' checked' : '') + '> \ud83e\uddf4 Yes</label></div>';
+        }
+        if (info.asks_potty) {
+            html += '<div class="potty-extra-row">' +
+                '<label><input type="checkbox" data-role="peed"' + (p.peed ? ' checked' : '') + '> \ud83d\udca7 Peed</label>' +
+                '<label><input type="checkbox" data-role="pooped"' + (p.pooped ? ' checked' : '') + '> \ud83d\udca9 Pooped</label></div>';
+        }
+
+        html += '<div class="potty-attachments" data-role="attachments"></div>' +
+            '<label class="secondary-button potty-attach-btn">\ud83d\udcf7 Add Photo' +
+            '<input type="file" data-role="file" accept="image/*,.pdf" multiple style="display:none;"></label>';
+
+        panel.innerHTML = html;
+
+        panel.querySelector('[data-role="close"]').addEventListener('click', closePottyPanel);
+
+        panel.querySelectorAll('.potty-type-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                pottyPanelState.type = btn.getAttribute('data-type');
+                savePottyPanelState();
+            });
+        });
+
+        var timeInput = panel.querySelector('[data-role="time"]');
+        timeInput.value = p.hm || '';
+        timeInput.addEventListener('change', function (e) {
+            pottyPanelState.hm = e.target.value;
+            savePottyPanelState();
+        });
+
+        ['cream', 'peed', 'pooped'].forEach(function (field) {
+            var box = panel.querySelector('[data-role="' + field + '"]');
+            if (box) {
+                box.addEventListener('change', function (e) {
+                    pottyPanelState[field] = e.target.checked;
+                    savePottyPanelState();
+                });
+            }
+        });
+
+        renderAttachmentGrid(panel.querySelector('[data-role="attachments"]'), pottyPanelState, function () { return pottyPanelState.evid; });
+
+        panel.querySelector('[data-role="file"]').addEventListener('change', function (e) {
+            uploadAttachments(e.target.files, pottyPanelState.evid, 'potty', pottyPanelState, function () {
+                renderAttachmentGrid(panel.querySelector('[data-role="attachments"]'), pottyPanelState, function () { return pottyPanelState.evid; });
+                fetchDayAdmin();
+            });
+            e.target.value = '';
+        });
+    }
+
+    // Shared by the Potty Time and Incident panels. $state is the panel's
+    // working entry object (must have an .attachments array); refreshes
+    // it in place after upload/delete and re-renders into $wrap.
+    function renderAttachmentGrid(wrap, panelState, getEvid) {
+        wrap.innerHTML = '';
+        (panelState.attachments || []).forEach(function (a) {
+            var item = document.createElement('div');
+            item.className = 'potty-attachment-item';
+            var isImage = /\.(jpg|jpeg|png|gif|webp|heic)$/i.test(a.filename);
+            item.innerHTML = isImage
+                ? '<img src="' + a.url + '" alt="attachment">'
+                : '<a href="' + a.url + '" target="_blank">\ud83d\udcc4 ' + escapeHtml(a.filename) + '</a>';
+            var delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'attachment-delete';
+            delBtn.textContent = '\u2715';
+            delBtn.addEventListener('click', function () {
+                post('delete_attachment', { chid: state.chid, did: a.did }).then(function (res) {
+                    if (res.success) {
+                        panelState.attachments = res.attachments;
+                        renderAttachmentGrid(wrap, panelState, getEvid);
+                        fetchDayAdmin();
+                    }
+                });
+            });
+            item.appendChild(delBtn);
+            wrap.appendChild(item);
+        });
+    }
+
+    // Uploads one or more files (camera or library - accept="image/*"
+    // with no "capture" attribute offers both on mobile) sequentially,
+    // tagging each with $context ('potty' or 'incident') so they stay
+    // organized in the underlying documents table.
+    function uploadAttachments(fileList, evid, context, panelState, onDone) {
+        var files = Array.prototype.slice.call(fileList);
+        if (!files.length) { return; }
+
+        function uploadNext(i) {
+            if (i >= files.length) { onDone(); return; }
+            var formData = new FormData();
+            formData.append('action', 'upload_attachment');
+            formData.append('chid', state.chid);
+            formData.append('evid', evid);
+            formData.append('context', context);
+            formData.append('file', files[i]);
+            fetch('ajax/status_ajax.php', { method: 'POST', body: formData })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (res.success) {
+                        panelState.attachments = res.attachments;
+                    } else {
+                        alert(res.message || 'Upload failed.');
+                    }
+                    uploadNext(i + 1);
+                });
+        }
+        uploadNext(0);
     }
 
     function renderNoteTagSelect() {
@@ -412,17 +1084,6 @@
             showScreen('screen_admin');
         });
 
-        document.getElementById('save_menu_btn').addEventListener('click', function () {
-            var menu = document.getElementById('admin_menu_input').value;
-            post('save_menu', { chid: state.chid, menu: menu }).then(function (res) {
-                if (res.success) {
-                    var status = document.getElementById('menu_save_status');
-                    status.textContent = 'Saved';
-                    setTimeout(function () { status.textContent = ''; }, 2000);
-                }
-            });
-        });
-
         renderNoteTagSelect();
         document.getElementById('add_note_btn').addEventListener('click', function () {
             var tag = document.getElementById('note_tag_select').value;
@@ -438,41 +1099,49 @@
             });
         });
 
-        document.getElementById('copy_menu_btn').addEventListener('click', function () {
-            var panel = document.getElementById('menu_copy_panel');
-            var opening = panel.style.display === 'none';
-            panel.style.display = opening ? '' : 'none';
-            if (opening) { renderMenuCopyList(); }
-        });
-        document.getElementById('menu_copy_cancel').addEventListener('click', function () {
-            document.getElementById('menu_copy_panel').style.display = 'none';
-        });
-        document.getElementById('menu_copy_confirm').addEventListener('click', function () {
-            var menu = document.getElementById('admin_menu_input').value;
-            var checked = document.querySelectorAll('#menu_copy_list input[type="checkbox"]:checked');
-            var chids = Array.prototype.map.call(checked, function (cb) { return cb.value; });
-            var status = document.getElementById('menu_copy_status');
-            if (!chids.length) {
-                status.textContent = 'Select at least one child.';
-                return;
-            }
-            chids.push(state.chid); // keeps the current child's saved menu in sync too
-            post('copy_menu_to_children', { menu: menu, chids: chids.join(',') }).then(function (res) {
-                if (res.success) {
-                    var count = res.written.length;
-                    status.textContent = 'Copied to ' + count + ' kid' + (count === 1 ? '' : 's') + '.';
-                    document.getElementById('menu_copy_panel').style.display = 'none';
-                    fetchMenuSuggestions();
-                } else {
-                    status.textContent = res.message || 'Could not copy.';
-                }
-                setTimeout(function () { status.textContent = ''; }, 2500);
+        document.getElementById('add_bottle_btn').addEventListener('click', function () {
+            openBottlePanel(function (ounces) {
+                post('add_bottle', { chid: state.chid, ounces: ounces }).then(function (res) {
+                    if (res.success) { renderAdminDay(res.day); }
+                });
             });
         });
     }
 
-    function renderMenuCopyList() {
-        var wrap = document.getElementById('menu_copy_list');
+    // ------------------------------------------------------------------
+    // Bottle ounces picker - quick-select popup, 1-8oz. Used both for
+    // adding a new bottle and for editing an existing entry's amount
+    // (the callback decides which action to POST).
+    // ------------------------------------------------------------------
+    function openBottlePanel(onSelect) {
+        var overlay = document.getElementById('bottle_panel_overlay');
+        var panel = document.getElementById('bottle_panel');
+        var html = '<div class="potty-panel-header"><span class="emoji">' + state.bottle.emoji + '</span><span>How many ounces?</span>' +
+            '<button type="button" class="link-button" data-role="close">Cancel</button></div>' +
+            '<div class="ounce-buttons">';
+        state.bottleOunces.forEach(function (oz) {
+            html += '<button type="button" class="ounce-btn" data-oz="' + oz + '">' + oz + '</button>';
+        });
+        html += '</div>';
+        panel.innerHTML = html;
+        panel.querySelector('[data-role="close"]').addEventListener('click', function () {
+            overlay.style.display = 'none';
+        });
+        panel.querySelectorAll('.ounce-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                overlay.style.display = 'none';
+                onSelect(parseInt(btn.getAttribute('data-oz'), 10));
+            });
+        });
+        overlay.style.display = '';
+    }
+
+    // ------------------------------------------------------------------
+    // Menu (Breakfast / Lunch / Dinner) - editable panels for admin, each
+    // with its own textarea, quick-fill suggestions, and "Copy to Kids"
+    // scoped to that one meal only.
+    // ------------------------------------------------------------------
+    function renderMealCopyList(wrap, mealKey) {
         wrap.innerHTML = '';
         var others = state.children.filter(function (c) { return c.chid !== state.chid; });
         if (!others.length) {
@@ -499,15 +1168,14 @@
         });
     }
 
-    function fetchMenuSuggestions() {
+    function fetchMealSuggestions(mealKey, wrap, textareaEl) {
         if (!state.chid) { return; }
-        post('get_menu_suggestions', { chid: state.chid }).then(function (res) {
-            if (res.success) { renderMenuSuggestions(res.suggestions); }
+        post('get_menu_suggestions', { chid: state.chid, meal: mealKey }).then(function (res) {
+            if (res.success) { renderMealSuggestions(wrap, res.suggestions, textareaEl); }
         });
     }
 
-    function renderMenuSuggestions(suggestions) {
-        var wrap = document.getElementById('menu_suggestions');
+    function renderMealSuggestions(wrap, suggestions, textareaEl) {
         wrap.innerHTML = '';
         if (!suggestions || !suggestions.length) { return; }
 
@@ -526,11 +1194,178 @@
             var preview = s.menu.length > 44 ? s.menu.slice(0, 44) + '\u2026' : s.menu;
             chip.textContent = preview + (s.count > 1 ? ' (' + s.count + ')' : '');
             chip.addEventListener('click', function () {
-                document.getElementById('admin_menu_input').value = s.menu;
+                textareaEl.value = s.menu;
             });
             chipRow.appendChild(chip);
         });
         wrap.appendChild(chipRow);
+    }
+
+    function buildAdminMealPanel(mealKey, mealInfo, day) {
+        var section = document.createElement('section');
+        section.className = 'card';
+        section.innerHTML =
+            '<h2>' + mealInfo.emoji + ' ' + escapeHtml(mealInfo.label) + '</h2>' +
+            '<div class="menu-suggestions" data-role="suggestions"></div>' +
+            '<textarea class="app-textarea" rows="3" placeholder="' + escapeHtml(mealInfo.label) + ' menu\u2026" data-role="input"></textarea>' +
+            '<div class="menu-actions">' +
+            '<button type="button" class="primary-button" data-role="save">Save</button>' +
+            '<button type="button" class="secondary-button" data-role="copy-toggle">Copy to Kids&hellip;</button>' +
+            '<span class="save-status" data-role="save-status"></span>' +
+            '</div>' +
+            '<div class="menu-copy-panel" data-role="copy-panel" style="display:none;">' +
+            '<p class="muted menu-copy-hint">Copy this ' + escapeHtml(mealInfo.label.toLowerCase()) + ' to:</p>' +
+            '<div class="menu-copy-list" data-role="copy-list"></div>' +
+            '<div class="menu-copy-buttons">' +
+            '<button type="button" class="link-button" data-role="copy-cancel">Cancel</button>' +
+            '<button type="button" class="primary-button" data-role="copy-confirm">Copy</button>' +
+            '</div>' +
+            '<span class="save-status" data-role="copy-status"></span>' +
+            '</div>';
+
+        var textarea    = section.querySelector('[data-role="input"]');
+        var suggestions = section.querySelector('[data-role="suggestions"]');
+        var saveBtn      = section.querySelector('[data-role="save"]');
+        var saveStatus   = section.querySelector('[data-role="save-status"]');
+        var copyToggle   = section.querySelector('[data-role="copy-toggle"]');
+        var copyPanel    = section.querySelector('[data-role="copy-panel"]');
+        var copyList     = section.querySelector('[data-role="copy-list"]');
+        var copyStatus   = section.querySelector('[data-role="copy-status"]');
+
+        textarea.value = (day.menus && day.menus[mealKey]) || '';
+
+        saveBtn.addEventListener('click', function () {
+            post('save_menu', { chid: state.chid, meal: mealKey, menu: textarea.value }).then(function (res) {
+                if (res.success) {
+                    saveStatus.textContent = 'Saved';
+                    setTimeout(function () { saveStatus.textContent = ''; }, 2000);
+                }
+            });
+        });
+
+        copyToggle.addEventListener('click', function () {
+            var opening = copyPanel.style.display === 'none';
+            copyPanel.style.display = opening ? '' : 'none';
+            if (opening) { renderMealCopyList(copyList, mealKey); }
+        });
+        section.querySelector('[data-role="copy-cancel"]').addEventListener('click', function () {
+            copyPanel.style.display = 'none';
+        });
+        section.querySelector('[data-role="copy-confirm"]').addEventListener('click', function () {
+            var checked = copyList.querySelectorAll('input[type="checkbox"]:checked');
+            var chids = Array.prototype.map.call(checked, function (cb) { return cb.value; });
+            if (!chids.length) {
+                copyStatus.textContent = 'Select at least one child.';
+                return;
+            }
+            chids.push(state.chid); // keeps the current child's saved menu in sync too
+            post('copy_menu_to_children', { meal: mealKey, menu: textarea.value, chids: chids.join(',') }).then(function (res) {
+                if (res.success) {
+                    var count = res.written.length;
+                    copyStatus.textContent = 'Copied to ' + count + ' kid' + (count === 1 ? '' : 's') + '.';
+                    copyPanel.style.display = 'none';
+                    fetchMealSuggestions(mealKey, suggestions, textarea);
+                } else {
+                    copyStatus.textContent = res.message || 'Could not copy.';
+                }
+                setTimeout(function () { copyStatus.textContent = ''; }, 2500);
+            });
+        });
+
+        fetchMealSuggestions(mealKey, suggestions, textarea);
+
+        return section;
+    }
+
+    function renderAdminMealSections(day) {
+        var container = document.getElementById('admin_meal_sections');
+        container.innerHTML = '';
+        orderedMealKeys().forEach(function (mealKey) {
+            container.appendChild(buildAdminMealPanel(mealKey, state.meals[mealKey], day));
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // Mood - admin chips are editable (change which mood it was) and
+    // deletable, unlike the read-only parent chips.
+    // ------------------------------------------------------------------
+    function buildAdminMoodChip(m) {
+        var chip = document.createElement('div');
+        chip.className = 'mood-chip';
+        chip.style.background = m.color;
+
+        var content = document.createElement('span');
+        content.className = 'mood-chip-content';
+        content.innerHTML = '<span class="emoji">' + m.emoji + '</span><span>' + escapeHtml(m.label) + ' \u00b7 ' + escapeHtml(m.time) + '</span>';
+        chip.appendChild(content);
+
+        var clockBtn = document.createElement('button');
+        clockBtn.type = 'button';
+        clockBtn.className = 'chip-icon-btn';
+        clockBtn.textContent = '\ud83d\udd50';
+        clockBtn.title = 'Change time';
+        chip.appendChild(clockBtn);
+
+        var editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'chip-icon-btn';
+        editBtn.textContent = '\u270e';
+        editBtn.title = 'Change mood';
+        chip.appendChild(editBtn);
+
+        var delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'chip-icon-btn';
+        delBtn.textContent = '\u2715';
+        delBtn.title = 'Delete';
+        chip.appendChild(delBtn);
+
+        clockBtn.addEventListener('click', function () {
+            openTimeEditor(chip, m.hm, function (hour, minute) {
+                post('edit_mood_time', { chid: state.chid, evid: m.evid, hour: hour, minute: minute }).then(function (res) {
+                    if (res.success) { renderAdminDay(res.day); }
+                });
+            });
+        });
+
+        editBtn.addEventListener('click', function () {
+            var committed = false;
+            var select = document.createElement('select');
+            select.className = 'mood-edit-select';
+            Object.keys(state.moods).forEach(function (key) {
+                var opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = state.moods[key].label;
+                if (key === m.mood) { opt.selected = true; }
+                select.appendChild(opt);
+            });
+            chip.innerHTML = '';
+            chip.appendChild(select);
+            select.focus();
+
+            select.addEventListener('change', function () {
+                committed = true;
+                var newmood = select.value;
+                if (newmood === m.mood) {
+                    if (state.lastAdminDay) { renderAdminDay(state.lastAdminDay); }
+                    return;
+                }
+                post('edit_mood', { chid: state.chid, evid: m.evid, mood: newmood }).then(function (res) {
+                    if (res.success) { renderAdminDay(res.day); }
+                });
+            });
+            select.addEventListener('blur', function () {
+                if (!committed && state.lastAdminDay) { renderAdminDay(state.lastAdminDay); }
+            });
+        });
+
+        delBtn.addEventListener('click', function () {
+            post('delete_mood', { chid: state.chid, evid: m.evid }).then(function (res) {
+                if (res.success) { renderAdminDay(res.day); }
+            });
+        });
+
+        return chip;
     }
 
     function fetchDayAdmin() {
@@ -541,28 +1376,80 @@
     }
 
     function renderAdminDay(day) {
+        state.lastAdminDay = day;
         document.getElementById('admin_day_label').textContent = day.date_label + ' (today)';
 
         // Avatar
         var avatar = document.querySelector('#screen_admin #avatar');
         avatar.innerHTML = day.avatar;
 
-        // Mood timeline (recent taps today)
+        // Mood timeline (recent taps today) - editable/deletable
         var moodWrap = document.getElementById('admin_mood_timeline');
         moodWrap.innerHTML = '';
         day.moods.forEach(function (m) {
-            var chip = document.createElement('div');
-            chip.className = 'mood-chip';
-            chip.style.background = m.color;
-            chip.innerHTML = '<span class="emoji">' + m.emoji + '</span><span>' + escapeHtml(m.label) + ' \u00b7 ' + escapeHtml(m.time) + '</span>';
-            moodWrap.appendChild(chip);
+            moodWrap.appendChild(buildAdminMoodChip(m));
         });
 
-        renderAdminTallyButtons(day.counts);
+        // Potty Time (editable)
+        var pottyWrap = document.getElementById('admin_potty_timeline');
+        pottyWrap.innerHTML = '';
+        day.potty.forEach(function (p) {
+            pottyWrap.appendChild(buildPottyChip(p, true));
+        });
 
-        document.getElementById('admin_menu_input').value = day.menu || '';
-        document.getElementById('menu_copy_panel').style.display = 'none';
-        fetchMenuSuggestions();
+        // Incidents Quick Report (editable)
+        var incWrap = document.getElementById('admin_incidents_timeline');
+        incWrap.innerHTML = '';
+        day.incidents.forEach(function (inc) {
+            incWrap.appendChild(buildIncidentChip(inc, true));
+        });
+
+        // Naptime - one consolidated card: notice text shows for every
+        // child 1-3pm, buttons only for kids under the age cutoff, and
+        // history always shows below when there's any. Card itself is
+        // hidden entirely when none of the three apply.
+        var naptimeCard = document.getElementById('admin_naptime_card');
+        var noticeText = document.getElementById('naptime_notice_text');
+        var napBtnWrap = document.getElementById('naptime_buttons');
+
+        noticeText.style.display = day.show_naptime_notice ? '' : 'none';
+
+        napBtnWrap.style.display = day.show_naptime_buttons ? '' : 'none';
+        if (day.show_naptime_buttons) {
+            napBtnWrap.innerHTML = '';
+            state.napDurations.forEach(function (mins) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = mins + 'min';
+                btn.addEventListener('click', function () {
+                    post('add_nap', { chid: state.chid, minutes: mins }).then(function (res) {
+                        if (res.success) { renderAdminDay(res.day); }
+                    });
+                });
+                napBtnWrap.appendChild(btn);
+            });
+        }
+
+        var napsWrap = document.getElementById('admin_naps_timeline');
+        napsWrap.innerHTML = '';
+        day.naps.forEach(function (nap) {
+            napsWrap.appendChild(buildNapChip(nap, true));
+        });
+
+        naptimeCard.style.display = (day.show_naptime_notice || day.show_naptime_buttons || day.naps.length) ? '' : 'none';
+
+        // Bottles (only for children under the age cutoff)
+        var bottleCard = document.getElementById('admin_bottle_card');
+        bottleCard.style.display = day.show_bottles ? '' : 'none';
+        if (day.show_bottles) {
+            var bWrap = document.getElementById('admin_bottle_timeline');
+            bWrap.innerHTML = '';
+            day.bottles.forEach(function (b) {
+                bWrap.appendChild(buildBottleChip(b, true));
+            });
+        }
+
+        renderAdminMealSections(day);
 
         var notesWrap = document.getElementById('admin_notes_list');
         notesWrap.innerHTML = '';

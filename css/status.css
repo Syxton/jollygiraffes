@@ -107,6 +107,7 @@ html, body {
 }
 
 .card {
+    text-align: center;
     background: #fff;
     border-radius: 16px;
     margin: 12px 16px;
@@ -207,6 +208,29 @@ html, body {
     font-size: 13px;
 }
 .mood-chip .emoji { font-size: 16px; }
+.mood-chip-content {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.chip-icon-btn {
+    background: rgba(255,255,255,0.25);
+    border: none;
+    color: #fff;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 11px;
+    line-height: 1;
+    padding: 0;
+    margin-left: 2px;
+}
+.mood-edit-select {
+    border: none;
+    border-radius: 8px;
+    padding: 4px 6px;
+    font-size: 13px;
+}
 
 .mood-buttons {
     display: grid;
@@ -264,39 +288,53 @@ html, body {
 .tally-buttons .tap-btn { background: #3D7EF7; color: #fff; }
 .tally-buttons .undo-btn { background: #F1F3F5; color: #7A828A; }
 
+/* ---------- Checkboxes (shared "squishy" style, used everywhere) ---------- */
+.styled-checkbox {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    background-color: #ffffff;
+    border: 1px solid #E7EAEC;
+    border-radius: 7px;
+    outline: none;
+    cursor: pointer;
+    margin-right: 8px;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+.styled-checkbox:active {
+    transform: scale(0.85);
+}
+.styled-checkbox:checked {
+    background-color: #ff6b6b;
+    border-color: #ff6b6b;
+    transform: scale(1.05);
+}
+.styled-checkbox:checked::after {
+    content: "\2714";
+    color: white;
+    font-size: 13px;
+}
+
+/* ---------- Textareas (shared style, used everywhere) ---------- */
+.app-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #E7EAEC;
+    font-size: 14px;
+    font-family: inherit;
+    margin: 8px 0;
+    resize: vertical;
+}
+
 /* ---------- Menu / Notes ---------- */
-.menu-copy-item input[type="checkbox"] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 24px;
-  height: 24px;
-  background-color: #ffffff;
-  border-radius: 8px; /* Soft, pill-like corners */
-  outline: none;
-  cursor: pointer;
-  margin-right: 15px;
-  transition: transform 0.15s ease, background-color 0.15s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Squish effect when clicked/active */
-.menu-copy-item input[type="checkbox"]:active {
-  transform: scale(0.85); /* Shrinks down like a soft cushion */
-}
-
-/* Checked state with a squishy bounce or pop color */
-.menu-copy-item input[type="checkbox"]:checked {
-  background-color: #ff6b6b;
-  transform: scale(1.05);
-}
-
-.menu-copy-item input[type="checkbox"]:checked::after {
-  content: "\2714";
-  color: white;
-  font-size: 14px;
-}
 
 .menu-text {
     white-space: pre-wrap;
@@ -346,6 +384,14 @@ html, body {
 .menu-copy-group {
     margin-bottom: 10px;
 }
+
+#admin_meal_sections textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    margin: 10px 0;
+}
+
 #admin_menu_input {
     width: 100%;
     box-sizing: border-box;
@@ -420,6 +466,7 @@ html, body {
     padding: 12px;
     font-size: 15px;
     font-weight: 600;
+    margin: 10px 5px;
 }
 
 .secondary-button {
@@ -429,6 +476,7 @@ html, body {
     border-radius: 10px;
     padding: 12px;
     font-size: 15px;
+    margin: 10px 5px;
     font-weight: 600;
 }
 
@@ -513,4 +561,298 @@ html, body {
         max-width: 900px;
         margin: 0 auto;
     }
+}
+
+/* ---------- Potty Time ---------- */
+.potty-type-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.potty-type-buttons button {
+    border: none;
+    border-radius: 12px;
+    padding: 12px 4px;
+    color: #fff;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.potty-type-buttons button .emoji { font-size: 22px; }
+
+.potty-chip { cursor: default; }
+
+/* ---------- Quick notes ---------- */
+.quick-note-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+.quick-note-btn {
+    flex: 1;
+    border: 1px solid #E7EAEC;
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #22282E;
+}
+.quick-note-btn .emoji { font-size: 20px; }
+.quick-note-btn.sent {
+    background: #E6FCF5;
+    border-color: #40C057;
+    color: #2B8A3E;
+}
+
+/* ---------- Time editor (inline, on mood/bottle chips) ---------- */
+.time-edit-input {
+    border: none;
+    border-radius: 8px;
+    padding: 4px 6px;
+    font-size: 13px;
+}
+
+/* ---------- Potty Time entry panel ---------- */
+.potty-panel-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 50;
+}
+.potty-panel {
+    background: #fff;
+    width: 100%;
+    max-width: 480px;
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+@media (min-width: 520px) {
+    .potty-panel-overlay { align-items: center; }
+    .potty-panel { border-radius: 20px; }
+}
+.potty-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+.potty-panel-header .emoji { font-size: 22px; }
+.potty-panel-header .link-button { margin-left: auto; }
+
+.potty-type-switch {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.potty-type-btn {
+    flex: 1;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 12px 0;
+    font-size: 22px;
+    opacity: 0.55;
+}
+.potty-type-btn.active {
+    opacity: 1;
+    border-color: #22282E;
+}
+
+.potty-time-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    margin-bottom: 14px;
+}
+.potty-time-row input[type="time"] {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #E7EAEC;
+    font-size: 15px;
+}
+
+.potty-extra-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 14px;
+    margin-bottom: 14px;
+}
+.potty-extra-row label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.potty-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.potty-attachment-item {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #F1F3F5;
+}
+.potty-attachment-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.potty-attachment-item a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 11px;
+    text-align: center;
+    padding: 4px;
+    color: #22282E;
+}
+.attachment-delete {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    font-size: 11px;
+    padding: 0;
+}
+
+.potty-attach-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+/* ---------- Potty/Incident timeline row spacing ---------- */
+/* Vertical stack with generous gap - reduces accidental taps on the
+   edit/delete/attachment icons that live at the end of each row. */
+.potty-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.potty-timeline .mood-chip {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* ---------- Attachment badge (prominent, replaces small inline text) --- */
+.attachment-badge {
+    border: none;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.9);
+    color: #22282E;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 6px 10px;
+    margin-left: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ---------- Attachment viewer overlay ---------- */
+.attachment-viewer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+.attachment-viewer-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #F1F3F5;
+    font-size: 12px;
+    text-align: center;
+    padding: 6px;
+    color: #22282E;
+}
+.attachment-viewer-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ---------- Naptime (one card: notice + buttons + history) ---------- */
+.naptime-notice-text {
+    background: #EDF2FF;
+    border: 1px solid #748FFC;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+.naptime-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.naptime-buttons button {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 0;
+    background: #748FFC;
+    color: #fff;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+/* ---------- Incidents Quick Report ---------- */
+.incident-buttons {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.incident-btn {
+    border: none;
+    border-radius: 12px;
+    padding: 14px 0;
+    font-size: 24px;
+    color: #fff;
+}
+
+/* ---------- Bottle ounces picker ---------- */
+.ounce-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+.ounce-btn {
+    border: none;
+    border-radius: 12px;
+    padding: 18px 0;
+    background: #4DABF7;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
 }

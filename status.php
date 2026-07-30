@@ -76,15 +76,28 @@ $sitename = htmlspecialchars($CFG->sitename);
             </section>
 
             <section class="card">
-                <h2>Today's Tallies</h2>
-                <div class="tally-grid" id="tally_grid"></div>
+                <h2>🚽 Potty Time</h2>
+                <div class="potty-timeline" id="potty_timeline"></div>
+                <div class="empty-note" id="potty_empty" style="display:none;">No potty time entries yet.</div>
             </section>
 
-            <section class="card">
-                <h2>Menu</h2>
-                <div class="menu-text" id="menu_text"></div>
-                <div class="empty-note" id="menu_empty" style="display:none;">No menu posted for this day.</div>
+            <section class="card" id="parent_incidents_card" style="display:none;">
+                <h2>Incidents</h2>
+                <div class="potty-timeline" id="parent_incidents_timeline"></div>
             </section>
+
+            <section class="card" id="parent_naps_card" style="display:none;">
+                <h2>😴 Naptime</h2>
+                <div class="mood-timeline" id="parent_naps_timeline"></div>
+            </section>
+
+            <section class="card" id="parent_bottle_card" style="display:none;">
+                <h2>Bottles</h2>
+                <div class="mood-timeline" id="parent_bottle_timeline"></div>
+                <div class="empty-note" id="parent_bottle_empty" style="display:none;">No bottles logged yet.</div>
+            </section>
+
+            <div id="parent_meal_sections"></div>
 
             <section class="card">
                 <h2>Notes</h2>
@@ -109,6 +122,13 @@ $sitename = htmlspecialchars($CFG->sitename);
         <div class="day-label" id="admin_day_label">Today</div>
 
         <div class="admin-grid">
+            <section class="card" id="admin_naptime_card" style="display:none;">
+                <h2>😴 Naptime</h2>
+                <div class="naptime-notice-text" id="naptime_notice_text" style="display:none;">It's naptime (1-3pm).</div>
+                <div class="naptime-buttons" id="naptime_buttons" style="display:none;"></div>
+                <div class="mood-timeline" id="admin_naps_timeline"></div>
+            </section>
+
             <section class="card">
                 <h2>Mood</h2>
                 <div class="mood-buttons" id="mood_buttons"></div>
@@ -116,36 +136,32 @@ $sitename = htmlspecialchars($CFG->sitename);
             </section>
 
             <section class="card">
-                <h2>Tallies</h2>
-                <div class="tally-grid admin-tally-grid" id="admin_tally_grid"></div>
+                <h2>🚽 Potty Time</h2>
+                <div class="potty-type-buttons" id="potty_type_buttons"></div>
+                <div class="potty-timeline" id="admin_potty_timeline"></div>
+                <div class="quick-note-buttons" id="quick_note_buttons"></div>
             </section>
 
             <section class="card">
-                <h2>Menu</h2>
-                <div class="menu-suggestions" id="menu_suggestions"></div>
-                <textarea id="admin_menu_input" rows="3" placeholder="Today's menu..."></textarea>
-                <div class="menu-actions">
-                    <button class="primary-button" id="save_menu_btn">Save Menu</button>
-                    <button class="secondary-button" id="copy_menu_btn">Copy to Kids&hellip;</button>
-                    <span class="save-status" id="menu_save_status"></span>
-                </div>
-                <div class="menu-copy-panel" id="menu_copy_panel" style="display:none;">
-                    <p class="muted menu-copy-hint">Copy this menu to:</p>
-                    <div class="menu-copy-list" id="menu_copy_list"></div>
-                    <div class="menu-copy-buttons">
-                        <button class="link-button" id="menu_copy_cancel">Cancel</button>
-                        <button class="primary-button" id="menu_copy_confirm">Copy</button>
-                    </div>
-                    <span class="save-status" id="menu_copy_status"></span>
-                </div>
+                <h2>Incidents Quick Report</h2>
+                <div class="incident-buttons" id="incident_buttons"></div>
+                <div class="potty-timeline" id="admin_incidents_timeline"></div>
             </section>
+
+            <section class="card" id="admin_bottle_card" style="display:none;">
+                <h2>Bottles</h2>
+                <button type="button" class="primary-button" id="add_bottle_btn">+ Add Bottle</button>
+                <div class="mood-timeline" id="admin_bottle_timeline"></div>
+            </section>
+
+            <div id="admin_meal_sections"></div>
 
             <section class="card">
                 <h2>Notes</h2>
                 <div class="notes-list" id="admin_notes_list"></div>
                 <div class="note-form">
                     <select id="note_tag_select"></select>
-                    <textarea id="note_text_input" rows="2" placeholder="Write a note..."></textarea>
+                    <textarea class="app-textarea" id="note_text_input" rows="2" placeholder="Write a note..."></textarea>
                     <label class="notify-label">
                         <input type="checkbox" id="note_notify_checkbox">
                         Notify parent at sign-out
@@ -154,6 +170,26 @@ $sitename = htmlspecialchars($CFG->sitename);
                 </div>
             </section>
         </div>
+    </div>
+
+    <!-- POTTY TIME entry panel (admin) - populated/shown by JS -->
+    <div id="potty_panel_overlay" class="potty-panel-overlay" style="display:none;">
+        <div class="potty-panel" id="potty_panel"></div>
+    </div>
+
+    <!-- INCIDENT entry panel (admin) - populated/shown by JS -->
+    <div id="incident_panel_overlay" class="potty-panel-overlay" style="display:none;">
+        <div class="potty-panel" id="incident_panel"></div>
+    </div>
+
+    <!-- BOTTLE ounces picker (admin) - populated/shown by JS -->
+    <div id="bottle_panel_overlay" class="potty-panel-overlay" style="display:none;">
+        <div class="potty-panel" id="bottle_panel"></div>
+    </div>
+
+    <!-- ATTACHMENT VIEWER (both views) - populated/shown by JS -->
+    <div id="attachment_viewer_overlay" class="potty-panel-overlay" style="display:none;">
+        <div class="potty-panel" id="attachment_viewer_panel"></div>
     </div>
 
     <!-- FAMILY LINKS PANEL (admin) -->

@@ -3,48 +3,33 @@
 /***************************************************************************
 * status_lib.php - Daily Status Report feature
 * -------------------------------------------------------------------------
-* Adds a lightweight, read-only "daily status" page for parents
-* (https://.../status?c=FAMILYCODE) and a simple entry page for staff/admin
-* (https://.../status, unlocked with the admin PIN).
+* Parent link: https://.../status?c=FAMILYCODE (PIN-protected, read only)
+* Admin/staff: https://.../status (admin PIN, edit view)
 *
-* Storage: this feature intentionally reuses the app's existing `events`
-* and `notes` tables instead of creating parallel log tables:
-*   - `events` gets three new columns: chid, aid, daykey (plus timelog,
-*     which the table didn't have yet and every other log table in this
-*     app relies on). Mood and tally taps are logged as ordinary rows in
-*     `events` using the existing `tag` column (e.g. 'mood_happy',
-*     'diaper', 'potty_success', 'potty_accident', 'clothing_change').
-*     Existing rows (the 'in'/'out' event *definitions*) are untouched -
-*     they simply keep chid/aid/daykey at their default of 0, and every
-*     query in this file always filters by a real chid, so the two never
-*     mix.
-*   - `notes` gets one new column: daykey. The daily "note area" is just
-*     a normal note (tag chosen from notes_tags, text, optional
-*     notify-parent-at-signout flag) with chid + daykey set. Only notes
-*     that have a non-zero daykey are ever shown on the status page, so
-*     older/unrelated notes already in the table are never exposed to
-*     parents.
-*   - `status_menu` is the one new table - a simple per-child, per-day
-*     menu field that doesn't fit the append-only log pattern of the
-*     other two.
-*   - `accounts` gets one new column: link_code, for the shareable
-*     parent link (?c=Smith).
+* Storage: reuses existing tables instead of adding parallel log tables.
+*   - `events` gains chid, aid, daykey, timelog, plus cream/peed/pooped for
+*     Potty Time. Moods, bottles, and Potty Time are all just rows here,
+*     distinguished by `tag`. Old 'in'/'out' definition rows are untouched
+*     (chid/aid/daykey stay 0, and every query here filters by a real chid).
+*     Old tally tags (diaper/potty_success/potty_accident/clothing_change)
+*     are dormant - left in place, no longer read or shown.
+*   - `notes` gains daykey, so status-page notes are scoped to a child+day.
+*     Only non-zero daykey rows are ever shown, so pre-existing notes are
+*     never exposed on the parent report.
+*   - `documents` gains evid, linking an attachment to one specific
+*     Potty Time entry rather than just to the child.
+*   - `accounts` gains link_code, for the shareable parent link.
+*   - `status_menu` is the one genuinely new table: per-child/day menu
+*     text, one row per meal (breakfast/lunch/dinner).
 *
-* This file only depends on functions already provided by lib/dblib.php
-* (get_db_row, get_db_result, get_db_count, get_db_field, execute_db_sql,
-* dbescape, fetch_row) and lib/timelib.php (get_today, get_timestamp,
-* get_date, get_offset, display_time), which are loaded by lib/header.php.
+* Depends on lib/dblib.php and lib/timelib.php (loaded via lib/header.php).
 ***************************************************************************/
 
 if (!isset($STATUSLIB)) {
     $STATUSLIB = true;
 
-    // -----------------------------------------------------------------
-    // Config: mood options and tally options shown in the UI. Keys are
-    // stored in the database as event tags (prefixed "mood_" for moods),
-    // so don't rename existing keys once you have data - add new ones
-    // instead.
-    // -----------------------------------------------------------------
+    // Mood options. Keys are stored as event tags - don't rename existing
+    // keys once you have data.
     $GLOBALS['STATUS_MOODS'] = [
         'mood_happy'     => ['label' => 'Happy',     'emoji' => '😊', 'color' => '#4CAF50'],
         'mood_sad'       => ['label' => 'Sad',       'emoji' => '😢', 'color' => '#5C7CFA'],
@@ -56,23 +41,70 @@ if (!isset($STATUSLIB)) {
         'mood_sick'      => ['label' => 'Not Feeling Well', 'emoji' => '🤒', 'color' => '#FA5252'],
     ];
 
-    $GLOBALS['STATUS_TALLIES'] = [
-        'diaper'          => ['label' => 'Diaper Change',   'emoji' => '🧷', 'color' => '#20C997'],
-        'potty_success'   => ['label' => 'Potty Success',   'emoji' => '🚽', 'color' => '#40C057'],
-        'potty_accident'  => ['label' => 'Potty Accident',  'emoji' => '💧', 'color' => '#FA5252'],
-        'clothing_change' => ['label' => 'Clothing Change', 'emoji' => '👕', 'color' => '#FAB005'],
+    // Potty Time: timestamped entries (like moods). Type determines extra
+    // fields - Wet/Dirty ask about cream, Used Potty asks peed/pooped.
+    // Every entry can also have attachments.
+    $GLOBALS['STATUS_POTTY_TYPES'] = [
+        'pt_wet'      => ['label' => 'Wet Diaper',   'emoji' => '💧', 'color' => '#4DABF7', 'asks_cream' => true,  'asks_potty' => false],
+        'pt_dirty'    => ['label' => 'Dirty Diaper', 'emoji' => '💩', 'color' => '#A97142', 'asks_cream' => true,  'asks_potty' => false],
+        'pt_potty'    => ['label' => 'Used Potty',   'emoji' => '🚽', 'color' => '#40C057', 'asks_cream' => false, 'asks_potty' => true],
+        'pt_accident' => ['label' => 'Accident',     'emoji' => '💦', 'color' => '#FA5252', 'asks_cream' => false, 'asks_potty' => false],
     ];
 
+    // Quick-tap notes next to Potty Time. Writes a note tagged "Request"
+    // (auto-created on notes_tags if needed).
+    $GLOBALS['STATUS_QUICK_NOTES'] = [
+        'need_diapers' => [
+            'label'     => 'Need Diapers',
+            'emoji'     => '📦',
+            'tag_title' => 'Request',
+            'text'      => "Running low on diapers - please bring more.",
+        ],
+        'clothing_pickup' => [
+            'label'     => 'Clothing Change',
+            'emoji'     => '👕',
+            'tag_title' => 'Request',
+            'text'      => "Needed a clothing change today - please pick up their dirty clothes.",
+        ],
+    ];
+
+    // Three menu slots per child/day - don't rename existing keys.
+    $GLOBALS['STATUS_MEALS'] = [
+        'breakfast' => ['label' => 'Breakfast', 'emoji' => '🍳'],
+        'lunch'     => ['label' => 'Lunch',     'emoji' => '🥪'],
+        'dinner'    => ['label' => 'Dinner',    'emoji' => '🍽️'],
+    ];
+
+    // Bottles: a timestamped tap like moods, only shown under this age.
+    $GLOBALS['STATUS_BOTTLE_TAG']        = 'bottle';
+    $GLOBALS['STATUS_BOTTLE_INFO']       = ['label' => 'Bottle', 'emoji' => '🍼', 'color' => '#4DABF7'];
+    $GLOBALS['STATUS_BOTTLE_MAX_MONTHS'] = 16;
+    $GLOBALS['STATUS_BOTTLE_OUNCES']     = [1, 2, 3, 4, 5, 6, 7, 8];
+
+    // Incidents Quick Report: one-tap injury/incident logging. Each type
+    // has a default note staff can edit further; attachments reuse the
+    // same events+documents linkage as Potty Time.
+    $GLOBALS['STATUS_INCIDENT_TYPES'] = [
+        'inc_bit'     => ['label' => 'Bit Someone',     'emoji' => '👄', 'color' => '#E8590C', 'default_note' => 'Bit another child.'],
+        'inc_gotbit'  => ['label' => 'Got Bit',         'emoji' => '😢', 'color' => '#5C7CFA', 'default_note' => 'Was bitten by another child.'],
+        'inc_booboo'  => ['label' => 'Boo Boo',         'emoji' => '🤕', 'color' => '#FA5252', 'default_note' => 'Had a minor boo-boo.'],
+        'inc_bandaid' => ['label' => 'Needed Band-Aid', 'emoji' => '🩹', 'color' => '#40C057', 'default_note' => 'Needed a band-aid.'],
+        'inc_hurt'    => ['label' => 'Hurt Someone',    'emoji' => '💥', 'color' => '#E03131', 'default_note' => 'Hurt another child.'],
+    ];
+
+    // Naptime: shown 1pm-3pm for children over this age. Duration
+    // buttons backdate the entry (nap already ended when tapped).
+    $GLOBALS['STATUS_NAP_TAG']        = 'nap';
+    $GLOBALS['STATUS_NAP_DURATIONS']  = [30, 60, 90, 120];
+    $GLOBALS['STATUS_NAP_WINDOW']     = ['start_hour' => 13, 'end_hour' => 15];
+    $GLOBALS['STATUS_NAP_MAX_MONTHS'] = 24;
+
     // -----------------------------------------------------------------
-    // Migration - creates/alters the tables this feature needs the
-    // first time it runs. Safe to call on every request.
+    // Migration - creates/alters tables on first run. Safe to call every
+    // request. SHOW COLUMNS/INDEX return an empty-but-truthy result when
+    // nothing matches (unlike SELECT), so existence checks below go
+    // through information_schema instead.
     // -----------------------------------------------------------------
-    // NOTE: get_db_result() only treats a zero-row result as false for
-    // SELECT statements (see dblib_mysqli.php), so SHOW COLUMNS / SHOW
-    // INDEX (which return an empty-but-truthy result when nothing
-    // matches) can't be used directly for existence checks. We query
-    // information_schema instead, which goes through the normal SELECT
-    // codepath.
     function status_column_exists($table, $column) {
         return (bool) get_db_row("SELECT column_name FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='" . dbescape($table) . "' AND column_name='" . dbescape($column) . "'");
     }
@@ -83,8 +115,7 @@ if (!isset($STATUSLIB)) {
 
     function status_migrate() {
 
-        // events: add chid, aid, daykey, timelog (log columns) so it can
-        // double as the tap/mood log, per existing "tag" convention.
+        // events: log columns (chid/aid/daykey/timelog) plus Potty Time flags
         if (!status_column_exists('events', 'chid')) {
             execute_db_sql("ALTER TABLE events ADD COLUMN chid int(11) NOT NULL DEFAULT '0'");
         }
@@ -101,38 +132,76 @@ if (!isset($STATUSLIB)) {
             execute_db_sql("ALTER TABLE events ADD KEY chid_day_tag (chid,daykey,tag)");
         }
 
-        // notes: add daykey so the status "note area" entries can be
-        // scoped to a specific child + calendar day.
+        // Potty Time flags - only the ones relevant to a type are ever set
+        if (!status_column_exists('events', 'cream')) {
+            execute_db_sql("ALTER TABLE events ADD COLUMN cream tinyint(1) NOT NULL DEFAULT '0'");
+        }
+        if (!status_column_exists('events', 'peed')) {
+            execute_db_sql("ALTER TABLE events ADD COLUMN peed tinyint(1) NOT NULL DEFAULT '0'");
+        }
+        if (!status_column_exists('events', 'pooped')) {
+            execute_db_sql("ALTER TABLE events ADD COLUMN pooped tinyint(1) NOT NULL DEFAULT '0'");
+        }
+
+        // events.note (Incidents free text) and events.amount (generic
+        // numeric field: Nap minutes, Bottle ounces)
+        if (!status_column_exists('events', 'note')) {
+            execute_db_sql("ALTER TABLE events ADD COLUMN note text COLLATE utf8_unicode_ci NOT NULL DEFAULT ''");
+        }
+        if (!status_column_exists('events', 'amount')) {
+            execute_db_sql("ALTER TABLE events ADD COLUMN amount int(11) NOT NULL DEFAULT '0'");
+        }
+
+        // documents.evid links an attachment to one Potty Time entry
+        if (!status_column_exists('documents', 'evid')) {
+            execute_db_sql("ALTER TABLE documents ADD COLUMN evid int(11) NOT NULL DEFAULT '0'");
+            execute_db_sql("ALTER TABLE documents ADD KEY evid (evid)");
+        }
+
+        // notes.daykey scopes status-page notes to a child + day
         if (!status_column_exists('notes', 'daykey')) {
             execute_db_sql("ALTER TABLE notes ADD COLUMN daykey int(11) NOT NULL DEFAULT '0'");
             execute_db_sql("ALTER TABLE notes ADD KEY chid_day (chid,daykey)");
         }
 
-        // accounts: add link_code for the shareable parent link (?c=Smith)
+        // accounts.link_code is the shareable parent link (?c=Smith)
         if (!status_column_exists('accounts', 'link_code')) {
             execute_db_sql("ALTER TABLE accounts ADD COLUMN link_code varchar(60) COLLATE utf8_unicode_ci DEFAULT NULL");
             execute_db_sql("ALTER TABLE accounts ADD UNIQUE KEY link_code (link_code)");
         }
 
-        // status_menu: the one new table - a simple per-child/per-day menu.
+        // status_menu: the one new table (fresh installs get meal + the
+        // 3-way unique key directly)
         execute_db_sql("
             CREATE TABLE IF NOT EXISTS `status_menu` (
               `id` int(11) NOT NULL AUTO_INCREMENT,
               `chid` int(11) NOT NULL,
               `daykey` int(11) NOT NULL,
+              `meal` varchar(20) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'breakfast',
               `menu` text COLLATE utf8_unicode_ci NOT NULL,
               `timelog` int(11) NOT NULL,
               PRIMARY KEY (`id`),
-              UNIQUE KEY `chid_day` (`chid`,`daykey`)
+              UNIQUE KEY `chid_day_meal` (`chid`,`daykey`,`meal`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;");
+
+        // Upgrade path: older installs had status_menu without `meal`;
+        // existing rows become that day's "breakfast" (the column default).
+        if (!status_column_exists('status_menu', 'meal')) {
+            execute_db_sql("ALTER TABLE status_menu ADD COLUMN meal varchar(20) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'breakfast'");
+            if (status_index_exists('status_menu', 'chid_day')) {
+                execute_db_sql("ALTER TABLE status_menu DROP INDEX chid_day");
+            }
+            if (!status_index_exists('status_menu', 'chid_day_meal')) {
+                execute_db_sql("ALTER TABLE status_menu ADD UNIQUE KEY chid_day_meal (chid,daykey,meal)");
+            }
+        }
     }
 
     // -----------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------
     function status_daykey($timestamp = false) {
-        // Midnight (in the configured timezone) for the given/current time,
-        // matching the same convention get_today() uses elsewhere in the app.
+        // Midnight in the configured timezone, matching get_today()'s convention.
         global $CFG;
         $timestamp = $timestamp ? $timestamp : get_timestamp();
         $local = new DateTime("now", new DateTimeZone($CFG->timezone));
@@ -140,6 +209,50 @@ if (!isset($STATUSLIB)) {
         $midnight = new DateTime($local->format("m/d/Y"), new DateTimeZone($CFG->timezone));
         $utc = new DateTime($midnight->format("m/d/Y"), new DateTimeZone("UTC"));
         return $utc->getTimestamp();
+    }
+
+    // Falls back to "now" if $timelog is on a different day than today or
+    // more than a few minutes in the future. status_daykey() is in the
+    // same "shifted" convention display_time() uses (local wall-clock
+    // expressed as if it were UTC), so $timelog has to be shifted the
+    // same way before comparing against it - comparing raw UTC directly
+    // against $day would miscategorize evening times near local midnight.
+    function status_clamp_timelog($timelog) {
+        $now = get_timestamp();
+        $timelog = intval($timelog);
+        if (!$timelog) {
+            return $now;
+        }
+        $day = status_daykey();
+        $shifted = $timelog + get_offset();
+        if ($shifted < $day || $shifted >= $day + 86400) {
+            return $now;
+        }
+        if ($timelog > $now + 300) {
+            return $now;
+        }
+        return $timelog;
+    }
+
+    // Converts a local HH:MM (today) to the raw UTC timelog this app
+    // stores. display_time()/get_offset() (timelib.php) show a time by
+    // adding the offset to the raw timestamp and formatting as if it were
+    // UTC, so building one from a chosen HH:MM has to subtract that offset
+    // back out.
+    function status_time_from_hm($hour, $minute) {
+        $day = status_daykey();
+        $offset = get_offset();
+        $seconds = (intval($hour) * 3600) + (intval($minute) * 60);
+        return status_clamp_timelog($day + $seconds - $offset);
+    }
+
+    // Resolves the timelog for a timed event: a specific HH:MM if given,
+    // otherwise now.
+    function status_resolve_timelog($hour = false, $minute = false) {
+        if ($hour === false || $hour === null || $hour === '') {
+            return get_timestamp();
+        }
+        return status_time_from_hm($hour, $minute);
     }
 
     function status_slugify($text) {
@@ -292,6 +405,51 @@ if (!isset($STATUSLIB)) {
     }
 
     // -----------------------------------------------------------------
+    // Age helpers (Bottles section only applies under a certain age)
+    // -----------------------------------------------------------------
+    function status_age_months($birthdate, $reference = false) {
+        $birthdate = intval($birthdate);
+        if ($birthdate <= 0) {
+            return null; // no birthdate on file
+        }
+        $reference = $reference ? intval($reference) : get_timestamp();
+        $birth = new DateTime();
+        $birth->setTimestamp($birthdate);
+        $ref = new DateTime();
+        $ref->setTimestamp($reference);
+        if ($birth > $ref) {
+            return null;
+        }
+        $diff = $birth->diff($ref);
+        return ($diff->y * 12) + $diff->m;
+    }
+
+    // Uses age as of $reference (not "now"), so a parent swiping through
+    // history still sees Bottles for days before their child aged out.
+    function status_eligible_for_bottles($birthdate, $reference = false) {
+        global $STATUS_BOTTLE_MAX_MONTHS;
+        $months = status_age_months($birthdate, $reference);
+        return $months !== null && $months < $STATUS_BOTTLE_MAX_MONTHS;
+    }
+
+    // Whether the child is young enough to have the nap-logging buttons
+    // (the 1pm-3pm notice itself shows for every child, regardless of age).
+    function status_eligible_for_naptime($birthdate, $reference = false) {
+        global $STATUS_NAP_MAX_MONTHS;
+        $months = status_age_months($birthdate, $reference);
+        return $months !== null && $months < $STATUS_NAP_MAX_MONTHS;
+    }
+
+    // Whether right now falls in the 1pm-3pm naptime window.
+    function status_naptime_window_now() {
+        global $CFG, $STATUS_NAP_WINDOW;
+        $local = new DateTime('now', new DateTimeZone($CFG->timezone));
+        $local->setTimestamp(get_timestamp());
+        $hour = (int) $local->format('G');
+        return $hour >= $STATUS_NAP_WINDOW['start_hour'] && $hour < $STATUS_NAP_WINDOW['end_hour'];
+    }
+
+    // -----------------------------------------------------------------
     // Children / families
     // -----------------------------------------------------------------
     function status_children_for_aid($aid) {
@@ -354,11 +512,29 @@ if (!isset($STATUSLIB)) {
         return $tags;
     }
 
+    // Attachments tied to one Potty Time entry (events.evid), not just the child.
+    function status_get_attachments($chid, $evid) {
+        global $CFG;
+        $chid = intval($chid);
+        $evid = intval($evid);
+        $attachments = [];
+        if ($result = get_db_result("SELECT * FROM documents WHERE chid='$chid' AND evid='$evid' ORDER BY timelog ASC")) {
+            while ($row = fetch_row($result)) {
+                $attachments[] = [
+                    "did"      => (int) $row["did"],
+                    "filename" => $row["filename"],
+                    "url"      => $CFG->userfilesurl . "/children/$chid/" . $row["filename"],
+                ];
+            }
+        }
+        return $attachments;
+    }
+
     // -----------------------------------------------------------------
     // Day data
     // -----------------------------------------------------------------
     function status_get_day($chid, $daykey = false) {
-        global $STATUS_MOODS, $STATUS_TALLIES, $CFG;
+        global $STATUS_MOODS, $STATUS_POTTY_TYPES, $STATUS_MEALS, $STATUS_INCIDENT_TYPES, $STATUS_NAP_TAG, $CFG;
 
         if (!isset($PAGELIB)) {
             include_once($CFG->dirroot . '/lib/pagelib.php');
@@ -371,31 +547,100 @@ if (!isset($STATUSLIB)) {
             return false;
         }
 
-        // Mood timeline - every mood_* tag logged today, in order.
+        // Mood timeline
         $moods = [];
         $moodtags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_MOODS))) . "'";
         if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag IN ($moodtags) ORDER BY timelog ASC, evid ASC")) {
             while ($row = fetch_row($result)) {
                 $info = $STATUS_MOODS[$row["tag"]];
                 $moods[] = [
+                    "evid"  => (int) $row["evid"],
                     "mood"  => $row["tag"],
                     "label" => $info["label"],
                     "emoji" => $info["emoji"],
                     "color" => $info["color"],
                     "time"  => get_date("g:i a", display_time($row["timelog"])),
+                    "hm"    => get_date("H:i", display_time($row["timelog"])),
                 ];
             }
         }
 
-        // Tally counts for the day.
-        $counts = [];
-        foreach ($STATUS_TALLIES as $key => $info) {
-            $counts[$key] = get_db_count("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag='" . dbescape($key) . "'");
+        // Bottles - only relevant under STATUS_BOTTLE_MAX_MONTHS old
+        $bottles = [];
+        if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag='" . dbescape($GLOBALS['STATUS_BOTTLE_TAG']) . "' ORDER BY timelog ASC, evid ASC")) {
+            while ($row = fetch_row($result)) {
+                $bottles[] = [
+                    "evid"   => (int) $row["evid"],
+                    "time"   => get_date("g:i a", display_time($row["timelog"])),
+                    "hm"     => get_date("H:i", display_time($row["timelog"])),
+                    "amount" => (int) $row["amount"],
+                ];
+            }
+        }
+        $show_bottles = status_eligible_for_bottles($child["birthdate"], $daykey);
+
+        // Potty Time - editable, timestamped, with type-specific flags/attachments
+        $potty = [];
+        $pottytags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_POTTY_TYPES))) . "'";
+        if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag IN ($pottytags) ORDER BY timelog ASC, evid ASC")) {
+            while ($row = fetch_row($result)) {
+                $info = $STATUS_POTTY_TYPES[$row["tag"]];
+                $potty[] = [
+                    "evid"        => (int) $row["evid"],
+                    "type"        => $row["tag"],
+                    "label"       => $info["label"],
+                    "emoji"       => $info["emoji"],
+                    "color"       => $info["color"],
+                    "time"        => get_date("g:i a", display_time($row["timelog"])),
+                    "hm"          => get_date("H:i", display_time($row["timelog"])),
+                    "timelog"     => (int) $row["timelog"],
+                    "cream"       => (bool) $row["cream"],
+                    "peed"        => (bool) $row["peed"],
+                    "pooped"      => (bool) $row["pooped"],
+                    "attachments" => status_get_attachments($chid, $row["evid"]),
+                ];
+            }
         }
 
-        // Notes logged for this child on this day via the status page only
-        // (daykey=0 means it's a pre-existing/unrelated note from elsewhere
-        // in the app, so it's excluded from the parent-facing report).
+        // Incidents Quick Report - editable, with note + attachments
+        $incidents = [];
+        $inctags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_INCIDENT_TYPES))) . "'";
+        if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag IN ($inctags) ORDER BY timelog ASC, evid ASC")) {
+            while ($row = fetch_row($result)) {
+                $info = $STATUS_INCIDENT_TYPES[$row["tag"]];
+                $incidents[] = [
+                    "evid"        => (int) $row["evid"],
+                    "type"        => $row["tag"],
+                    "label"       => $info["label"],
+                    "emoji"       => $info["emoji"],
+                    "color"       => $info["color"],
+                    "time"        => get_date("g:i a", display_time($row["timelog"])),
+                    "hm"          => get_date("H:i", display_time($row["timelog"])),
+                    "note"        => $row["note"],
+                    "attachments" => status_get_attachments($chid, $row["evid"]),
+                ];
+            }
+        }
+
+        // Naptime - history is always returned. The notice is a heads-up
+        // for everyone during the 1-3pm window; the logging buttons are
+        // for kids under the age cutoff and available any time (naps
+        // aren't confined to that window, just commonly clustered there).
+        $naps = [];
+        if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag='" . dbescape($STATUS_NAP_TAG) . "' ORDER BY timelog ASC, evid ASC")) {
+            while ($row = fetch_row($result)) {
+                $naps[] = [
+                    "evid"    => (int) $row["evid"],
+                    "minutes" => (int) $row["amount"],
+                    "time"    => get_date("g:i a", display_time($row["timelog"])),
+                    "hm"      => get_date("H:i", display_time($row["timelog"])),
+                ];
+            }
+        }
+        $show_naptime_notice  = status_naptime_window_now();
+        $show_naptime_buttons = status_eligible_for_naptime($child["birthdate"]);
+
+        // Notes added via the status page only (daykey=0 = pre-existing/unrelated)
         $notes = [];
         if ($result = get_db_result("SELECT n.*, t.title AS tag_title, t.color AS tag_color, t.textcolor AS tag_textcolor
                                         FROM notes n
@@ -412,11 +657,22 @@ if (!isset($STATUSLIB)) {
                     "note"      => $row["note"],
                     "notify"    => (bool) $row["notify"],
                     "time"      => get_date("g:i a", display_time($row["timelog"])),
+                    "hm"        => get_date("H:i", display_time($row["timelog"])),
                 ];
             }
         }
 
-        $menu = get_db_field("menu", "status_menu", "chid='$chid' AND daykey='$daykey'");
+        $menus = [];
+        foreach ($STATUS_MEALS as $mealkey => $mealinfo) {
+            $menus[$mealkey] = "";
+        }
+        if ($result = get_db_result("SELECT meal, menu FROM status_menu WHERE chid='$chid' AND daykey='$daykey'")) {
+            while ($row = fetch_row($result)) {
+                if (array_key_exists($row["meal"], $menus)) {
+                    $menus[$row["meal"]] = $row["menu"];
+                }
+            }
+        }
 
         $nokidpic = "";
         if (!$kidpic = get_child_picture_style($chid)) {
@@ -430,10 +686,16 @@ if (!isset($STATUSLIB)) {
             "daykey"     => $daykey,
             "date_label" => get_date("l, F j, Y", $daykey + get_offset()),
             "is_today"   => $daykey == status_daykey(),
-            "moods"      => $moods,
-            "counts"     => $counts,
-            "menu"       => $menu === false ? "" : $menu,
-            "notes"      => $notes,
+            "moods"        => $moods,
+            "potty"        => $potty,
+            "incidents"    => $incidents,
+            "naps"         => $naps,
+            "show_naptime_notice"  => $show_naptime_notice,
+            "show_naptime_buttons" => $show_naptime_buttons,
+            "menus"        => $menus,
+            "notes"        => $notes,
+            "bottles"      => $bottles,
+            "show_bottles" => $show_bottles,
         ];
     }
 
@@ -454,80 +716,271 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
-    function status_add_tally($chid, $tag) {
-        global $STATUS_TALLIES;
-        if (!isset($STATUS_TALLIES[$tag])) {
+    // cream/peed/pooped are only ever stored for types that ask about them.
+    // Returns the new evid (so a photo can attach to it) plus the refreshed day.
+    function status_add_potty($chid, $type, $hour = false, $minute = false, $cream = false, $peed = false, $pooped = false) {
+        global $STATUS_POTTY_TYPES;
+        if (!isset($STATUS_POTTY_TYPES[$type])) {
+            return false;
+        }
+        $info   = $STATUS_POTTY_TYPES[$type];
+        $chid   = intval($chid);
+        $aid    = intval(get_db_field("aid", "children", "chid='$chid'"));
+        $timelog = status_resolve_timelog($hour, $minute);
+        $day    = status_daykey($timelog);
+        $cream  = ($info['asks_cream'] && $cream)  ? 1 : 0;
+        $peed   = ($info['asks_potty'] && $peed)   ? 1 : 0;
+        $pooped = ($info['asks_potty'] && $pooped) ? 1 : 0;
+        $evid = execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, cream, peed, pooped)
+                                 VALUES (0,'" . dbescape($type) . "',0,'$chid','$aid','$day','$timelog','$cream','$peed','$pooped')");
+        return ["evid" => $evid, "day" => status_get_day($chid, $day)];
+    }
+
+    // Edits type/time/flags at once; only touches a row that's a Potty Time entry for this child.
+    function status_edit_potty($chid, $evid, $type, $hour, $minute, $cream, $peed, $pooped) {
+        global $STATUS_POTTY_TYPES;
+        if (!isset($STATUS_POTTY_TYPES[$type])) {
+            return false;
+        }
+        $chid = intval($chid);
+        $evid = intval($evid);
+        $pottytags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_POTTY_TYPES))) . "'";
+        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($pottytags)")) {
+            return false;
+        }
+        $info   = $STATUS_POTTY_TYPES[$type];
+        $timelog = status_resolve_timelog($hour, $minute);
+        $day    = status_daykey($timelog);
+        $cream  = ($info['asks_cream'] && $cream)  ? 1 : 0;
+        $peed   = ($info['asks_potty'] && $peed)   ? 1 : 0;
+        $pooped = ($info['asks_potty'] && $pooped) ? 1 : 0;
+        execute_db_sql("UPDATE events SET tag='" . dbescape($type) . "', timelog='$timelog', daykey='$day', cream='$cream', peed='$peed', pooped='$pooped'
+                         WHERE evid='$evid' AND chid='$chid'");
+        return status_get_day($chid, $day);
+    }
+
+    function status_delete_potty($chid, $evid) {
+        global $STATUS_POTTY_TYPES;
+        $chid = intval($chid);
+        $evid = intval($evid);
+        $pottytags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_POTTY_TYPES))) . "'";
+        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($pottytags)")) {
+            return status_get_day($chid);
+        }
+        // Clean up attachments before removing the entry
+        if ($result = get_db_result("SELECT * FROM documents WHERE chid='$chid' AND evid='$evid'")) {
+            while ($row = fetch_row($result)) {
+                status_delete_attachment_row($row);
+            }
+        }
+        execute_db_sql("DELETE FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($pottytags)");
+        return status_get_day($chid);
+    }
+
+    // Incidents Quick Report - one-tap create (pre-filled with a default
+    // note), then editable like Potty Time. Reuses the same events+
+    // documents attachment pattern.
+    function status_add_incident($chid, $type) {
+        global $STATUS_INCIDENT_TYPES;
+        if (!isset($STATUS_INCIDENT_TYPES[$type])) {
             return false;
         }
         $chid = intval($chid);
         $aid  = intval(get_db_field("aid", "children", "chid='$chid'"));
         $time = get_timestamp();
         $day  = status_daykey($time);
-        execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog) VALUES (0,'" . dbescape($tag) . "',0,'$chid','$aid','$day','$time')");
+        $note = dbescape($STATUS_INCIDENT_TYPES[$type]['default_note']);
+        $evid = execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, note)
+                                 VALUES (0,'" . dbescape($type) . "',0,'$chid','$aid','$day','$time','$note')");
+        return ["evid" => $evid, "day" => status_get_day($chid, $day)];
+    }
+
+    function status_edit_incident($chid, $evid, $type, $note, $hour, $minute) {
+        global $STATUS_INCIDENT_TYPES;
+        if (!isset($STATUS_INCIDENT_TYPES[$type])) {
+            return false;
+        }
+        $chid = intval($chid);
+        $evid = intval($evid);
+        $inctags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_INCIDENT_TYPES))) . "'";
+        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($inctags)")) {
+            return false;
+        }
+        $timelog = status_resolve_timelog($hour, $minute);
+        $day = status_daykey($timelog);
+        execute_db_sql("UPDATE events SET tag='" . dbescape($type) . "', note='" . dbescape($note) . "', timelog='$timelog', daykey='$day'
+                         WHERE evid='$evid' AND chid='$chid'");
         return status_get_day($chid, $day);
     }
 
-    function status_undo_tally($chid, $tag) {
-        global $STATUS_TALLIES;
-        if (!isset($STATUS_TALLIES[$tag])) {
+    function status_delete_incident($chid, $evid) {
+        global $STATUS_INCIDENT_TYPES;
+        $chid = intval($chid);
+        $evid = intval($evid);
+        $inctags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_INCIDENT_TYPES))) . "'";
+        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($inctags)")) {
+            return status_get_day($chid);
+        }
+        if ($result = get_db_result("SELECT * FROM documents WHERE chid='$chid' AND evid='$evid'")) {
+            while ($row = fetch_row($result)) {
+                status_delete_attachment_row($row);
+            }
+        }
+        execute_db_sql("DELETE FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($inctags)");
+        return status_get_day($chid);
+    }
+
+    // Naptime - backdated single tap (the nap already ended, hence a
+    // duration button rather than a start/stop pair).
+    function status_add_nap($chid, $minutes) {
+        global $STATUS_NAP_TAG, $STATUS_NAP_DURATIONS;
+        if (!in_array(intval($minutes), $STATUS_NAP_DURATIONS)) {
+            return false;
+        }
+        $chid = intval($chid);
+        $aid  = intval(get_db_field("aid", "children", "chid='$chid'"));
+        $timelog = status_clamp_timelog(get_timestamp() - (intval($minutes) * 60));
+        $day = status_daykey($timelog);
+        execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, amount)
+                         VALUES (0,'" . dbescape($STATUS_NAP_TAG) . "',0,'$chid','$aid','$day','$timelog','" . intval($minutes) . "')");
+        return status_get_day($chid, $day);
+    }
+
+    function status_delete_nap($chid, $evid) {
+        global $STATUS_NAP_TAG;
+        $chid = intval($chid);
+        $evid = intval($evid);
+        execute_db_sql("DELETE FROM events WHERE evid='$evid' AND chid='$chid' AND tag='" . dbescape($STATUS_NAP_TAG) . "'");
+        return status_get_day($chid);
+    }
+
+    // Adjust the time on an existing mood entry; leaves the mood itself alone.
+    function status_edit_mood_time($chid, $evid, $hour, $minute) {
+        global $STATUS_MOODS;
+        $chid = intval($chid);
+        $evid = intval($evid);
+        $moodtags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_MOODS))) . "'";
+        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($moodtags)")) {
+            return false;
+        }
+        $timelog = status_resolve_timelog($hour, $minute);
+        $day = status_daykey($timelog);
+        execute_db_sql("UPDATE events SET timelog='$timelog', daykey='$day' WHERE evid='$evid' AND chid='$chid'");
+        return status_get_day($chid, $day);
+    }
+
+    function status_edit_bottle_time($chid, $evid, $hour, $minute) {
+        $chid = intval($chid);
+        $evid = intval($evid);
+        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag='" . dbescape($GLOBALS['STATUS_BOTTLE_TAG']) . "'")) {
+            return false;
+        }
+        $timelog = status_resolve_timelog($hour, $minute);
+        $day = status_daykey($timelog);
+        execute_db_sql("UPDATE events SET timelog='$timelog', daykey='$day' WHERE evid='$evid' AND chid='$chid'");
+        return status_get_day($chid, $day);
+    }
+
+    // Attachments (photos/files on a Potty Time entry)
+    function status_add_attachment($chid, $evid, $filename, $tag = 'attachment') {
+        $chid = intval($chid);
+        $evid = intval($evid);
+        $aid  = intval(get_db_field("aid", "children", "chid='$chid'"));
+        $time = get_timestamp();
+        execute_db_sql("INSERT INTO documents (aid, chid, evid, tag, filename, description, timelog)
+                         VALUES ('$aid','$chid','$evid','" . dbescape($tag) . "','" . dbescape($filename) . "','','$time')");
+        return status_get_attachments($chid, $evid);
+    }
+
+    function status_delete_attachment_row($row) {
+        global $CFG;
+        $path = $CFG->userfilespath . "/children/" . $row["chid"] . "/" . $row["filename"];
+        if (file_exists($path)) {
+            @unlink($path);
+        }
+        execute_db_sql("DELETE FROM documents WHERE did='" . intval($row["did"]) . "'");
+    }
+
+    function status_delete_attachment($chid, $did) {
+        $chid = intval($chid);
+        $did  = intval($did);
+        if ($row = get_db_row("SELECT * FROM documents WHERE did='$did' AND chid='$chid'")) {
+            $evid = $row["evid"];
+            status_delete_attachment_row($row);
+            return status_get_attachments($chid, $evid);
+        }
+        return [];
+    }
+
+    // "Need Diapers" / "Clothing Change" - pre-written notes tagged "Request".
+    function status_quick_note($chid, $key) {
+        global $CFG, $STATUS_QUICK_NOTES;
+        if (!isset($STATUS_QUICK_NOTES[$key])) {
+            return false;
+        }
+        if (!function_exists('make_or_get_tag')) {
+            include_once($CFG->dirroot . '/lib/pagelib.php');
+        }
+        $info = $STATUS_QUICK_NOTES[$key];
+        $tag  = make_or_get_tag($info['tag_title'], 'notes');
+        return status_add_note($chid, $tag, $info['text'], true);
+    }
+
+    // Each meal (breakfast/lunch/dinner) has its own row, so saving one
+    // never touches the others for the same child/day.
+    function status_save_menu($chid, $meal, $menu) {
+        global $STATUS_MEALS;
+        if (!isset($STATUS_MEALS[$meal])) {
             return false;
         }
         $chid = intval($chid);
         $day  = status_daykey();
-        $row = get_db_row("SELECT evid FROM events WHERE chid='$chid' AND daykey='$day' AND tag='" . dbescape($tag) . "' ORDER BY evid DESC LIMIT 1");
-        if ($row) {
-            execute_db_sql("DELETE FROM events WHERE evid='" . intval($row["evid"]) . "'");
-        }
-        return status_get_day($chid, $day);
-    }
-
-    function status_save_menu($chid, $menu) {
-        $chid = intval($chid);
-        $day  = status_daykey();
         $time = get_timestamp();
-        $menu = dbescape($menu);
-        if (get_db_count("SELECT id FROM status_menu WHERE chid='$chid' AND daykey='$day'")) {
-            execute_db_sql("UPDATE status_menu SET menu='$menu', timelog='$time' WHERE chid='$chid' AND daykey='$day'");
+        $mealesc = dbescape($meal);
+        $menuesc = dbescape($menu);
+        if (get_db_count("SELECT id FROM status_menu WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'")) {
+            execute_db_sql("UPDATE status_menu SET menu='$menuesc', timelog='$time' WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
         } else {
-            execute_db_sql("INSERT INTO status_menu (chid, daykey, menu, timelog) VALUES ('$chid','$day','$menu','$time')");
+            execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, timelog) VALUES ('$chid','$day','$mealesc','$menuesc','$time')");
         }
         return status_get_day($chid, $day);
     }
 
-    // Writes the same menu text to today's status_menu row for each chid
-    // given (upsert, same as status_save_menu). Used by the admin
-    // "Copy to Kids" action so staff can fill one child's menu, then
-    // duplicate it to classmates/siblings without retyping. Returns the
-    // list of chids actually written.
-    function status_copy_menu($menu, $chids) {
+    // Copies a menu to other kids, scoped to one meal only. Returns the chids written.
+    function status_copy_menu($meal, $menu, $chids) {
+        global $STATUS_MEALS;
+        if (!isset($STATUS_MEALS[$meal])) {
+            return [];
+        }
         $day  = status_daykey();
         $time = get_timestamp();
-        $menu = dbescape($menu);
+        $mealesc = dbescape($meal);
+        $menuesc = dbescape($menu);
         $written = [];
         foreach ($chids as $chid) {
             $chid = intval($chid);
             if (!$chid) {
                 continue;
             }
-            if (get_db_count("SELECT id FROM status_menu WHERE chid='$chid' AND daykey='$day'")) {
-                execute_db_sql("UPDATE status_menu SET menu='$menu', timelog='$time' WHERE chid='$chid' AND daykey='$day'");
+            if (get_db_count("SELECT id FROM status_menu WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'")) {
+                execute_db_sql("UPDATE status_menu SET menu='$menuesc', timelog='$time' WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
             } else {
-                execute_db_sql("INSERT INTO status_menu (chid, daykey, menu, timelog) VALUES ('$chid','$day','$menu','$time')");
+                execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, timelog) VALUES ('$chid','$day','$mealesc','$menuesc','$time')");
             }
             $written[] = $chid;
         }
         return $written;
     }
 
-    // Distinct menu texts already entered today for *other* children,
-    // so staff can quick-fill instead of retyping the same menu for
-    // every kid on a shared menu day. Grouped by exact text match, most
-    // widely-used / most recently-saved first. Excludes the child
-    // currently being edited (their own menu, if any, isn't a
-    // suggestion for themselves).
-    function status_menu_suggestions($chid) {
+    // Quick-fill suggestions: menus already entered today for other kids, same meal.
+    function status_menu_suggestions($chid, $meal) {
+        global $STATUS_MEALS;
+        if (!isset($STATUS_MEALS[$meal])) {
+            return [];
+        }
         $chid = intval($chid);
         $day  = status_daykey();
+        $mealesc = dbescape($meal);
         $suggestions = [];
         $SQL = "SELECT sm.menu,
                        COUNT(DISTINCT sm.chid) AS cnt,
@@ -535,7 +988,7 @@ if (!isset($STATUSLIB)) {
                        GROUP_CONCAT(DISTINCT CONCAT(c.first,' ',c.last) ORDER BY c.first SEPARATOR ', ') AS kids
                   FROM status_menu sm
                   JOIN children c ON c.chid = sm.chid
-                 WHERE sm.daykey='$day' AND sm.chid != '$chid' AND sm.menu != ''
+                 WHERE sm.daykey='$day' AND sm.meal='$mealesc' AND sm.chid != '$chid' AND sm.menu != ''
                  GROUP BY sm.menu
                  ORDER BY cnt DESC, last_used DESC
                  LIMIT 8";
@@ -551,10 +1004,7 @@ if (!isset($STATUSLIB)) {
         return $suggestions;
     }
 
-    // Adds a new note-area entry for today: staff picks a tag from
-    // notes_tags, writes text, and optionally flags it to notify the
-    // parent at sign-out (sets notes.notify=1, the same field the app's
-    // existing sign-out bulletin feature reads).
+    // notify=1 uses the same field the app's sign-out bulletin feature reads.
     function status_add_note($chid, $tag, $note, $notify) {
         $tags = array_column(status_notes_tags(), 'tag');
         if (!in_array($tag, $tags)) {
@@ -575,9 +1025,62 @@ if (!isset($STATUSLIB)) {
     function status_delete_note($nid, $chid) {
         $nid  = intval($nid);
         $chid = intval($chid);
-        // Only ever allow deleting notes this feature created (daykey != 0),
-        // and only for the child it's scoped to.
+        // Only notes this feature created (daykey != 0)
         execute_db_sql("DELETE FROM notes WHERE nid='$nid' AND chid='$chid' AND daykey != 0");
         return status_get_day($chid, status_daykey());
+    }
+
+    // Changes a mood tap's type without losing its original time.
+    function status_edit_mood($chid, $evid, $newmood) {
+        global $STATUS_MOODS;
+        if (!isset($STATUS_MOODS[$newmood])) {
+            return false;
+        }
+        $chid = intval($chid);
+        $evid = intval($evid);
+        $moodtags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_MOODS))) . "'";
+        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($moodtags)")) {
+            return false;
+        }
+        execute_db_sql("UPDATE events SET tag='" . dbescape($newmood) . "' WHERE evid='$evid' AND chid='$chid'");
+        return status_get_day($chid);
+    }
+
+    function status_delete_mood($chid, $evid) {
+        global $STATUS_MOODS;
+        $chid = intval($chid);
+        $evid = intval($evid);
+        $moodtags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_MOODS))) . "'";
+        execute_db_sql("DELETE FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($moodtags)");
+        return status_get_day($chid);
+    }
+
+    // Bottles have only one type, so nothing to edit - just add or delete.
+    // Bottles have one type but now carry an ounces amount (0 = not given).
+    function status_add_bottle($chid, $ounces = false) {
+        $chid = intval($chid);
+        $aid  = intval(get_db_field("aid", "children", "chid='$chid'"));
+        $time = get_timestamp();
+        $day  = status_daykey($time);
+        $amount = ($ounces !== false && $ounces !== '') ? intval($ounces) : 0;
+        execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, amount) VALUES (0,'" . dbescape($GLOBALS['STATUS_BOTTLE_TAG']) . "',0,'$chid','$aid','$day','$time','$amount')");
+        return status_get_day($chid, $day);
+    }
+
+    function status_edit_bottle_ounces($chid, $evid, $ounces) {
+        $chid = intval($chid);
+        $evid = intval($evid);
+        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag='" . dbescape($GLOBALS['STATUS_BOTTLE_TAG']) . "'")) {
+            return false;
+        }
+        execute_db_sql("UPDATE events SET amount='" . intval($ounces) . "' WHERE evid='$evid' AND chid='$chid'");
+        return status_get_day($chid);
+    }
+
+    function status_delete_bottle($chid, $evid) {
+        $chid = intval($chid);
+        $evid = intval($evid);
+        execute_db_sql("DELETE FROM events WHERE evid='$evid' AND chid='$chid' AND tag='" . dbescape($GLOBALS['STATUS_BOTTLE_TAG']) . "'");
+        return status_get_day($chid);
     }
 }

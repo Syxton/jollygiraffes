@@ -439,7 +439,7 @@
             var delBtn = document.createElement('button');
             delBtn.type = 'button';
             delBtn.className = 'chip-icon-btn';
-            delBtn.textContent = '\u2715';
+            delBtn.textContent = '🗑️';
             delBtn.title = 'Delete';
             delBtn.addEventListener('click', function () {
                 post('delete_nap', { chid: state.chid, evid: nap.evid }).then(function (res) {
@@ -499,7 +499,7 @@
             var delBtn = document.createElement('button');
             delBtn.type = 'button';
             delBtn.className = 'chip-icon-btn';
-            delBtn.textContent = '\u2715';
+            delBtn.textContent = '🗑️';
             delBtn.title = 'Delete';
             delBtn.addEventListener('click', function () {
                 post('delete_bottle', { chid: state.chid, evid: b.evid }).then(function (res) {
@@ -643,7 +643,7 @@
         if (p.peed)   { extras += ' \ud83d\udca7'; }
         if (p.pooped) { extras += ' \ud83d\udca9'; }
         var typeInfo = state.pottyTypes[p.type];
-        if (typeInfo && typeInfo.asks_potty && !p.peed && !p.pooped) { extras += ' \ud83d\udeab'; }
+        if (typeInfo && typeInfo.asks_potty && !p.peed && !p.pooped) { extras += ' 👎'; }
 
         var content = document.createElement('span');
         content.className = 'mood-chip-content';
@@ -658,7 +658,7 @@
             var editBtn = document.createElement('button');
             editBtn.type = 'button';
             editBtn.className = 'chip-icon-btn';
-            editBtn.textContent = '\u270e';
+            editBtn.textContent = '✏️';
             editBtn.title = 'Edit';
             editBtn.addEventListener('click', function () { openPottyPanel(p); });
             chip.appendChild(editBtn);
@@ -666,7 +666,7 @@
             var delBtn = document.createElement('button');
             delBtn.type = 'button';
             delBtn.className = 'chip-icon-btn';
-            delBtn.textContent = '\u2715';
+            delBtn.textContent = '🗑️';
             delBtn.title = 'Delete';
             delBtn.addEventListener('click', function () {
                 post('delete_potty', { chid: state.chid, evid: p.evid }).then(function (res) {
@@ -776,7 +776,7 @@
             var editBtn = document.createElement('button');
             editBtn.type = 'button';
             editBtn.className = 'chip-icon-btn';
-            editBtn.textContent = '\u270e';
+            editBtn.textContent = '✏️';
             editBtn.title = 'Edit';
             editBtn.addEventListener('click', function () { openIncidentPanel(inc); });
             chip.appendChild(editBtn);
@@ -784,7 +784,7 @@
             var delBtn = document.createElement('button');
             delBtn.type = 'button';
             delBtn.className = 'chip-icon-btn';
-            delBtn.textContent = '\u2715';
+            delBtn.textContent = '🗑️';
             delBtn.title = 'Delete';
             delBtn.addEventListener('click', function () {
                 post('delete_incident', { chid: state.chid, evid: inc.evid }).then(function (res) {
@@ -1308,21 +1308,21 @@
         var clockBtn = document.createElement('button');
         clockBtn.type = 'button';
         clockBtn.className = 'chip-icon-btn';
-        clockBtn.textContent = '\ud83d\udd50';
+        clockBtn.textContent = '⏰';
         clockBtn.title = 'Change time';
         chip.appendChild(clockBtn);
 
         var editBtn = document.createElement('button');
         editBtn.type = 'button';
         editBtn.className = 'chip-icon-btn';
-        editBtn.textContent = '\u270e';
+        editBtn.textContent = '✏️';
         editBtn.title = 'Change mood';
         chip.appendChild(editBtn);
 
         var delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'chip-icon-btn';
-        delBtn.textContent = '\u2715';
+        delBtn.textContent = '🗑️';
         delBtn.title = 'Delete';
         chip.appendChild(delBtn);
 
@@ -1464,9 +1464,9 @@
             item.className = 'note-item';
             item.style.background = n.color;
             item.style.color = n.textcolor;
-            item.innerHTML = '<div class="note-meta"><span>' + escapeHtml(n.tag_title) + (n.notify ? ' \ud83d\udd14' : '') + '</span><span>' + escapeHtml(n.time) + '</span></div>' +
+            item.innerHTML = '<div class="note-meta"><span>' + (n.notify ? ' \ud83d\udd14' : '') + escapeHtml(n.tag_title) + '</span><span>' + escapeHtml(n.time) + '</span></div>' +
                 '<div class="note-text">' + escapeHtml(n.note) + '</div>' +
-                '<button type="button" class="note-delete" data-nid="' + n.nid + '">Delete</button>';
+                '<button title="Delete" type="button" class="note-delete" data-nid="' + n.nid + '"></button>';
             notesWrap.appendChild(item);
         });
         notesWrap.querySelectorAll('.note-delete').forEach(function (btn) {

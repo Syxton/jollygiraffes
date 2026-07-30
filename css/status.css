@@ -116,7 +116,7 @@ html, body {
 }
 .card h2 {
     margin: 0 0 12px;
-    font-size: 15px;
+    font-size: 20px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: #7A828A;
@@ -201,29 +201,37 @@ html, body {
 .mood-chip {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
+    width: 100%;
     padding: 8px 12px;
     border-radius: 20px;
     color: #fff;
-    font-size: 13px;
+    font-size: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
-.mood-chip .emoji { font-size: 16px; }
+.mood-chip .emoji { font-size: 30px; }
 .mood-chip-content {
     display: flex;
     align-items: center;
-    gap: 6px;
+    padding-right: 10px;
+    gap: 5px;
 }
 .chip-icon-btn {
-    background: rgba(255,255,255,0.25);
+    background: rgba(255, 255, 255, 0.25);
     border: none;
     color: #fff;
     width: 22px;
+    box-shadow: 0 0 2px 0px #333333;
     height: 22px;
     border-radius: 50%;
     font-size: 11px;
+    font-weight: bold;
+    display: inline-flex;
     line-height: 1;
     padding: 0;
-    margin-left: 2px;
+    margin: 0 5px;
+    justify-content: center;
+    align-items: center;
 }
 .mood-edit-select {
     border: none;
@@ -241,15 +249,16 @@ html, body {
 .mood-buttons button {
     border: none;
     border-radius: 12px;
-    padding: 12px 4px;
+    padding: 10px 5px;
     color: #fff;
     font-size: 12px;
+    text-shadow: 0 0 2px rgb(77, 76, 76);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
 }
-.mood-buttons button .emoji { font-size: 22px; }
+.mood-buttons button .emoji { font-size: 40px; }
 
 /* ---------- Tallies ---------- */
 .tally-grid {
@@ -294,8 +303,8 @@ html, body {
     appearance: none;
     width: 22px;
     height: 22px;
-    background-color: #ffffff;
-    border: 1px solid #E7EAEC;
+    background-color: #f6f6f6;
+    border: 1px solid #909090;
     border-radius: 7px;
     outline: none;
     cursor: pointer;
@@ -580,8 +589,9 @@ html, body {
     flex-direction: column;
     align-items: center;
     gap: 4px;
+    text-shadow: 0 0 2px rgb(77, 76, 76);
 }
-.potty-type-buttons button .emoji { font-size: 22px; }
+.potty-type-buttons button .emoji { font-size: 40px; }
 
 .potty-chip { cursor: default; }
 
@@ -604,7 +614,7 @@ html, body {
     font-size: 12px;
     color: #22282E;
 }
-.quick-note-btn .emoji { font-size: 20px; }
+.quick-note-btn .emoji { font-size: 40px; text-shadow: 0 0 2px rgb(77, 76, 76);}
 .quick-note-btn.sent {
     background: #E6FCF5;
     border-color: #40C057;
@@ -688,9 +698,10 @@ html, body {
 .potty-extra-row {
     display: flex;
     align-items: center;
+    justify-content: space-evenly;
     gap: 16px;
-    font-size: 14px;
-    margin-bottom: 14px;
+    font-size: 20px;
+    margin-bottom: 5px;
 }
 .potty-extra-row label {
     display: flex;
@@ -803,12 +814,20 @@ html, body {
 
 /* ---------- Naptime (one card: notice + buttons + history) ---------- */
 .naptime-notice-text {
-    background: #EDF2FF;
-    border: 1px solid #748FFC;
+    background: white;
+    border: 5px solid red;
     border-radius: 12px;
-    padding: 10px 14px;
-    font-size: 14px;
-    margin-bottom: 12px;
+    padding: 5px 5px;
+    color: red;
+    font-size: 15px;
+    font-weight: bold;
+    margin: 15px;
+    display: flex;
+    align-items: center;
+}
+.naptime-notice-text:before {
+    content: "😴";
+    font-size: 40px;
 }
 .naptime-buttons {
     display: flex;
@@ -823,22 +842,33 @@ html, body {
     background: #748FFC;
     color: #fff;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 18px;
+}
+.mood-chip.nap {
+    background: #2d55f8;
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
 }
 
 /* ---------- Incidents Quick Report ---------- */
 .incident-buttons {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 14px;
 }
 .incident-btn {
     border: none;
     border-radius: 12px;
-    padding: 14px 0;
-    font-size: 24px;
+    padding: 10px;
+    font-size: 40px;
     color: #fff;
+    width: calc(33% - 6px);
+}
+.incident-btn div {
+    font-size: 12px;
 }
 
 /* ---------- Bottle ounces picker ---------- */
@@ -855,4 +885,15 @@ html, body {
     color: #fff;
     font-size: 18px;
     font-weight: 700;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    cursor: pointer;
+}
+
+button:active {
+    transform: translateY(1px);
+    --lightness: 95%;
+    filter: brightness(.95);
 }

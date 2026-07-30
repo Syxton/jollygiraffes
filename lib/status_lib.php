@@ -31,24 +31,24 @@ if (!isset($STATUSLIB)) {
     // Mood options. Keys are stored as event tags - don't rename existing
     // keys once you have data.
     $GLOBALS['STATUS_MOODS'] = [
-        'mood_happy'     => ['label' => 'Happy',     'emoji' => '😊', 'color' => '#4CAF50'],
-        'mood_sad'       => ['label' => 'Sad',       'emoji' => '😢', 'color' => '#5C7CFA'],
-        'mood_angry'     => ['label' => 'Angry',     'emoji' => '😠', 'color' => '#E03131'],
+        'mood_happy'     => ['label' => 'Happy',     'emoji' => '😊', 'color' => '#3f8c42'],
+        'mood_sad'       => ['label' => 'Sad',       'emoji' => '😢', 'color' => '#495fb8'],
+        'mood_angry'     => ['label' => 'Angry',     'emoji' => '😠', 'color' => '#ff0000'],
         'mood_tired'     => ['label' => 'Tired',     'emoji' => '😴', 'color' => '#868E96'],
-        'mood_energetic' => ['label' => 'Energetic', 'emoji' => '⚡', 'color' => '#F59F00'],
+        'mood_energetic' => ['label' => 'Energetic', 'emoji' => '⚡', 'color' => '#2c297b'],
         'mood_calm'      => ['label' => 'Calm',      'emoji' => '😌', 'color' => '#22B8CF'],
-        'mood_silly'     => ['label' => 'Silly',     'emoji' => '🤪', 'color' => '#BE4BDB'],
-        'mood_sick'      => ['label' => 'Not Feeling Well', 'emoji' => '🤒', 'color' => '#FA5252'],
+        'mood_silly'     => ['label' => 'Silly',     'emoji' => '🤪', 'color' => '#e89292'],
+        'mood_sick'      => ['label' => 'Not Well',  'emoji' => '🤒', 'color' => '#45c249'],
     ];
 
     // Potty Time: timestamped entries (like moods). Type determines extra
     // fields - Wet/Dirty ask about cream, Used Potty asks peed/pooped.
     // Every entry can also have attachments.
     $GLOBALS['STATUS_POTTY_TYPES'] = [
-        'pt_wet'      => ['label' => 'Wet Diaper',   'emoji' => '💧', 'color' => '#4DABF7', 'asks_cream' => true,  'asks_potty' => false],
-        'pt_dirty'    => ['label' => 'Dirty Diaper', 'emoji' => '💩', 'color' => '#A97142', 'asks_cream' => true,  'asks_potty' => false],
-        'pt_potty'    => ['label' => 'Used Potty',   'emoji' => '🚽', 'color' => '#40C057', 'asks_cream' => false, 'asks_potty' => true],
-        'pt_accident' => ['label' => 'Accident',     'emoji' => '💦', 'color' => '#FA5252', 'asks_cream' => false, 'asks_potty' => false],
+        'pt_wet'      => ['label' => 'Wet Diaper',   'emoji' => '💧', 'color' => '#33b0e6', 'asks_cream' => true,  'asks_potty' => false],
+        'pt_dirty'    => ['label' => 'Dirty Diaper', 'emoji' => '💩', 'color' => '#51463c', 'asks_cream' => true,  'asks_potty' => false],
+        'pt_potty'    => ['label' => 'Used Potty',   'emoji' => '🚽', 'color' => '#6826ae', 'asks_cream' => false, 'asks_potty' => true],
+        'pt_accident' => ['label' => 'Accident',     'emoji' => '🫣', 'color' => '#e8852e', 'asks_cream' => false, 'asks_potty' => false],
     ];
 
     // Quick-tap notes next to Potty Time. Writes a note tagged "Request"
@@ -56,7 +56,7 @@ if (!isset($STATUSLIB)) {
     $GLOBALS['STATUS_QUICK_NOTES'] = [
         'need_diapers' => [
             'label'     => 'Need Diapers',
-            'emoji'     => '📦',
+            'emoji'     => '🚼',
             'tag_title' => 'Request',
             'text'      => "Running low on diapers - please bring more.",
         ],
@@ -85,11 +85,11 @@ if (!isset($STATUSLIB)) {
     // has a default note staff can edit further; attachments reuse the
     // same events+documents linkage as Potty Time.
     $GLOBALS['STATUS_INCIDENT_TYPES'] = [
-        'inc_bit'     => ['label' => 'Bit Someone',     'emoji' => '👄', 'color' => '#E8590C', 'default_note' => 'Bit another child.'],
-        'inc_gotbit'  => ['label' => 'Got Bit',         'emoji' => '😢', 'color' => '#5C7CFA', 'default_note' => 'Was bitten by another child.'],
-        'inc_booboo'  => ['label' => 'Boo Boo',         'emoji' => '🤕', 'color' => '#FA5252', 'default_note' => 'Had a minor boo-boo.'],
-        'inc_bandaid' => ['label' => 'Needed Band-Aid', 'emoji' => '🩹', 'color' => '#40C057', 'default_note' => 'Needed a band-aid.'],
-        'inc_hurt'    => ['label' => 'Hurt Someone',    'emoji' => '💥', 'color' => '#E03131', 'default_note' => 'Hurt another child.'],
+        'inc_bit'     => ['label' => 'Bit Someone',     'emoji' => '😬', 'color' => '#c62a2a', 'default_note' => 'Bit another child.'],
+        'inc_gotbit'  => ['label' => 'Bitten',          'emoji' => '😫', 'color' => '#c65bbd', 'default_note' => 'Was bitten by another child.'],
+        'inc_booboo'  => ['label' => 'Boo Boo',         'emoji' => '🤕', 'color' => '#926969', 'default_note' => 'Had a minor boo-boo.'],
+        'inc_bandaid' => ['label' => 'Band-Aid',        'emoji' => '🩹', 'color' => '#6f5dff', 'default_note' => 'Needed a band-aid.'],
+        'inc_hurt'    => ['label' => 'Hurt Someone',    'emoji' => '👊', 'color' => '#E03131', 'default_note' => 'Hurt another child.'],
     ];
 
     // Naptime: shown 1pm-3pm for children over this age. Duration
@@ -146,7 +146,7 @@ if (!isset($STATUSLIB)) {
         // events.note (Incidents free text) and events.amount (generic
         // numeric field: Nap minutes, Bottle ounces)
         if (!status_column_exists('events', 'note')) {
-            execute_db_sql("ALTER TABLE events ADD COLUMN note text COLLATE utf8_unicode_ci NOT NULL DEFAULT ''");
+            execute_db_sql("ALTER TABLE events ADD COLUMN note text COLLATE utf8_unicode_ci NOT NULL DEFAULT ('')");
         }
         if (!status_column_exists('events', 'amount')) {
             execute_db_sql("ALTER TABLE events ADD COLUMN amount int(11) NOT NULL DEFAULT '0'");

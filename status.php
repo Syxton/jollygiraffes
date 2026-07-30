@@ -37,7 +37,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 <body>
 
 <div id="status_app" data-code="<?php echo htmlspecialchars($code); ?>" data-sitename="<?php echo $sitename; ?>">
-
     <!-- LOGIN SCREEN -->
     <div id="screen_login" class="status-screen">
         <div class="login-card">
@@ -59,6 +58,8 @@ $sitename = htmlspecialchars($CFG->sitename);
 
         <div class="child-tabs" id="parent_child_tabs"></div>
 
+        <div class="naptime-notice-text" id="parent_naptime_notice_text" style="display:none;">Shhh... It's naptime (1pm - 3pm).</div>
+
         <div class="child_avatar" id="avatar"></div>
         <div class="child_name" id="name"></div>
 
@@ -70,7 +71,7 @@ $sitename = htmlspecialchars($CFG->sitename);
 
         <div class="swipe-area" id="swipe_area">
             <section class="card">
-                <h2>Mood Today</h2>
+                <h2>😎 Mood Today</h2>
                 <div class="mood-timeline" id="mood_timeline"></div>
                 <div class="empty-note" id="mood_empty" style="display:none;">No mood updates logged yet.</div>
             </section>
@@ -82,7 +83,7 @@ $sitename = htmlspecialchars($CFG->sitename);
             </section>
 
             <section class="card" id="parent_incidents_card" style="display:none;">
-                <h2>Incidents</h2>
+                <h2>🚨 Incidents</h2>
                 <div class="potty-timeline" id="parent_incidents_timeline"></div>
             </section>
 
@@ -92,7 +93,7 @@ $sitename = htmlspecialchars($CFG->sitename);
             </section>
 
             <section class="card" id="parent_bottle_card" style="display:none;">
-                <h2>Bottles</h2>
+                <h2>🍼 Bottles</h2>
                 <div class="mood-timeline" id="parent_bottle_timeline"></div>
                 <div class="empty-note" id="parent_bottle_empty" style="display:none;">No bottles logged yet.</div>
             </section>
@@ -100,7 +101,7 @@ $sitename = htmlspecialchars($CFG->sitename);
             <div id="parent_meal_sections"></div>
 
             <section class="card">
-                <h2>Notes</h2>
+                <h2>📝 Notes</h2>
                 <div class="notes-list" id="notes_list"></div>
                 <div class="empty-note" id="notes_empty" style="display:none;">No notes for this day.</div>
             </section>
@@ -117,6 +118,7 @@ $sitename = htmlspecialchars($CFG->sitename);
 
         <select id="admin_child_select" class="child-select"></select>
 
+        <div class="naptime-notice-text" id="admin_naptime_notice_text" style="display:none;">Shhh... It's naptime (1pm - 3pm).</div>
         <div class="child_avatar" id="avatar"></div>
 
         <div class="day-label" id="admin_day_label">Today</div>
@@ -124,13 +126,12 @@ $sitename = htmlspecialchars($CFG->sitename);
         <div class="admin-grid">
             <section class="card" id="admin_naptime_card" style="display:none;">
                 <h2>😴 Naptime</h2>
-                <div class="naptime-notice-text" id="naptime_notice_text" style="display:none;">It's naptime (1-3pm).</div>
                 <div class="naptime-buttons" id="naptime_buttons" style="display:none;"></div>
                 <div class="mood-timeline" id="admin_naps_timeline"></div>
             </section>
 
             <section class="card">
-                <h2>Mood</h2>
+                <h2>😎 Mood</h2>
                 <div class="mood-buttons" id="mood_buttons"></div>
                 <div class="mood-timeline" id="admin_mood_timeline"></div>
             </section>
@@ -143,13 +144,13 @@ $sitename = htmlspecialchars($CFG->sitename);
             </section>
 
             <section class="card">
-                <h2>Incidents Quick Report</h2>
+                <h2>🚀 Incidents Quick Report</h2>
                 <div class="incident-buttons" id="incident_buttons"></div>
                 <div class="potty-timeline" id="admin_incidents_timeline"></div>
             </section>
 
             <section class="card" id="admin_bottle_card" style="display:none;">
-                <h2>Bottles</h2>
+                <h2>🍼 Bottles</h2>
                 <button type="button" class="primary-button" id="add_bottle_btn">+ Add Bottle</button>
                 <div class="mood-timeline" id="admin_bottle_timeline"></div>
             </section>
@@ -157,13 +158,13 @@ $sitename = htmlspecialchars($CFG->sitename);
             <div id="admin_meal_sections"></div>
 
             <section class="card">
-                <h2>Notes</h2>
+                <h2>📝 Notes</h2>
                 <div class="notes-list" id="admin_notes_list"></div>
                 <div class="note-form">
                     <select id="note_tag_select"></select>
                     <textarea class="app-textarea" id="note_text_input" rows="2" placeholder="Write a note..."></textarea>
                     <label class="notify-label">
-                        <input type="checkbox" id="note_notify_checkbox">
+                        <input class="styled-checkbox" type="checkbox" id="note_notify_checkbox">
                         Notify parent at sign-out
                     </label>
                     <button class="primary-button" id="add_note_btn">Add Note</button>

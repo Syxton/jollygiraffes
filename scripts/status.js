@@ -377,6 +377,13 @@
                 incWrap.appendChild(buildIncidentChip(inc, false));
             });
         }
+        // Naptime - one consolidated card: notice text shows for every
+        // child 1-3pm, buttons only for kids under the age cutoff, and
+        // history always shows below when there's any. Card itself is
+        // hidden entirely when none of the three apply.
+        var noticeText = document.getElementById('parent_naptime_notice_text');
+
+        noticeText.style.display = day.show_naptime_notice ? '' : 'none';
 
         // Naptime history (read-only; card hidden entirely if none today)
         var napsCard = document.getElementById('parent_naps_card');
@@ -421,8 +428,7 @@
 
     function buildNapChip(nap, editable) {
         var chip = document.createElement('div');
-        chip.className = 'mood-chip';
-        chip.style.background = '#748FFC';
+        chip.className = 'mood-chip nap';
 
         var content = document.createElement('span');
         content.className = 'mood-chip-content';
@@ -731,7 +737,7 @@
             btn.className = 'incident-btn';
             btn.style.background = info.color;
             btn.title = info.label;
-            btn.textContent = info.emoji;
+            btn.innerHTML = info.emoji + '<div>' + info.label + '</div>';
             btn.addEventListener('click', function () {
                 post('add_incident', { chid: state.chid, type: key }).then(function (res) {
                     if (res.success) {
@@ -947,13 +953,13 @@
         html += '<label class="potty-time-row">Time <input type="time" data-role="time"></label>';
 
         if (info.asks_cream) {
-            html += '<div class="potty-extra-row"><span>Cream used?</span>' +
-                '<label><input type="checkbox" data-role="cream"' + (p.cream ? ' checked' : '') + '> \ud83e\uddf4 Yes</label></div>';
+            html += '<div class="potty-extra-row"><span>\ud83e\uddf4 Cream used?</span>' +
+                '<label><input class="styled-checkbox" type="checkbox" data-role="cream"' + (p.cream ? ' checked' : '') + '></label></div>';
         }
         if (info.asks_potty) {
             html += '<div class="potty-extra-row">' +
-                '<label><input type="checkbox" data-role="peed"' + (p.peed ? ' checked' : '') + '> \ud83d\udca7 Peed</label>' +
-                '<label><input type="checkbox" data-role="pooped"' + (p.pooped ? ' checked' : '') + '> \ud83d\udca9 Pooped</label></div>';
+                '<label><input class="styled-checkbox" type="checkbox" data-role="peed"' + (p.peed ? ' checked' : '') + '> \ud83d\udca7 Peed</label>' +
+                '<label><input class="styled-checkbox" type="checkbox" data-role="pooped"' + (p.pooped ? ' checked' : '') + '> \ud83d\udca9 Pooped</label></div>';
         }
 
         html += '<div class="potty-attachments" data-role="attachments"></div>' +
@@ -1163,7 +1169,7 @@
             }
             var label = document.createElement('label');
             label.className = 'menu-copy-item';
-            label.innerHTML = '<input type="checkbox" value="' + c.chid + '"> ' + escapeHtml(c.name);
+            label.innerHTML = '<input class="styled-checkbox" type="checkbox" value="' + c.chid + '"> ' + escapeHtml(c.name);
             groups[fam].appendChild(label);
         });
     }
@@ -1409,7 +1415,7 @@
         // history always shows below when there's any. Card itself is
         // hidden entirely when none of the three apply.
         var naptimeCard = document.getElementById('admin_naptime_card');
-        var noticeText = document.getElementById('naptime_notice_text');
+        var noticeText = document.getElementById('admin_naptime_notice_text');
         var napBtnWrap = document.getElementById('naptime_buttons');
 
         noticeText.style.display = day.show_naptime_notice ? '' : 'none';

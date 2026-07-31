@@ -75,6 +75,15 @@ if (!isset($STATUSLIB)) {
         'dinner'    => ['label' => 'Dinner',    'emoji' => '🍽️'],
     ];
 
+    // Per-child rating of how a meal went. Stored on the same status_menu
+    // row as the menu text (one rating per child/day/meal) - don't rename
+    // existing keys once you have data.
+    $GLOBALS['STATUS_MEAL_RATINGS'] = [
+        'ate_well'   => ['label' => 'Ate Well',   'emoji' => '😋'],
+        'ate_ok'     => ['label' => 'Ate OK',     'emoji' => '🙂'],
+        'not_hungry' => ['label' => 'Not Hungry', 'emoji' => '😕'],
+    ];
+
     // Bottles: a timestamped tap like moods, only shown under this age.
     $GLOBALS['STATUS_BOTTLE_TAG']        = 'bottle';
     $GLOBALS['STATUS_BOTTLE_INFO']       = ['label' => 'Bottle', 'emoji' => '🍼', 'color' => '#4DABF7'];
@@ -145,8 +154,14 @@ if (!isset($STATUSLIB)) {
 
         // events.note (Incidents free text) and events.amount (generic
         // numeric field: Nap minutes, Bottle ounces)
+        // Note: no DEFAULT clause on the TEXT column - MySQL < 8.0.13
+        // rejects any default on TEXT/BLOB, 8.0.13+ requires the
+        // parenthesized DEFAULT ('') form, and MariaDB accepts the bare
+        // literal - no single syntax satisfies all three. Omitting DEFAULT
+        // is portable: ADD COLUMN backfills existing rows with the type's
+        // implicit default ('' for TEXT) regardless of engine/version.
         if (!status_column_exists('events', 'note')) {
-            execute_db_sql("ALTER TABLE events ADD COLUMN note text COLLATE utf8_unicode_ci NOT NULL DEFAULT ''");
+            execute_db_sql("ALTER TABLE events ADD COLUMN note text COLLATE utf8_unicode_ci NOT NULL");
         }
         if (!status_column_exists('events', 'amount')) {
             execute_db_sql("ALTER TABLE events ADD COLUMN amount int(11) NOT NULL DEFAULT '0'");
@@ -186,6 +201,7 @@ if (!isset($STATUSLIB)) {
               `daykey` int(11) NOT NULL,
               `meal` varchar(20) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'breakfast',
               `menu` text COLLATE utf8_unicode_ci NOT NULL,
+              `rating` varchar(20) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
               `timelog` int(11) NOT NULL,
               PRIMARY KEY (`id`),
               UNIQUE KEY `chid_day_meal` (`chid`,`daykey`,`meal`)
@@ -201,6 +217,12 @@ if (!isset($STATUSLIB)) {
             if (!status_index_exists('status_menu', 'chid_day_meal')) {
                 execute_db_sql("ALTER TABLE status_menu ADD UNIQUE KEY chid_day_meal (chid,daykey,meal)");
             }
+        }
+
+        // Upgrade path: older installs had status_menu without `rating`
+        // (per-child "how did they eat" rating - ate_well/ate_ok/not_hungry).
+        if (!status_column_exists('status_menu', 'rating')) {
+            execute_db_sql("ALTER TABLE status_menu ADD COLUMN rating varchar(20) COLLATE utf8_unicode_ci NOT NULL DEFAULT ''");
         }
 
         status_sync_family_access();
@@ -728,13 +750,16 @@ if (!isset($STATUSLIB)) {
         }
 
         $menus = [];
+        $ratings = [];
         foreach ($STATUS_MEALS as $mealkey => $mealinfo) {
             $menus[$mealkey] = "";
+            $ratings[$mealkey] = "";
         }
-        if ($result = get_db_result("SELECT meal, menu FROM status_menu WHERE chid='$chid' AND daykey='$daykey'")) {
+        if ($result = get_db_result("SELECT meal, menu, rating FROM status_menu WHERE chid='$chid' AND daykey='$daykey'")) {
             while ($row = fetch_row($result)) {
                 if (array_key_exists($row["meal"], $menus)) {
                     $menus[$row["meal"]] = $row["menu"];
+                    $ratings[$row["meal"]] = $row["rating"];
                 }
             }
         }
@@ -758,6 +783,7 @@ if (!isset($STATUSLIB)) {
             "show_naptime_notice"  => $show_naptime_notice,
             "show_naptime_buttons" => $show_naptime_buttons,
             "menus"        => $menus,
+            "ratings"      => $ratings,
             "notes"        => $notes,
             "bottles"      => $bottles,
             "show_bottles" => $show_bottles,
@@ -1007,6 +1033,30 @@ if (!isset($STATUSLIB)) {
             execute_db_sql("UPDATE status_menu SET menu='$menuesc', timelog='$time' WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
         } else {
             execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, timelog) VALUES ('$chid','$day','$mealesc','$menuesc','$time')");
+        }
+        return status_get_day($chid, $day);
+    }
+
+    // Sets (or clears, with $rating = '') a child's rating of how a given
+    // meal went. Lives on the same status_menu row as the menu text, so
+    // rating one child never touches another child's rating.
+    function status_set_meal_rating($chid, $meal, $rating) {
+        global $STATUS_MEALS, $STATUS_MEAL_RATINGS;
+        if (!isset($STATUS_MEALS[$meal])) {
+            return false;
+        }
+        if ($rating !== '' && !isset($STATUS_MEAL_RATINGS[$rating])) {
+            return false;
+        }
+        $chid = intval($chid);
+        $day  = status_daykey();
+        $time = get_timestamp();
+        $mealesc   = dbescape($meal);
+        $ratingesc = dbescape($rating);
+        if (get_db_count("SELECT id FROM status_menu WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'")) {
+            execute_db_sql("UPDATE status_menu SET rating='$ratingesc', timelog='$time' WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
+        } else {
+            execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, rating, timelog) VALUES ('$chid','$day','$mealesc','','$ratingesc','$time')");
         }
         return status_get_day($chid, $day);
     }

@@ -14,6 +14,7 @@
         napDurations: [30, 60, 90, 120],
         bottleOunces: [1, 2, 3, 4, 5, 6, 7, 8],
         meals: {},
+        mealRatings: {},
         bottle: { label: 'Bottle', emoji: '\ud83c\udf7c', color: '#4DABF7' },
         tags: [],
         chid: null,
@@ -133,6 +134,7 @@
             state.moods = res.moods || {};
             state.pottyTypes = res.pottyTypes || {};
             state.meals = res.meals || {};
+            state.mealRatings = res.mealRatings || {};
             state.bottle = res.bottle || state.bottle;
             if (state.role === 'admin') {
                 state.quickNotes = res.quickNotes || {};
@@ -159,6 +161,7 @@
                 state.moods = res.moods || {};
                 state.pottyTypes = res.pottyTypes || {};
                 state.meals = res.meals || {};
+                state.mealRatings = res.mealRatings || {};
                 state.bottle = res.bottle || state.bottle;
                 if (res.role === 'admin') {
                     state.quickNotes = res.quickNotes || {};
@@ -624,9 +627,13 @@
         orderedMealKeys().forEach(function (mealKey) {
             var info = state.meals[mealKey];
             var text = (day.menus && day.menus[mealKey]) || '';
+            var ratingKey = (day.ratings && day.ratings[mealKey]) || '';
+            var ratingInfo = state.mealRatings[ratingKey];
             var section = document.createElement('section');
             section.className = 'card';
-            section.innerHTML = '<h2>' + info.emoji + ' ' + escapeHtml(info.label) + '</h2>' +
+            section.innerHTML = '<h2>' + info.emoji + ' ' + escapeHtml(info.label) +
+                (ratingInfo ? ' <span class="meal-rating-badge">' + ratingInfo.emoji + ' ' + escapeHtml(ratingInfo.label) + '</span>' : '') +
+                '</h2>' +
                 '<div class="menu-text"></div>' +
                 '<div class="empty-note" style="display:none;">No ' + escapeHtml(info.label.toLowerCase()) + ' menu posted for this day.</div>';
             section.querySelector('.menu-text').textContent = text;
@@ -667,27 +674,15 @@
             select.appendChild(opt);
             return;
         }
-
-        const isMobile = window.matchMedia("(pointer: coarse)").matches;
-        if (isMobile) {
-            state.children.forEach(function (c) {
-                var fam = c.family_name || 'Family';
-                var opt = document.createElement('option');
-                opt.value = c.chid;
-                opt.textContent = c.name;
-                select.appendChild(opt);
-            });
-        } else {
-            var groups = {};
-            state.children.forEach(function (c) {
-                var fam = c.family_name || 'Family';
-                if (!groups[fam]) { groups[fam] = document.createElement('optgroup'); groups[fam].label = fam; select.appendChild(groups[fam]); }
-                var opt = document.createElement('option');
-                opt.value = c.chid;
-                opt.textContent = c.name;
-                groups[fam].appendChild(opt);
-            });
-        }
+        var groups = {};
+        state.children.forEach(function (c) {
+            var fam = c.family_name || 'Family';
+            if (!groups[fam]) { groups[fam] = document.createElement('optgroup'); groups[fam].label = fam; select.appendChild(groups[fam]); }
+            var opt = document.createElement('option');
+            opt.value = c.chid;
+            opt.textContent = c.name;
+            groups[fam].appendChild(opt);
+        });
     }
 
     function renderMoodButtons() {
@@ -1328,11 +1323,32 @@
         wrap.appendChild(chipRow);
     }
 
+    // Tap an emoji to rate how this child ate this meal; tap the same one
+    // again to clear it. Instant-save, like mood/potty taps.
+    function renderMealRatingButtons(wrap, mealKey, currentRating) {
+        wrap.innerHTML = '';
+        Object.keys(state.mealRatings).forEach(function (key) {
+            var info = state.mealRatings[key];
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'meal-rating-btn' + (key === currentRating ? ' active' : '');
+            btn.innerHTML = '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>';
+            btn.addEventListener('click', function () {
+                var newRating = (key === currentRating) ? '' : key;
+                post('set_meal_rating', { chid: state.chid, meal: mealKey, rating: newRating }).then(function (res) {
+                    if (res.success) { renderAdminDay(res.day); }
+                });
+            });
+            wrap.appendChild(btn);
+        });
+    }
+
     function buildAdminMealPanel(mealKey, mealInfo, day) {
         var section = document.createElement('section');
         section.className = 'card';
         section.innerHTML =
             '<h2>' + mealInfo.emoji + ' ' + escapeHtml(mealInfo.label) + '</h2>' +
+            '<div class="meal-rating-buttons" data-role="rating-buttons"></div>' +
             '<div class="menu-suggestions" data-role="suggestions"></div>' +
             '<textarea class="app-textarea" rows="3" placeholder="' + escapeHtml(mealInfo.label) + ' menu\u2026" data-role="input"></textarea>' +
             '<div class="menu-actions">' +
@@ -1351,6 +1367,7 @@
             '</div>';
 
         var textarea    = section.querySelector('[data-role="input"]');
+        var ratingWrap  = section.querySelector('[data-role="rating-buttons"]');
         var suggestions = section.querySelector('[data-role="suggestions"]');
         var saveBtn      = section.querySelector('[data-role="save"]');
         var saveStatus   = section.querySelector('[data-role="save-status"]');
@@ -1360,6 +1377,7 @@
         var copyStatus   = section.querySelector('[data-role="copy-status"]');
 
         textarea.value = (day.menus && day.menus[mealKey]) || '';
+        renderMealRatingButtons(ratingWrap, mealKey, (day.ratings && day.ratings[mealKey]) || '');
 
         saveBtn.addEventListener('click', function () {
             post('save_menu', { chid: state.chid, meal: mealKey, menu: textarea.value }).then(function (res) {

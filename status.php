@@ -98,15 +98,16 @@ $sitename = htmlspecialchars($CFG->sitename);
                 <div class="empty-note" id="mood_empty" style="display:none;">No mood updates logged yet.</div>
             </section>
 
+            <section class="card" id="parent_bottle_card" style="display:none;">
+                <h2>🍼 Bottles</h2>
+                <div class="mood-timeline" id="parent_bottle_timeline"></div>
+                <div class="empty-note" id="parent_bottle_empty" style="display:none;">No bottles logged yet.</div>
+            </section>
+
             <section class="card">
                 <h2>🚽 Potty Time</h2>
                 <div class="potty-timeline" id="potty_timeline"></div>
                 <div class="empty-note" id="potty_empty" style="display:none;">No potty time entries yet.</div>
-            </section>
-
-            <section class="card" id="parent_incidents_card" style="display:none;">
-                <h2>🚨 Incidents</h2>
-                <div class="potty-timeline" id="parent_incidents_timeline"></div>
             </section>
 
             <section class="card" id="parent_naps_card" style="display:none;">
@@ -114,10 +115,9 @@ $sitename = htmlspecialchars($CFG->sitename);
                 <div class="mood-timeline" id="parent_naps_timeline"></div>
             </section>
 
-            <section class="card" id="parent_bottle_card" style="display:none;">
-                <h2>🍼 Bottles</h2>
-                <div class="mood-timeline" id="parent_bottle_timeline"></div>
-                <div class="empty-note" id="parent_bottle_empty" style="display:none;">No bottles logged yet.</div>
+            <section class="card" id="parent_incidents_card" style="display:none;">
+                <h2>🚨 Incidents</h2>
+                <div class="potty-timeline" id="parent_incidents_timeline"></div>
             </section>
 
             <div id="parent_meal_sections"></div>
@@ -146,16 +146,16 @@ $sitename = htmlspecialchars($CFG->sitename);
         <div class="day-label" id="admin_day_label">Today</div>
 
         <div class="admin-grid">
-            <section class="card" id="admin_naptime_card" style="display:none;">
-                <h2>😴 Naptime</h2>
-                <div class="naptime-buttons" id="naptime_buttons" style="display:none;"></div>
-                <div class="mood-timeline" id="admin_naps_timeline"></div>
-            </section>
-
             <section class="card">
                 <h2>😎 Mood</h2>
                 <div class="mood-buttons" id="mood_buttons"></div>
                 <div class="mood-timeline" id="admin_mood_timeline"></div>
+            </section>
+
+            <section class="card" id="admin_bottle_card" style="display:none;">
+                <h2>🍼 Bottles</h2>
+                <button type="button" class="primary-button" id="add_bottle_btn">+ Add Bottle</button>
+                <div class="mood-timeline" id="admin_bottle_timeline"></div>
             </section>
 
             <section class="card">
@@ -165,16 +165,16 @@ $sitename = htmlspecialchars($CFG->sitename);
                 <div class="quick-note-buttons" id="quick_note_buttons"></div>
             </section>
 
+            <section class="card" id="admin_naptime_card" style="display:none;">
+                <h2>😴 Naptime</h2>
+                <div class="naptime-buttons" id="naptime_buttons" style="display:none;"></div>
+                <div class="mood-timeline" id="admin_naps_timeline"></div>
+            </section>
+
             <section class="card">
                 <h2>🚀 Incidents Quick Report</h2>
                 <div class="incident-buttons" id="incident_buttons"></div>
                 <div class="potty-timeline" id="admin_incidents_timeline"></div>
-            </section>
-
-            <section class="card" id="admin_bottle_card" style="display:none;">
-                <h2>🍼 Bottles</h2>
-                <button type="button" class="primary-button" id="add_bottle_btn">+ Add Bottle</button>
-                <div class="mood-timeline" id="admin_bottle_timeline"></div>
             </section>
 
             <div id="admin_meal_sections"></div>

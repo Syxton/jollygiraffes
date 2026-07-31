@@ -75,6 +75,7 @@ switch ($action) {
                 "bottleOunces"  => $GLOBALS['STATUS_BOTTLE_OUNCES'],
                 "meals"    => $GLOBALS['STATUS_MEALS'],
                 "mealRatings" => $GLOBALS['STATUS_MEAL_RATINGS'],
+                "napRatings" => $GLOBALS['STATUS_NAP_RATINGS'],
                 "bottle"   => $GLOBALS['STATUS_BOTTLE_INFO'],
                 "tags"     => status_notes_tags(),
             ]);
@@ -89,6 +90,7 @@ switch ($action) {
                 "pottyTypes" => $GLOBALS['STATUS_POTTY_TYPES'],
                 "meals"    => $GLOBALS['STATUS_MEALS'],
                 "mealRatings" => $GLOBALS['STATUS_MEAL_RATINGS'],
+                "napRatings" => $GLOBALS['STATUS_NAP_RATINGS'],
                 "bottle"   => $GLOBALS['STATUS_BOTTLE_INFO'],
             ]);
         }
@@ -104,6 +106,7 @@ switch ($action) {
             $result['pottyTypes'] = $GLOBALS['STATUS_POTTY_TYPES'];
             $result['meals']    = $GLOBALS['STATUS_MEALS'];
             $result['mealRatings'] = $GLOBALS['STATUS_MEAL_RATINGS'];
+            $result['napRatings'] = $GLOBALS['STATUS_NAP_RATINGS'];
             $result['bottle']   = $GLOBALS['STATUS_BOTTLE_INFO'];
         }
         status_json($result);
@@ -122,6 +125,7 @@ switch ($action) {
             $result['bottleOunces']  = $GLOBALS['STATUS_BOTTLE_OUNCES'];
             $result['meals']    = $GLOBALS['STATUS_MEALS'];
             $result['mealRatings'] = $GLOBALS['STATUS_MEAL_RATINGS'];
+            $result['napRatings'] = $GLOBALS['STATUS_NAP_RATINGS'];
             $result['bottle']   = $GLOBALS['STATUS_BOTTLE_INFO'];
             $result['tags']     = status_notes_tags();
         }
@@ -230,6 +234,23 @@ switch ($action) {
         $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $day  = status_delete_nap($chid, $evid);
         status_json(["success" => true, "day" => $day]);
+        break;
+
+    case 'set_nap_rating':
+        status_require_admin();
+        $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $rating = isset($_POST['rating']) ? $_POST['rating'] : '';
+        $day    = status_set_nap_rating($chid, $rating);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Invalid rating."]);
+        break;
+
+    case 'set_nap_rating_all':
+        status_require_admin();
+        $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $rating = isset($_POST['rating']) ? $_POST['rating'] : '';
+        $written = status_set_nap_rating_for_all($rating);
+        $day = $chid ? status_get_day($chid) : false;
+        status_json(["success" => true, "written" => $written, "day" => $day]);
         break;
 
     case 'upload_attachment':
@@ -354,6 +375,16 @@ switch ($action) {
         $rating = isset($_POST['rating']) ? $_POST['rating'] : '';
         $day    = status_set_meal_rating($chid, $meal, $rating);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Invalid meal or rating."]);
+        break;
+
+    case 'set_meal_rating_all':
+        status_require_admin();
+        $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $meal   = isset($_POST['meal']) ? $_POST['meal'] : '';
+        $rating = isset($_POST['rating']) ? $_POST['rating'] : '';
+        $written = status_set_meal_rating_for_all($meal, $rating);
+        $day = $chid ? status_get_day($chid) : false;
+        status_json(["success" => true, "written" => $written, "day" => $day]);
         break;
 
     case 'copy_menu_to_children':

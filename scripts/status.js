@@ -15,6 +15,7 @@
         bottleOunces: [1, 2, 3, 4, 5, 6, 7, 8],
         meals: {},
         mealRatings: {},
+        napRatings: {},
         bottle: { label: 'Bottle', emoji: '\ud83c\udf7c', color: '#4DABF7' },
         tags: [],
         chid: null,
@@ -135,6 +136,7 @@
             state.pottyTypes = res.pottyTypes || {};
             state.meals = res.meals || {};
             state.mealRatings = res.mealRatings || {};
+            state.napRatings = res.napRatings || {};
             state.bottle = res.bottle || state.bottle;
             if (state.role === 'admin') {
                 state.quickNotes = res.quickNotes || {};
@@ -162,6 +164,7 @@
                 state.pottyTypes = res.pottyTypes || {};
                 state.meals = res.meals || {};
                 state.mealRatings = res.mealRatings || {};
+                state.napRatings = res.napRatings || {};
                 state.bottle = res.bottle || state.bottle;
                 if (res.role === 'admin') {
                     state.quickNotes = res.quickNotes || {};
@@ -494,7 +497,15 @@
 
         // Naptime history (read-only; card hidden entirely if none today)
         var napsCard = document.getElementById('parent_naps_card');
-        napsCard.style.display = day.naps.length ? '' : 'none';
+        var napRatingBadge = document.getElementById('parent_nap_rating_badge');
+        var napRatingInfo = day.show_nap_rating ? state.napRatings[day.nap_rating] : null;
+        if (napRatingInfo) {
+            napRatingBadge.textContent = napRatingInfo.emoji + ' ' + napRatingInfo.label;
+            napRatingBadge.style.display = '';
+        } else {
+            napRatingBadge.style.display = 'none';
+        }
+        napsCard.style.display = (day.naps.length || napRatingInfo) ? '' : 'none';
         if (day.naps.length) {
             var napsWrap = document.getElementById('parent_naps_timeline');
             napsWrap.innerHTML = '';
@@ -530,6 +541,27 @@
             item.innerHTML = '<div class="note-meta"><span>' + escapeHtml(n.tag_title) + '</span><span>' + escapeHtml(n.time) + '</span></div>' +
                 '<div class="note-text">' + escapeHtml(n.note) + '</div>';
             notesWrap.appendChild(item);
+        });
+    }
+
+    // Simple per-day nap rating for kids 2+ (no individually logged naps
+    // for that group). Same tap-to-set / tap-again-to-clear pattern as
+    // the meal rating buttons.
+    function renderNapRatingButtons(wrap, currentRating) {
+        wrap.innerHTML = '';
+        Object.keys(state.napRatings).forEach(function (key) {
+            var info = state.napRatings[key];
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'meal-rating-btn' + (key === currentRating ? ' active' : '');
+            btn.innerHTML = '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>';
+            btn.addEventListener('click', function () {
+                var newRating = (key === currentRating) ? '' : key;
+                post('set_nap_rating', { chid: state.chid, rating: newRating }).then(function (res) {
+                    if (res.success) { renderAdminDay(res.day); }
+                });
+            });
+            wrap.appendChild(btn);
         });
     }
 
@@ -1349,6 +1381,10 @@
         section.innerHTML =
             '<h2>' + mealInfo.emoji + ' ' + escapeHtml(mealInfo.label) + '</h2>' +
             '<div class="meal-rating-buttons" data-role="rating-buttons"></div>' +
+            '<div class="menu-actions" data-role="rating-actions">' +
+            '<button type="button" class="secondary-button" data-role="rating-set-all">Set for All Kids</button>' +
+            '<span class="save-status" data-role="rating-set-all-status"></span>' +
+            '</div>' +
             '<div class="menu-suggestions" data-role="suggestions"></div>' +
             '<textarea class="app-textarea" rows="3" placeholder="' + escapeHtml(mealInfo.label) + ' menu\u2026" data-role="input"></textarea>' +
             '<div class="menu-actions">' +
@@ -1368,6 +1404,8 @@
 
         var textarea    = section.querySelector('[data-role="input"]');
         var ratingWrap  = section.querySelector('[data-role="rating-buttons"]');
+        var ratingSetAllBtn    = section.querySelector('[data-role="rating-set-all"]');
+        var ratingSetAllStatus = section.querySelector('[data-role="rating-set-all-status"]');
         var suggestions = section.querySelector('[data-role="suggestions"]');
         var saveBtn      = section.querySelector('[data-role="save"]');
         var saveStatus   = section.querySelector('[data-role="save-status"]');
@@ -1378,6 +1416,25 @@
 
         textarea.value = (day.menus && day.menus[mealKey]) || '';
         renderMealRatingButtons(ratingWrap, mealKey, (day.ratings && day.ratings[mealKey]) || '');
+
+        ratingSetAllBtn.addEventListener('click', function () {
+            var current = (day.ratings && day.ratings[mealKey]) || '';
+            if (!current) {
+                ratingSetAllStatus.textContent = 'Set a rating for this child first.';
+                setTimeout(function () { ratingSetAllStatus.textContent = ''; }, 2500);
+                return;
+            }
+            post('set_meal_rating_all', { chid: state.chid, meal: mealKey, rating: current }).then(function (res) {
+                if (res.success) {
+                    var count = res.written.length;
+                    ratingSetAllStatus.textContent = count ?
+                        ('Set for ' + count + ' kid' + (count === 1 ? '' : 's') + '.') :
+                        'Everyone already had a rating.';
+                    setTimeout(function () { ratingSetAllStatus.textContent = ''; }, 2500);
+                    if (res.day) { renderAdminDay(res.day); }
+                }
+            });
+        });
 
         saveBtn.addEventListener('click', function () {
             post('save_menu', { chid: state.chid, meal: mealKey, menu: textarea.value }).then(function (res) {
@@ -1550,9 +1607,10 @@
         });
 
         // Naptime - one consolidated card: notice text shows for every
-        // child 1-3pm, buttons only for kids under the age cutoff, and
-        // history always shows below when there's any. Card itself is
-        // hidden entirely when none of the three apply.
+        // child 1-3pm, buttons only for kids under the age cutoff, history
+        // always shows below when there's any, and the simple rating
+        // (+ Set for All) shows for kids at/above the age cutoff instead.
+        // Card itself is hidden entirely when none of those apply.
         var naptimeCard = document.getElementById('admin_naptime_card');
         var noticeText = document.getElementById('admin_naptime_notice_text');
         var napBtnWrap = document.getElementById('naptime_buttons');
@@ -1581,7 +1639,36 @@
             napsWrap.appendChild(buildNapChip(nap, true));
         });
 
-        naptimeCard.style.display = (day.show_naptime_notice || day.show_naptime_buttons || day.naps.length) ? '' : 'none';
+        var napRatingWrap = document.getElementById('nap_rating_buttons');
+        var napRatingActions = document.getElementById('nap_rating_actions');
+        var napRatingSetAllBtn = document.getElementById('nap_rating_set_all_btn');
+        var napRatingSetAllStatus = document.getElementById('nap_rating_set_all_status');
+
+        napRatingWrap.style.display = day.show_nap_rating ? '' : 'none';
+        napRatingActions.style.display = day.show_nap_rating ? '' : 'none';
+        if (day.show_nap_rating) {
+            renderNapRatingButtons(napRatingWrap, day.nap_rating || '');
+            napRatingSetAllBtn.onclick = function () {
+                var current = day.nap_rating || '';
+                if (!current) {
+                    napRatingSetAllStatus.textContent = 'Set a rating for this child first.';
+                    setTimeout(function () { napRatingSetAllStatus.textContent = ''; }, 2500);
+                    return;
+                }
+                post('set_nap_rating_all', { chid: state.chid, rating: current }).then(function (res) {
+                    if (res.success) {
+                        var count = res.written.length;
+                        napRatingSetAllStatus.textContent = count ?
+                            ('Set for ' + count + ' kid' + (count === 1 ? '' : 's') + '.') :
+                            'Everyone already had a rating.';
+                        setTimeout(function () { napRatingSetAllStatus.textContent = ''; }, 2500);
+                        if (res.day) { renderAdminDay(res.day); }
+                    }
+                });
+            };
+        }
+
+        naptimeCard.style.display = (day.show_naptime_notice || day.show_naptime_buttons || day.naps.length || day.show_nap_rating) ? '' : 'none';
 
         // Bottles (only for children under the age cutoff)
         var bottleCard = document.getElementById('admin_bottle_card');

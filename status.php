@@ -32,7 +32,7 @@ $sitename = htmlspecialchars($CFG->sitename);
         type="text/javascript"
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026073100">
+    <link rel="stylesheet" href="css/status.css">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -111,7 +111,7 @@ $sitename = htmlspecialchars($CFG->sitename);
             </section>
 
             <section class="card" id="parent_naps_card" style="display:none;">
-                <h2>😴 Naptime</h2>
+                <h2>😴 Naptime<span class="meal-rating-badge" id="parent_nap_rating_badge" style="display:none;"></span></h2>
                 <div class="mood-timeline" id="parent_naps_timeline"></div>
             </section>
 
@@ -169,6 +169,11 @@ $sitename = htmlspecialchars($CFG->sitename);
                 <h2>😴 Naptime</h2>
                 <div class="naptime-buttons" id="naptime_buttons" style="display:none;"></div>
                 <div class="mood-timeline" id="admin_naps_timeline"></div>
+                <div class="meal-rating-buttons" id="nap_rating_buttons" style="display:none;"></div>
+                <div class="menu-actions" id="nap_rating_actions" style="display:none;">
+                    <button type="button" class="secondary-button" id="nap_rating_set_all_btn">Set for All 2+</button>
+                    <span class="save-status" id="nap_rating_set_all_status"></span>
+                </div>
             </section>
 
             <section class="card">
@@ -232,6 +237,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js?version=2026073100"></script>
+<script src="scripts/status.js"></script>
 </body>
 </html>

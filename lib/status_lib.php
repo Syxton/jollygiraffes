@@ -108,6 +108,16 @@ if (!isset($STATUSLIB)) {
     $GLOBALS['STATUS_NAP_WINDOW']     = ['start_hour' => 13, 'end_hour' => 15];
     $GLOBALS['STATUS_NAP_MAX_MONTHS'] = 24;
 
+    // Simple nap rating for kids at/above STATUS_NAP_MAX_MONTHS - they're
+    // not clocked in/out of naps individually, but staff can still record
+    // how the nap went. One rating per child/day (see status_nap_rating
+    // table) - don't rename existing keys once you have data.
+    $GLOBALS['STATUS_NAP_RATINGS'] = [
+        'slept_well' => ['label' => 'Slept Well', 'emoji' => '😴'],
+        'slept_ok'   => ['label' => 'Slept OK',   'emoji' => '😐'],
+        'restless'   => ['label' => 'Restless',   'emoji' => '😣'],
+    ];
+
     // -----------------------------------------------------------------
     // Migration - creates/alters tables on first run. Safe to call every
     // request. SHOW COLUMNS/INDEX return an empty-but-truthy result when
@@ -224,6 +234,20 @@ if (!isset($STATUSLIB)) {
         if (!status_column_exists('status_menu', 'rating')) {
             execute_db_sql("ALTER TABLE status_menu ADD COLUMN rating varchar(20) COLLATE utf8_unicode_ci NOT NULL DEFAULT ''");
         }
+
+        // status_nap_rating: simple one-rating-per-child/day nap rating for
+        // kids at/above STATUS_NAP_MAX_MONTHS, who don't get individual
+        // logged nap entries (see status_nap_rating() below).
+        execute_db_sql("
+            CREATE TABLE IF NOT EXISTS `status_nap_rating` (
+              `id` int(11) NOT NULL AUTO_INCREMENT,
+              `chid` int(11) NOT NULL,
+              `daykey` int(11) NOT NULL,
+              `rating` varchar(20) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+              `timelog` int(11) NOT NULL,
+              PRIMARY KEY (`id`),
+              UNIQUE KEY `chid_day` (`chid`,`daykey`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;");
 
         status_sync_family_access();
     }
@@ -727,6 +751,17 @@ if (!isset($STATUSLIB)) {
         $show_naptime_notice  = status_naptime_window_now();
         $show_naptime_buttons = status_eligible_for_naptime($child["birthdate"]);
 
+        // For kids at/above the nap-logging age cutoff, we don't track
+        // individual nap entries - we assume they napped and just record
+        // how it went via a simple per-day rating instead.
+        $nap_rating = "";
+        if (!$show_naptime_buttons) {
+            $row = get_db_row("SELECT rating FROM status_nap_rating WHERE chid='$chid' AND daykey='$daykey'");
+            if ($row) {
+                $nap_rating = $row["rating"];
+            }
+        }
+
         // Notes added via the status page only (daykey=0 = pre-existing/unrelated)
         $notes = [];
         if ($result = get_db_result("SELECT n.*, t.title AS tag_title, t.color AS tag_color, t.textcolor AS tag_textcolor
@@ -782,6 +817,8 @@ if (!isset($STATUSLIB)) {
             "naps"         => $naps,
             "show_naptime_notice"  => $show_naptime_notice,
             "show_naptime_buttons" => $show_naptime_buttons,
+            "nap_rating"       => $nap_rating,
+            "show_nap_rating"  => !$show_naptime_buttons,
             "menus"        => $menus,
             "ratings"      => $ratings,
             "notes"        => $notes,
@@ -945,6 +982,65 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid);
     }
 
+    // Simple per-day nap rating for kids at/above STATUS_NAP_MAX_MONTHS
+    // (no individually logged nap entries for that group - see
+    // status_get_day's show_nap_rating flag). $rating = '' clears it.
+    function status_set_nap_rating($chid, $rating) {
+        global $STATUS_NAP_RATINGS;
+        if ($rating !== '' && !isset($STATUS_NAP_RATINGS[$rating])) {
+            return false;
+        }
+        $chid = intval($chid);
+        $day  = status_daykey();
+        $time = get_timestamp();
+        $ratingesc = dbescape($rating);
+        if (get_db_count("SELECT id FROM status_nap_rating WHERE chid='$chid' AND daykey='$day'")) {
+            execute_db_sql("UPDATE status_nap_rating SET rating='$ratingesc', timelog='$time' WHERE chid='$chid' AND daykey='$day'");
+        } else {
+            execute_db_sql("INSERT INTO status_nap_rating (chid, daykey, rating, timelog) VALUES ('$chid','$day','$ratingesc','$time')");
+        }
+        return status_get_day($chid, $day);
+    }
+
+    // "Set for all" - applies one rating to every enrolled child who's in
+    // the simple-nap-rating group (age >= STATUS_NAP_MAX_MONTHS) and
+    // doesn't already have a rating set for today. Kids with an existing
+    // rating, or still on logged nap entries, are left untouched - this
+    // fills gaps, it doesn't overwrite an earlier per-child choice.
+    // Returns the chids written.
+    function status_set_nap_rating_for_all($rating) {
+        global $STATUS_NAP_RATINGS;
+        if ($rating !== '' && !isset($STATUS_NAP_RATINGS[$rating])) {
+            return [];
+        }
+        $day  = status_daykey();
+        $time = get_timestamp();
+        $ratingesc = dbescape($rating);
+        $written = [];
+        $SQL = "SELECT chid, birthdate FROM children
+                 WHERE deleted = 0
+                   AND chid IN (SELECT chid FROM enrollments WHERE pid = " . get_pid() . ")";
+        if ($result = get_db_result($SQL)) {
+            while ($row = fetch_row($result)) {
+                if (status_eligible_for_naptime($row["birthdate"])) {
+                    continue; // under the age cutoff - uses logged nap entries instead
+                }
+                $chid = intval($row["chid"]);
+                $existing = get_db_row("SELECT id, rating FROM status_nap_rating WHERE chid='$chid' AND daykey='$day'");
+                if ($existing) {
+                    if ($existing["rating"] !== '') {
+                        continue; // already rated - don't clobber it
+                    }
+                    execute_db_sql("UPDATE status_nap_rating SET rating='$ratingesc', timelog='$time' WHERE chid='$chid' AND daykey='$day'");
+                } else {
+                    execute_db_sql("INSERT INTO status_nap_rating (chid, daykey, rating, timelog) VALUES ('$chid','$day','$ratingesc','$time')");
+                }
+                $written[] = $chid;
+            }
+        }
+        return $written;
+    }
+
     // Adjust the time on an existing mood entry; leaves the mood itself alone.
     function status_edit_mood_time($chid, $evid, $hour, $minute) {
         global $STATUS_MOODS;
@@ -1059,6 +1155,46 @@ if (!isset($STATUSLIB)) {
             execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, rating, timelog) VALUES ('$chid','$day','$mealesc','','$ratingesc','$time')");
         }
         return status_get_day($chid, $day);
+    }
+
+    // "Set for All" - applies one rating to every enrolled child for a
+    // given meal who doesn't already have a rating set for it today
+    // (meal ratings aren't age-scoped, unlike nap ratings). Kids with an
+    // existing rating are left alone - this fills gaps, it doesn't
+    // overwrite staff's earlier per-child choices. Never touches the menu
+    // text itself. Returns chids written.
+    function status_set_meal_rating_for_all($meal, $rating) {
+        global $STATUS_MEALS, $STATUS_MEAL_RATINGS;
+        if (!isset($STATUS_MEALS[$meal])) {
+            return [];
+        }
+        if ($rating !== '' && !isset($STATUS_MEAL_RATINGS[$rating])) {
+            return [];
+        }
+        $day  = status_daykey();
+        $time = get_timestamp();
+        $mealesc   = dbescape($meal);
+        $ratingesc = dbescape($rating);
+        $written = [];
+        $SQL = "SELECT chid FROM children
+                 WHERE deleted = 0
+                   AND chid IN (SELECT chid FROM enrollments WHERE pid = " . get_pid() . ")";
+        if ($result = get_db_result($SQL)) {
+            while ($row = fetch_row($result)) {
+                $chid = intval($row["chid"]);
+                $existing = get_db_row("SELECT id, rating FROM status_menu WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
+                if ($existing) {
+                    if ($existing["rating"] !== '') {
+                        continue; // already rated - don't clobber it
+                    }
+                    execute_db_sql("UPDATE status_menu SET rating='$ratingesc', timelog='$time' WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
+                } else {
+                    execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, rating, timelog) VALUES ('$chid','$day','$mealesc','','$ratingesc','$time')");
+                }
+                $written[] = $chid;
+            }
+        }
+        return $written;
     }
 
     // Copies a menu to other kids, scoped to one meal only. Returns the chids written.

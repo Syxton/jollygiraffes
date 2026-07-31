@@ -170,6 +170,13 @@ if (!isset($STATUSLIB)) {
             execute_db_sql("ALTER TABLE accounts ADD UNIQUE KEY link_code (link_code)");
         }
 
+        // accounts.link_disabled: true when the family currently has no
+        // enrolled children - link_code gets replaced with an unguessable
+        // hash and the family disappears from the Family Links list.
+        if (!status_column_exists('accounts', 'link_disabled')) {
+            execute_db_sql("ALTER TABLE accounts ADD COLUMN link_disabled tinyint(1) NOT NULL DEFAULT '0'");
+        }
+
         // status_menu: the one new table (fresh installs get meal + the
         // 3-way unique key directly)
         execute_db_sql("
@@ -195,6 +202,8 @@ if (!isset($STATUSLIB)) {
                 execute_db_sql("ALTER TABLE status_menu ADD UNIQUE KEY chid_day_meal (chid,daykey,meal)");
             }
         }
+
+        status_sync_family_access();
     }
 
     // -----------------------------------------------------------------
@@ -261,6 +270,51 @@ if (!isset($STATUSLIB)) {
         return $text;
     }
 
+    // Whether a child currently has a live (non-deleted) enrollment in a
+    // non-deleted program.
+    function status_child_currently_enrolled($chid) {
+        $chid = intval($chid);
+        return (bool) get_db_count("
+            SELECT e.eid FROM enrollments e
+              JOIN programs p ON p.pid = e.pid
+             WHERE e.chid='$chid' AND e.deleted=0 AND p.deleted=0");
+    }
+
+    // Whether a family account has at least one currently-enrolled child.
+    function status_account_has_enrolled_children($aid) {
+        $aid = intval($aid);
+        return (bool) get_db_count("
+            SELECT c.chid FROM children c
+              JOIN enrollments e ON e.chid = c.chid
+              JOIN programs p ON p.pid = e.pid
+             WHERE c.aid='$aid' AND c.deleted=0 AND e.deleted=0 AND p.deleted=0");
+    }
+
+    function status_generate_link_hash() {
+        return bin2hex(random_bytes(16));
+    }
+
+    // Keeps link_code/link_disabled in sync with current enrollment: a
+    // family with no enrolled children gets its link replaced with an
+    // unguessable hash and hidden from Family Links; one that regains an
+    // enrolled child gets a normal slug-based link back.
+    function status_sync_family_access() {
+        $SQL = "SELECT aid, link_disabled FROM accounts WHERE deleted=0 AND admin=0";
+        if ($result = get_db_result($SQL)) {
+            while ($row = fetch_row($result)) {
+                $aid = (int) $row['aid'];
+                $hasEnrolled = status_account_has_enrolled_children($aid);
+                if (!$hasEnrolled && !$row['link_disabled']) {
+                    $hash = status_generate_link_hash();
+                    execute_db_sql("UPDATE accounts SET link_code='" . dbescape($hash) . "', link_disabled=1 WHERE aid='$aid'");
+                } elseif ($hasEnrolled && $row['link_disabled']) {
+                    execute_db_sql("UPDATE accounts SET link_disabled=0, link_code=NULL WHERE aid='$aid'");
+                    status_ensure_link_code($aid);
+                }
+            }
+        }
+    }
+
     function status_ensure_link_code($aid) {
         $existing = get_db_field("link_code", "accounts", "aid='" . intval($aid) . "'");
         if (!empty($existing)) {
@@ -297,7 +351,7 @@ if (!isset($STATUSLIB)) {
         if (!$code) {
             return false;
         }
-        $row = get_db_row("SELECT aid FROM accounts WHERE link_code='" . dbescape($code) . "' AND deleted=0");
+        $row = get_db_row("SELECT aid FROM accounts WHERE link_code='" . dbescape($code) . "' AND deleted=0 AND link_disabled=0");
         return $row ? $row["aid"] : false;
     }
 
@@ -348,6 +402,10 @@ if (!isset($STATUSLIB)) {
         if (!$account) {
             status_register_failed_attempt();
             return ["success" => false, "message" => "Incorrect PIN."];
+        }
+        if (!status_account_has_enrolled_children($aid)) {
+            status_register_failed_attempt();
+            return ["success" => false, "message" => "This account doesn't currently have any enrolled children."];
         }
         status_register_success();
         status_start_session();
@@ -484,7 +542,7 @@ if (!isset($STATUSLIB)) {
 
     function status_all_family_links() {
         $families = [];
-        $SQL = "SELECT * FROM accounts WHERE deleted=0 AND admin=0 ORDER BY name";
+        $SQL = "SELECT * FROM accounts WHERE deleted=0 AND admin=0 AND link_disabled=0 ORDER BY name";
         if ($result = get_db_result($SQL)) {
             while ($row = fetch_row($result)) {
                 $families[] = [
@@ -684,7 +742,7 @@ if (!isset($STATUSLIB)) {
             "avatar"     => '<div style="text-align:center;' . $kidpic . '" ' . $nokidpic . '></div>',
             "name"       => $child["first"] . " " . $child["last"],
             "daykey"     => $daykey,
-            "date_label" => get_date("l, F j, Y", $daykey + get_offset()),
+            "date_label" => get_date("l, F j, Y", $daykey),
             "is_today"   => $daykey == status_daykey(),
             "moods"        => $moods,
             "potty"        => $potty,

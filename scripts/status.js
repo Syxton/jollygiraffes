@@ -206,34 +206,34 @@
         input.type = 'time';
         input.className = 'time-edit-input';
 
-        var label = document.createElement('span');
-        label.className = 'time-edit-label';
+        //var label = document.createElement('span');
+        //label.className = 'time-edit-label';
 
         var okBtn = document.createElement('button');
         okBtn.type = 'button';
         okBtn.className = 'chip-icon-btn';
-        okBtn.textContent = '\u2713';
+        okBtn.textContent = '✔️';
         okBtn.title = 'Save time';
 
         var cancelBtn = document.createElement('button');
         cancelBtn.type = 'button';
         cancelBtn.className = 'chip-icon-btn';
-        cancelBtn.textContent = '\u2715';
+        cancelBtn.textContent = '❌';
         cancelBtn.title = 'Cancel';
 
         chip.innerHTML = '';
         chip.appendChild(input);
-        chip.appendChild(label);
+        //chip.appendChild(label);
         chip.appendChild(okBtn);
         chip.appendChild(cancelBtn);
 
         // Assign as a property (not just the HTML attribute) after the
         // input is in the DOM - more reliable across mobile browsers.
         input.value = currentHm || '';
-        updateTimeLabel(label, input.value);
+        //updateTimeLabel(label, input.value);
         input.focus();
 
-        input.addEventListener('input', function () { updateTimeLabel(label, input.value); });
+        //input.addEventListener('input', function () { updateTimeLabel(label, input.value); });
 
         okBtn.addEventListener('click', function () {
             var parts = (input.value || '00:00').split(':');
@@ -292,6 +292,7 @@
         navBound = true;
         document.getElementById('day_prev').addEventListener('click', function () { shiftDay(-1); });
         document.getElementById('day_next').addEventListener('click', function () { shiftDay(1); });
+        document.getElementById('day_label').addEventListener('click', openDatePicker);
         document.getElementById('parent_logout').addEventListener('click', logout);
 
         var swipeArea = document.getElementById('swipe_area');
@@ -316,6 +317,109 @@
         if (next > state.todayDaykey) { return; }
         if (next < state.todayDaykey - MIN_DAYS_BACK * 86400) { return; }
         fetchDayParent(next);
+    }
+
+    // ------------------------------------------------------------------
+    // Custom calendar date picker (parent view) - a native <input
+    // type="date"> renders inconsistently across mobile browsers, so this
+    // is a small in-app month grid instead: big tap targets, out-of-range
+    // days disabled, no OS-specific quirks.
+    //
+    // daykey is a server-side epoch that, per status_daykey()'s own
+    // convention, numerically represents local midnight as if it were
+    // UTC. Building/reading calendar dates with the UTC getters below
+    // (not local ones) keeps every calculation in that same convention,
+    // with no dependency on the browser's own timezone.
+    // ------------------------------------------------------------------
+    function daykeyFromCalendarDate(year, month, day) {
+        return Math.floor(Date.UTC(year, month, day) / 1000);
+    }
+    function calendarDateFromDaykey(daykey) {
+        var d = new Date(daykey * 1000);
+        return { year: d.getUTCFullYear(), month: d.getUTCMonth(), day: d.getUTCDate(), weekday: d.getUTCDay() };
+    }
+
+    var datePickerView = null; // { year, month } currently displayed
+
+    function openDatePicker() {
+        if (state.todayDaykey === null) { return; }
+        var cur = calendarDateFromDaykey(state.daykey !== null ? state.daykey : state.todayDaykey);
+        datePickerView = { year: cur.year, month: cur.month };
+        renderDatePicker();
+        document.getElementById('date_picker_overlay').style.display = '';
+    }
+
+    function closeDatePicker() {
+        document.getElementById('date_picker_overlay').style.display = 'none';
+    }
+
+    var MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    function renderDatePicker() {
+        var panel = document.getElementById('date_picker_panel');
+        var year = datePickerView.year, month = datePickerView.month;
+
+        var firstOfMonth = daykeyFromCalendarDate(year, month, 1);
+        var firstWeekday = calendarDateFromDaykey(firstOfMonth).weekday; // 0=Sun
+        var daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+
+        var minDaykey = state.todayDaykey - MIN_DAYS_BACK * 86400;
+        var maxDaykey = state.todayDaykey;
+        var atMaxMonth = (year === calendarDateFromDaykey(maxDaykey).year && month === calendarDateFromDaykey(maxDaykey).month);
+
+        var html = '<div class="potty-panel-header"><span>' + MONTH_NAMES[month] + ' ' + year + '</span>' +
+            '<button type="button" class="link-button" data-role="close">Close</button></div>';
+
+        html += '<div class="date-picker-nav">' +
+            '<button type="button" data-role="prev-month">\u2039 Prev</button>' +
+            '<button type="button" data-role="today">Today</button>' +
+            '<button type="button" data-role="next-month"' + (atMaxMonth ? ' disabled' : '') + '>Next \u203a</button>' +
+            '</div>';
+
+        html += '<div class="date-picker-grid date-picker-weekdays">';
+        ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(function (w) { html += '<div>' + w + '</div>'; });
+        html += '</div>';
+
+        html += '<div class="date-picker-grid">';
+        for (var i = 0; i < firstWeekday; i++) { html += '<div></div>'; }
+        for (var day = 1; day <= daysInMonth; day++) {
+            var dk = daykeyFromCalendarDate(year, month, day);
+            var disabled = dk < minDaykey || dk > maxDaykey;
+            var isSelected = dk === state.daykey;
+            var isToday = dk === state.todayDaykey;
+            html += '<button type="button" class="date-picker-day' +
+                (isSelected ? ' selected' : '') + (isToday ? ' today' : '') + '"' +
+                (disabled ? ' disabled' : '') + ' data-daykey="' + dk + '">' + day + '</button>';
+        }
+        html += '</div>';
+
+        panel.innerHTML = html;
+
+        panel.querySelector('[data-role="close"]').addEventListener('click', closeDatePicker);
+        panel.querySelector('[data-role="prev-month"]').addEventListener('click', function () {
+            datePickerView.month -= 1;
+            if (datePickerView.month < 0) { datePickerView.month = 11; datePickerView.year -= 1; }
+            renderDatePicker();
+        });
+        var nextBtn = panel.querySelector('[data-role="next-month"]');
+        if (!atMaxMonth) {
+            nextBtn.addEventListener('click', function () {
+                datePickerView.month += 1;
+                if (datePickerView.month > 11) { datePickerView.month = 0; datePickerView.year += 1; }
+                renderDatePicker();
+            });
+        }
+        panel.querySelector('[data-role="today"]').addEventListener('click', function () {
+            closeDatePicker();
+            fetchDayParent(state.todayDaykey);
+        });
+        panel.querySelectorAll('.date-picker-day:not([disabled])').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var dk = parseInt(btn.getAttribute('data-daykey'), 10);
+                closeDatePicker();
+                fetchDayParent(dk);
+            });
+        });
     }
 
     function fetchDayParent(daykey) {
@@ -355,7 +459,7 @@
             var chip = document.createElement('div');
             chip.className = 'mood-chip';
             chip.style.background = m.color;
-            chip.innerHTML = '<span class="emoji">' + m.emoji + '</span><span>' + escapeHtml(m.label) + ' \u00b7 ' + escapeHtml(m.time) + '</span>';
+            chip.innerHTML = '<span class="emoji">' + m.emoji + '</span><span>' + escapeHtml(m.label) + '</span><span>' + escapeHtml(m.time) + '</span>';
             moodWrap.appendChild(chip);
         });
 
@@ -464,7 +568,7 @@
         var amountStr = b.amount ? ' \u00b7 ' + b.amount + 'oz' : '';
         var content = document.createElement('span');
         content.className = 'mood-chip-content';
-        content.innerHTML = '<span class="emoji">' + state.bottle.emoji + '</span><span>' + escapeHtml(state.bottle.label) + amountStr + ' \u00b7 ' + escapeHtml(b.time) + '</span>';
+        content.innerHTML = '<span class="emoji">' + state.bottle.emoji + '</span><span>' + escapeHtml(state.bottle.label) + amountStr + '</span><span>' + escapeHtml(b.time) + '</span>';
         chip.appendChild(content);
 
         if (editable) {
@@ -647,7 +751,7 @@
 
         var content = document.createElement('span');
         content.className = 'mood-chip-content';
-        content.innerHTML = '<span class="emoji">' + p.emoji + '</span><span>' + escapeHtml(p.label) + extras + ' \u00b7 ' + escapeHtml(p.time) + '</span>';
+        content.innerHTML = '<span class="emoji">' + p.emoji + '</span><span>' + escapeHtml(p.label) + extras + '</span><span>' + escapeHtml(p.time) + '</span>';
         chip.appendChild(content);
 
         if (p.attachments && p.attachments.length) {
@@ -765,7 +869,7 @@
 
         var content = document.createElement('span');
         content.className = 'mood-chip-content';
-        content.innerHTML = '<span class="emoji">' + inc.emoji + '</span><span>' + escapeHtml(inc.label) + ' \u00b7 ' + escapeHtml(inc.time) + '</span>';
+        content.innerHTML = '<span class="emoji">' + inc.emoji + '</span><span>' + escapeHtml(inc.label) + '</span><span>' + escapeHtml(inc.time) + '</span>';
         chip.appendChild(content);
 
         if (inc.attachments && inc.attachments.length) {
@@ -1302,7 +1406,7 @@
 
         var content = document.createElement('span');
         content.className = 'mood-chip-content';
-        content.innerHTML = '<span class="emoji">' + m.emoji + '</span><span>' + escapeHtml(m.label) + ' \u00b7 ' + escapeHtml(m.time) + '</span>';
+        content.innerHTML = '<span class="emoji">' + m.emoji + '</span><span>' + escapeHtml(m.label) + '</span><span>' + escapeHtml(m.time) + '</span>';
         chip.appendChild(content);
 
         var clockBtn = document.createElement('button');

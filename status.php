@@ -65,7 +65,7 @@ $sitename = htmlspecialchars($CFG->sitename);
 
         <div class="day-nav">
             <button class="day-nav-btn" id="day_prev" aria-label="Previous day">&#8249;</button>
-            <div class="day-label" id="day_label">Today</div>
+            <button type="button" class="day-label" id="day_label">Today</button>
             <button class="day-nav-btn" id="day_next" aria-label="Next day">&#8250;</button>
         </div>
 
@@ -191,6 +191,11 @@ $sitename = htmlspecialchars($CFG->sitename);
     <!-- ATTACHMENT VIEWER (both views) - populated/shown by JS -->
     <div id="attachment_viewer_overlay" class="potty-panel-overlay" style="display:none;">
         <div class="potty-panel" id="attachment_viewer_panel"></div>
+    </div>
+
+    <!-- DATE PICKER (parent view) - populated/shown by JS -->
+    <div id="date_picker_overlay" class="potty-panel-overlay" style="display:none;">
+        <div class="potty-panel" id="date_picker_panel"></div>
     </div>
 
     <!-- FAMILY LINKS PANEL (admin) -->

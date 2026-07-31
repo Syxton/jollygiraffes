@@ -32,7 +32,7 @@ $sitename = htmlspecialchars($CFG->sitename);
         type="text/javascript"
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css">
+    <link rel="stylesheet" href="css/status.css&version=2026073100">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -232,6 +232,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js"></script>
+<script src="scripts/status.js&version=2026073100"></script>
 </body>
 </html>

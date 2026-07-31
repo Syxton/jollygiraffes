@@ -146,7 +146,7 @@ if (!isset($STATUSLIB)) {
         // events.note (Incidents free text) and events.amount (generic
         // numeric field: Nap minutes, Bottle ounces)
         if (!status_column_exists('events', 'note')) {
-            execute_db_sql("ALTER TABLE events ADD COLUMN note text COLLATE utf8_unicode_ci NOT NULL DEFAULT ('')");
+            execute_db_sql("ALTER TABLE events ADD COLUMN note text COLLATE utf8_unicode_ci NOT NULL DEFAULT ''");
         }
         if (!status_column_exists('events', 'amount')) {
             execute_db_sql("ALTER TABLE events ADD COLUMN amount int(11) NOT NULL DEFAULT '0'");
@@ -360,6 +360,7 @@ if (!isset($STATUSLIB)) {
     // -----------------------------------------------------------------
     function status_start_session() {
         if (session_status() !== PHP_SESSION_ACTIVE) {
+            ini_set('session.save_path', realpath(dirname(__FILE__) . '/tmp'));
             session_start();
         }
     }
@@ -521,12 +522,18 @@ if (!isset($STATUSLIB)) {
     }
 
     function status_all_children() {
+        global $CFG;
+        if (!isset($PAGELIB)) {
+            include_once($CFG->dirroot . '/lib/pagelib.php');
+        }
+
         $children = [];
-        $SQL = "SELECT c.*, a.name AS family_name
-                  FROM children c
-                  JOIN accounts a ON a.aid = c.aid
-                 WHERE c.deleted = 0
-                 ORDER BY a.name, c.first, c.last";
+        $SQL = 'SELECT c.*, a.name AS family_name
+                FROM children c
+                JOIN accounts a ON a.aid = c.aid
+                WHERE c.deleted = 0
+                AND chid IN (SELECT chid FROM enrollments WHERE pid = ' . get_pid() . ')
+                ORDER BY family_name, c.first';
         if ($result = get_db_result($SQL)) {
             while ($row = fetch_row($result)) {
                 $children[] = [

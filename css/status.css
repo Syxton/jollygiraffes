@@ -161,6 +161,7 @@ html, body {
     font-family: inherit;
     color: inherit;
 }
+#day_label {
     cursor: pointer;
     border-radius: 10px;
 }

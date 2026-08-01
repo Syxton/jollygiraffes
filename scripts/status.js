@@ -457,10 +457,11 @@
         var avatar = document.querySelector('#screen_parent #avatar');
         avatar.innerHTML = day.avatar;
 
-        // Mood
+        // Mood (card hidden entirely if none today)
+        var moodCard = document.getElementById('mood_card');
+        moodCard.style.display = day.moods.length ? '' : 'none';
         var moodWrap = document.getElementById('mood_timeline');
         moodWrap.innerHTML = '';
-        document.getElementById('mood_empty').style.display = day.moods.length ? 'none' : '';
         day.moods.forEach(function (m) {
             var chip = document.createElement('div');
             chip.className = 'mood-chip';
@@ -469,10 +470,11 @@
             moodWrap.appendChild(chip);
         });
 
-        // Potty Time (read-only)
+        // Potty Time (read-only; card hidden entirely if none today)
+        var pottyCard = document.getElementById('potty_card');
+        pottyCard.style.display = day.potty.length ? '' : 'none';
         var pottyWrap = document.getElementById('potty_timeline');
         pottyWrap.innerHTML = '';
-        document.getElementById('potty_empty').style.display = day.potty.length ? 'none' : '';
         day.potty.forEach(function (p) {
             pottyWrap.appendChild(buildPottyChip(p, false));
         });
@@ -514,13 +516,12 @@
             });
         }
 
-        // Bottles
+        // Bottles (card hidden entirely if none logged today)
         var bottleCard = document.getElementById('parent_bottle_card');
-        bottleCard.style.display = day.show_bottles ? '' : 'none';
-        if (day.show_bottles) {
+        bottleCard.style.display = (day.show_bottles && day.bottles.length) ? '' : 'none';
+        if (day.show_bottles && day.bottles.length) {
             var bWrap = document.getElementById('parent_bottle_timeline');
             bWrap.innerHTML = '';
-            document.getElementById('parent_bottle_empty').style.display = day.bottles.length ? 'none' : '';
             day.bottles.forEach(function (b) {
                 bWrap.appendChild(buildBottleChip(b, false));
             });
@@ -529,10 +530,10 @@
         // Menu (Breakfast / Lunch / Dinner)
         renderParentMealSections(day);
 
-        // Notes
+        // Notes (card hidden entirely if none today)
+        document.getElementById('notes_card').style.display = day.notes.length ? '' : 'none';
         var notesWrap = document.getElementById('notes_list');
         notesWrap.innerHTML = '';
-        document.getElementById('notes_empty').style.display = day.notes.length ? 'none' : '';
         day.notes.forEach(function (n) {
             var item = document.createElement('div');
             item.className = 'note-item';
@@ -575,6 +576,20 @@
         chip.appendChild(content);
 
         if (editable) {
+            var clockBtn = document.createElement('button');
+            clockBtn.type = 'button';
+            clockBtn.className = 'chip-icon-btn';
+            clockBtn.textContent = '\ud83d\udd50';
+            clockBtn.title = 'Change start time';
+            clockBtn.addEventListener('click', function () {
+                openTimeEditor(chip, nap.hm, function (hour, minute) {
+                    post('edit_nap_time', { chid: state.chid, evid: nap.evid, hour: hour, minute: minute }).then(function (res) {
+                        if (res.success) { renderAdminDay(res.day); }
+                    });
+                });
+            });
+            chip.appendChild(clockBtn);
+
             var delBtn = document.createElement('button');
             delBtn.type = 'button';
             delBtn.className = 'chip-icon-btn';
@@ -661,15 +676,18 @@
             var text = (day.menus && day.menus[mealKey]) || '';
             var ratingKey = (day.ratings && day.ratings[mealKey]) || '';
             var ratingInfo = state.mealRatings[ratingKey];
+            // Nothing posted or rated for this meal today - skip the
+            // section entirely rather than showing an empty card.
+            if (!text && !ratingInfo) {
+                return;
+            }
             var section = document.createElement('section');
             section.className = 'card';
             section.innerHTML = '<h2>' + info.emoji + ' ' + escapeHtml(info.label) +
                 (ratingInfo ? ' <span class="meal-rating-badge">' + ratingInfo.emoji + ' ' + escapeHtml(ratingInfo.label) + '</span>' : '') +
                 '</h2>' +
-                '<div class="menu-text"></div>' +
-                '<div class="empty-note" style="display:none;">No ' + escapeHtml(info.label.toLowerCase()) + ' menu posted for this day.</div>';
+                '<div class="menu-text"></div>';
             section.querySelector('.menu-text').textContent = text;
-            section.querySelector('.empty-note').style.display = text ? 'none' : '';
             container.appendChild(section);
         });
     }

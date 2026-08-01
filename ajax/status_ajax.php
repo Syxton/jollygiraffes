@@ -228,6 +228,16 @@ switch ($action) {
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't log that."]);
         break;
 
+    case 'edit_nap_time':
+        status_require_admin();
+        $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
+        $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
+        $day    = status_edit_nap_time($chid, $evid, $hour, $minute);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't update that."]);
+        break;
+
     case 'delete_nap':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;

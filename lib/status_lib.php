@@ -974,6 +974,22 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
+    // Adjust the start time on an existing nap entry; leaves the logged
+    // duration (amount) alone, same pattern as status_edit_mood_time() /
+    // status_edit_bottle_time().
+    function status_edit_nap_time($chid, $evid, $hour, $minute) {
+        global $STATUS_NAP_TAG;
+        $chid = intval($chid);
+        $evid = intval($evid);
+        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag='" . dbescape($STATUS_NAP_TAG) . "'")) {
+            return false;
+        }
+        $timelog = status_resolve_timelog($hour, $minute);
+        $day = status_daykey($timelog);
+        execute_db_sql("UPDATE events SET timelog='$timelog', daykey='$day' WHERE evid='$evid' AND chid='$chid'");
+        return status_get_day($chid, $day);
+    }
+
     function status_delete_nap($chid, $evid) {
         global $STATUS_NAP_TAG;
         $chid = intval($chid);

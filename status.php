@@ -32,7 +32,7 @@ $sitename = htmlspecialchars($CFG->sitename);
         type="text/javascript"
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026073102">
+    <link rel="stylesheet" href="css/status.css?version=2026073103">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -92,22 +92,19 @@ $sitename = htmlspecialchars($CFG->sitename);
         </div>
 
         <div class="swipe-area" id="swipe_area">
-            <section class="card">
+            <section class="card" id="mood_card" style="display:none;">
                 <h2>😎 Mood Today</h2>
                 <div class="mood-timeline" id="mood_timeline"></div>
-                <div class="empty-note" id="mood_empty" style="display:none;">No mood updates logged yet.</div>
             </section>
 
             <section class="card" id="parent_bottle_card" style="display:none;">
                 <h2>🍼 Bottles</h2>
                 <div class="mood-timeline" id="parent_bottle_timeline"></div>
-                <div class="empty-note" id="parent_bottle_empty" style="display:none;">No bottles logged yet.</div>
             </section>
 
-            <section class="card">
+            <section class="card" id="potty_card" style="display:none;">
                 <h2>🚽 Potty Time</h2>
                 <div class="potty-timeline" id="potty_timeline"></div>
-                <div class="empty-note" id="potty_empty" style="display:none;">No potty time entries yet.</div>
             </section>
 
             <section class="card" id="parent_naps_card" style="display:none;">
@@ -122,10 +119,9 @@ $sitename = htmlspecialchars($CFG->sitename);
 
             <div id="parent_meal_sections"></div>
 
-            <section class="card">
+            <section class="card" id="notes_card" style="display:none;">
                 <h2>📝 Notes</h2>
                 <div class="notes-list" id="notes_list"></div>
-                <div class="empty-note" id="notes_empty" style="display:none;">No notes for this day.</div>
             </section>
         </div>
     </div>
@@ -237,6 +233,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js?version=2026073102"></script>
+<script src="scripts/status.js?version=2026073103"></script>
 </body>
 </html>

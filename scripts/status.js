@@ -706,15 +706,27 @@
             select.appendChild(opt);
             return;
         }
-        var groups = {};
-        state.children.forEach(function (c) {
-            var fam = c.family_name || 'Family';
-            if (!groups[fam]) { groups[fam] = document.createElement('optgroup'); groups[fam].label = fam; select.appendChild(groups[fam]); }
-            var opt = document.createElement('option');
-            opt.value = c.chid;
-            opt.textContent = c.name;
-            groups[fam].appendChild(opt);
-        });
+
+        const isMobile = window.matchMedia("(pointer: coarse)").matches;
+        if (isMobile) {
+            state.children.forEach(function (c) {
+                var fam = c.family_name || 'Family';
+                var opt = document.createElement('option');
+                opt.value = c.chid;
+                opt.textContent = c.name;
+                select.appendChild(opt);
+            });
+        } else {
+            var groups = {};
+            state.children.forEach(function (c) {
+                var fam = c.family_name || 'Family';
+                if (!groups[fam]) { groups[fam] = document.createElement('optgroup'); groups[fam].label = fam; select.appendChild(groups[fam]); }
+                var opt = document.createElement('option');
+                opt.value = c.chid;
+                opt.textContent = c.name;
+                groups[fam].appendChild(opt);
+            });
+        }
     }
 
     function renderMoodButtons() {

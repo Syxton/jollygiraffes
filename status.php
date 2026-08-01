@@ -32,7 +32,7 @@ $sitename = htmlspecialchars($CFG->sitename);
         type="text/javascript"
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026073103">
+    <link rel="stylesheet" href="css/status.css?version=2026073106">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -145,44 +145,58 @@ $sitename = htmlspecialchars($CFG->sitename);
             <section class="card">
                 <h2>😎 Mood</h2>
                 <div class="mood-buttons" id="mood_buttons"></div>
-                <div class="mood-timeline" id="admin_mood_timeline"></div>
+                <button type="button" class="card-history-toggle" id="mood_card_toggle" style="display:none;"></button>
+                <div class="card-history" id="admin_mood_history">
+                    <div class="mood-timeline" id="admin_mood_timeline"></div>
+                </div>
             </section>
 
             <section class="card" id="admin_bottle_card" style="display:none;">
                 <h2>🍼 Bottles</h2>
                 <button type="button" class="primary-button" id="add_bottle_btn">+ Add Bottle</button>
-                <div class="mood-timeline" id="admin_bottle_timeline"></div>
+                <button type="button" class="card-history-toggle" id="bottle_card_toggle" style="display:none;"></button>
+                <div class="card-history" id="admin_bottle_history">
+                    <div class="mood-timeline" id="admin_bottle_timeline"></div>
+                </div>
             </section>
 
             <section class="card">
                 <h2>🚽 Potty Time</h2>
                 <div class="potty-type-buttons" id="potty_type_buttons"></div>
-                <div class="potty-timeline" id="admin_potty_timeline"></div>
+                <button type="button" class="card-history-toggle" id="potty_card_toggle" style="display:none;"></button>
+                <div class="card-history" id="admin_potty_history">
+                    <div class="potty-timeline" id="admin_potty_timeline"></div>
+                </div>
                 <div class="quick-note-buttons" id="quick_note_buttons"></div>
             </section>
 
             <section class="card" id="admin_naptime_card" style="display:none;">
                 <h2>😴 Naptime</h2>
                 <div class="naptime-buttons" id="naptime_buttons" style="display:none;"></div>
-                <div class="mood-timeline" id="admin_naps_timeline"></div>
                 <div class="meal-rating-buttons" id="nap_rating_buttons" style="display:none;"></div>
-                <div class="menu-actions" id="nap_rating_actions" style="display:none;">
-                    <button type="button" class="secondary-button" id="nap_rating_set_all_btn">Set for All 2+</button>
-                    <span class="save-status" id="nap_rating_set_all_status"></span>
+                <button type="button" class="card-history-toggle" id="naptime_card_toggle" style="display:none;"></button>
+                <div class="card-history" id="admin_naps_history">
+                    <div class="mood-timeline" id="admin_naps_timeline"></div>
                 </div>
             </section>
 
             <section class="card">
                 <h2>🚀 Incidents Quick Report</h2>
                 <div class="incident-buttons" id="incident_buttons"></div>
-                <div class="potty-timeline" id="admin_incidents_timeline"></div>
+                <button type="button" class="card-history-toggle" id="incidents_card_toggle" style="display:none;"></button>
+                <div class="card-history" id="admin_incidents_history">
+                    <div class="potty-timeline" id="admin_incidents_timeline"></div>
+                </div>
             </section>
 
             <div id="admin_meal_sections"></div>
 
             <section class="card">
                 <h2>📝 Notes</h2>
-                <div class="notes-list" id="admin_notes_list"></div>
+                <button type="button" class="card-history-toggle" id="notes_card_toggle" style="display:none;"></button>
+                <div class="card-history" id="admin_notes_history">
+                    <div class="notes-list" id="admin_notes_list"></div>
+                </div>
                 <div class="note-form">
                     <select id="note_tag_select"></select>
                     <textarea class="app-textarea" id="note_text_input" rows="2" placeholder="Write a note..."></textarea>
@@ -233,6 +247,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js?version=2026073103"></script>
+<script src="scripts/status.js?version=2026073106"></script>
 </body>
 </html>

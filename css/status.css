@@ -122,6 +122,48 @@ html, body {
     color: #7A828A;
 }
 
+.card-history-toggle {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+    background: #F1F3F5;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+    margin: 10px 0 0;
+}
+
+.card-history-toggle[aria-expanded="true"] {
+  border-radius: 10px 10px 0 0;
+}
+
+.card-history-toggle:hover {
+    transform: translateY(0px);
+}
+
+.card-history {
+    text-align: left;
+    background: #fff5f5;
+    padding: 10px 2px;
+    border-radius: 0 0 10px 10px;
+}
+
+.rating-set-all-btn {
+    flex: 0 0 44px;
+    border: 2px solid transparent;
+    background: #F1F3F5;
+    border-radius: 12px;
+    font-size: 20px;
+    color: #22282E;
+}
+.rating-set-all-btn:disabled {
+    opacity: 0.35;
+}
+
 .empty-note {
     color: #A6ACB2;
     font-size: 14px;

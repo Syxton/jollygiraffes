@@ -22,7 +22,8 @@
         todayDaykey: null,
         daykey: null,
         pin: '',
-        lastAdminDay: null
+        lastAdminDay: null,
+        cardCollapsed: {}
     };
 
     var MEAL_ORDER = ['breakfast', 'lunch', 'dinner'];
@@ -248,6 +249,128 @@
         cancelBtn.addEventListener('click', function () {
             if (state.lastAdminDay) { renderAdminDay(state.lastAdminDay); }
         });
+    }
+
+    // Admin cards collapse their "history" (the log of today's entries)
+    // behind a "Today's entries (N)" toggle that sits right where that
+    // history would otherwise appear, so the quick-log buttons stay put
+    // without a growing timeline pushing everything else down. The
+    // toggle itself only appears once there's something to show - an
+    // empty history has nothing to toggle. Defaults to collapsed;
+    // once the person taps it, that choice sticks for the rest of the
+    // session (re-renders after every log/edit shouldn't snap it back
+    // shut on them).
+
+    // Timers for the auto-recollapse below, keyed by cardId, so a second
+    // add within the window restarts the clock instead of stacking timers.
+    var cardCollapseTimers = {};
+
+    // Applies state.cardCollapsed[cardId] to a toggle/history pair that's
+    // already known to have entries - used both by applyCardCollapse
+    // below and by the auto-recollapse timer, which doesn't need to
+    // recheck the count since it's the one that just added an entry.
+    function updateCardCollapseDisplay(cardId, toggleId, historyId) {
+        var toggleBtn = document.getElementById(toggleId);
+        var historyEl = document.getElementById(historyId);
+        if (!toggleBtn || !historyEl || toggleBtn.style.display === 'none') { return; }
+        var collapsed = state.cardCollapsed[cardId];
+        var count = toggleBtn.getAttribute('data-count') || '0';
+        historyEl.style.display = collapsed ? 'none' : '';
+        toggleBtn.textContent = (collapsed ? '\u25b8 ' : '\u25be ') + "Today's entries (" + count + ')';
+        toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    }
+
+    // When something new gets logged, pop that card's history open (even
+    // if it was sitting collapsed) so the entry is visible, then quietly
+    // collapse it again after a pause. A manual toggle in the meantime
+    // cancels the pending auto-collapse rather than fighting the person.
+    function flashExpandCard(cardId, toggleId, historyId) {
+        if (cardCollapseTimers[cardId]) {
+            clearTimeout(cardCollapseTimers[cardId]);
+            cardCollapseTimers[cardId] = null;
+        }
+        state.cardCollapsed[cardId] = false;
+        cardCollapseTimers[cardId] = setTimeout(function () {
+            cardCollapseTimers[cardId] = null;
+            state.cardCollapsed[cardId] = true;
+            updateCardCollapseDisplay(cardId, toggleId, historyId);
+        }, 10000);
+    }
+
+    // count is how many entries are logged for this card today. Hides
+    // the toggle entirely (and the empty history under it) when there
+    // are none.
+    function applyCardCollapse(cardId, toggleId, historyId, count) {
+        var toggleBtn = document.getElementById(toggleId);
+        var historyEl = document.getElementById(historyId);
+        if (!toggleBtn || !historyEl) { return; }
+
+        if (!count) {
+            toggleBtn.style.display = 'none';
+            historyEl.style.display = 'none';
+            return;
+        }
+
+        toggleBtn.style.display = '';
+        toggleBtn.setAttribute('data-count', count);
+
+        if (state.cardCollapsed[cardId] === undefined) {
+            state.cardCollapsed[cardId] = true;
+        }
+
+        toggleBtn.onclick = function () {
+            if (cardCollapseTimers[cardId]) {
+                clearTimeout(cardCollapseTimers[cardId]);
+                cardCollapseTimers[cardId] = null;
+            }
+            state.cardCollapsed[cardId] = !state.cardCollapsed[cardId];
+            updateCardCollapseDisplay(cardId, toggleId, historyId);
+        };
+
+        updateCardCollapseDisplay(cardId, toggleId, historyId);
+    }
+
+    // Small icon button ("set this rating for every kid who doesn't have
+    // one yet today") shared by the meal-rating and nap-rating rows.
+    // Sits inline with the rating buttons instead of its own row, greys
+    // out until a rating is actually selected, and confirms before
+    // touching every child's record.
+    function buildSetAllButton(ratingsInfo, getCurrent, actionName, extraParams, confirmLabel) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'rating-set-all-btn';
+        btn.textContent = '\ud83d\udccb';
+        btn.title = 'Copy this rating to every kid without one today';
+
+        function refresh() {
+            btn.disabled = !getCurrent();
+        }
+        refresh();
+
+        btn.addEventListener('click', function () {
+            var current = getCurrent();
+            if (!current) { return; }
+            var label = (ratingsInfo[current] && ratingsInfo[current].label) || current;
+            if (!window.confirm('Set "' + label + '" (' + confirmLabel + ') for every other kid who doesn\'t already have a rating today?')) {
+                return;
+            }
+            var params = { chid: state.chid, rating: current };
+            for (var k in extraParams) { params[k] = extraParams[k]; }
+            btn.disabled = true;
+            post(actionName, params).then(function (res) {
+                if (res.success) {
+                    btn.textContent = '\u2705';
+                    setTimeout(function () {
+                        btn.textContent = '\ud83d\udccb';
+                        refresh();
+                    }, 1500);
+                } else {
+                    refresh();
+                }
+            });
+        });
+
+        return btn;
     }
 
     function logout(reload) {
@@ -564,6 +687,7 @@
             });
             wrap.appendChild(btn);
         });
+        wrap.appendChild(buildSetAllButton(state.napRatings, function () { return currentRating; }, 'set_nap_rating_all', {}, 'naptime'));
     }
 
     function buildNapChip(nap, editable) {
@@ -758,7 +882,10 @@
             btn.innerHTML = '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>';
             btn.addEventListener('click', function () {
                 post('add_mood', { chid: state.chid, mood: key }).then(function (res) {
-                    if (res.success) { renderAdminDay(res.day); }
+                    if (res.success) {
+                        flashExpandCard('mood', 'mood_card_toggle', 'admin_mood_history');
+                        renderAdminDay(res.day);
+                    }
                 });
             });
             wrap.appendChild(btn);
@@ -868,6 +995,7 @@
             btn.addEventListener('click', function () {
                 post('add_potty', { chid: state.chid, type: key }).then(function (res) {
                     if (res.success) {
+                        flashExpandCard('potty', 'potty_card_toggle', 'admin_potty_history');
                         renderAdminDay(res.day);
                         var entry = findPotty(res.day, res.evid);
                         if (entry) { openPottyPanel(entry); }
@@ -918,6 +1046,7 @@
             btn.addEventListener('click', function () {
                 post('add_incident', { chid: state.chid, type: key }).then(function (res) {
                     if (res.success) {
+                        flashExpandCard('incidents', 'incidents_card_toggle', 'admin_incidents_history');
                         renderAdminDay(res.day);
                         var entry = findByEvid(res.day.incidents, res.evid);
                         if (entry) { openIncidentPanel(entry); }
@@ -1278,6 +1407,7 @@
                 if (res.success) {
                     document.getElementById('note_text_input').value = '';
                     document.getElementById('note_notify_checkbox').checked = false;
+                    flashExpandCard('notes', 'notes_card_toggle', 'admin_notes_history');
                     renderAdminDay(res.day);
                 }
             });
@@ -1286,7 +1416,10 @@
         document.getElementById('add_bottle_btn').addEventListener('click', function () {
             openBottlePanel(function (ounces) {
                 post('add_bottle', { chid: state.chid, ounces: ounces }).then(function (res) {
-                    if (res.success) { renderAdminDay(res.day); }
+                    if (res.success) {
+                        flashExpandCard('bottles', 'bottle_card_toggle', 'admin_bottle_history');
+                        renderAdminDay(res.day);
+                    }
                 });
             });
         });
@@ -1403,6 +1536,7 @@
             });
             wrap.appendChild(btn);
         });
+        wrap.appendChild(buildSetAllButton(state.mealRatings, function () { return currentRating; }, 'set_meal_rating_all', { meal: mealKey }, mealKey));
     }
 
     function buildAdminMealPanel(mealKey, mealInfo, day) {
@@ -1411,10 +1545,6 @@
         section.innerHTML =
             '<h2>' + mealInfo.emoji + ' ' + escapeHtml(mealInfo.label) + '</h2>' +
             '<div class="meal-rating-buttons" data-role="rating-buttons"></div>' +
-            '<div class="menu-actions" data-role="rating-actions">' +
-            '<button type="button" class="secondary-button" data-role="rating-set-all">Set for All Kids</button>' +
-            '<span class="save-status" data-role="rating-set-all-status"></span>' +
-            '</div>' +
             '<div class="menu-suggestions" data-role="suggestions"></div>' +
             '<textarea class="app-textarea" rows="3" placeholder="' + escapeHtml(mealInfo.label) + ' menu\u2026" data-role="input"></textarea>' +
             '<div class="menu-actions">' +
@@ -1434,8 +1564,6 @@
 
         var textarea    = section.querySelector('[data-role="input"]');
         var ratingWrap  = section.querySelector('[data-role="rating-buttons"]');
-        var ratingSetAllBtn    = section.querySelector('[data-role="rating-set-all"]');
-        var ratingSetAllStatus = section.querySelector('[data-role="rating-set-all-status"]');
         var suggestions = section.querySelector('[data-role="suggestions"]');
         var saveBtn      = section.querySelector('[data-role="save"]');
         var saveStatus   = section.querySelector('[data-role="save-status"]');
@@ -1446,25 +1574,6 @@
 
         textarea.value = (day.menus && day.menus[mealKey]) || '';
         renderMealRatingButtons(ratingWrap, mealKey, (day.ratings && day.ratings[mealKey]) || '');
-
-        ratingSetAllBtn.addEventListener('click', function () {
-            var current = (day.ratings && day.ratings[mealKey]) || '';
-            if (!current) {
-                ratingSetAllStatus.textContent = 'Set a rating for this child first.';
-                setTimeout(function () { ratingSetAllStatus.textContent = ''; }, 2500);
-                return;
-            }
-            post('set_meal_rating_all', { chid: state.chid, meal: mealKey, rating: current }).then(function (res) {
-                if (res.success) {
-                    var count = res.written.length;
-                    ratingSetAllStatus.textContent = count ?
-                        ('Set for ' + count + ' kid' + (count === 1 ? '' : 's') + '.') :
-                        'Everyone already had a rating.';
-                    setTimeout(function () { ratingSetAllStatus.textContent = ''; }, 2500);
-                    if (res.day) { renderAdminDay(res.day); }
-                }
-            });
-        });
 
         saveBtn.addEventListener('click', function () {
             post('save_menu', { chid: state.chid, meal: mealKey, menu: textarea.value }).then(function (res) {
@@ -1621,6 +1730,7 @@
         day.moods.forEach(function (m) {
             moodWrap.appendChild(buildAdminMoodChip(m));
         });
+        applyCardCollapse('mood', 'mood_card_toggle', 'admin_mood_history', day.moods.length);
 
         // Potty Time (editable)
         var pottyWrap = document.getElementById('admin_potty_timeline');
@@ -1628,6 +1738,7 @@
         day.potty.forEach(function (p) {
             pottyWrap.appendChild(buildPottyChip(p, true));
         });
+        applyCardCollapse('potty', 'potty_card_toggle', 'admin_potty_history', day.potty.length);
 
         // Incidents Quick Report (editable)
         var incWrap = document.getElementById('admin_incidents_timeline');
@@ -1635,6 +1746,7 @@
         day.incidents.forEach(function (inc) {
             incWrap.appendChild(buildIncidentChip(inc, true));
         });
+        applyCardCollapse('incidents', 'incidents_card_toggle', 'admin_incidents_history', day.incidents.length);
 
         // Naptime - one consolidated card: notice text shows for every
         // child 1-3pm, buttons only for kids under the age cutoff, history
@@ -1656,7 +1768,10 @@
                 btn.textContent = mins + 'min';
                 btn.addEventListener('click', function () {
                     post('add_nap', { chid: state.chid, minutes: mins }).then(function (res) {
-                        if (res.success) { renderAdminDay(res.day); }
+                        if (res.success) {
+                            flashExpandCard('naps', 'naptime_card_toggle', 'admin_naps_history');
+                            renderAdminDay(res.day);
+                        }
                     });
                 });
                 napBtnWrap.appendChild(btn);
@@ -1668,34 +1783,13 @@
         day.naps.forEach(function (nap) {
             napsWrap.appendChild(buildNapChip(nap, true));
         });
+        applyCardCollapse('naps', 'naptime_card_toggle', 'admin_naps_history', day.naps.length);
 
         var napRatingWrap = document.getElementById('nap_rating_buttons');
-        var napRatingActions = document.getElementById('nap_rating_actions');
-        var napRatingSetAllBtn = document.getElementById('nap_rating_set_all_btn');
-        var napRatingSetAllStatus = document.getElementById('nap_rating_set_all_status');
 
         napRatingWrap.style.display = day.show_nap_rating ? '' : 'none';
-        napRatingActions.style.display = day.show_nap_rating ? '' : 'none';
         if (day.show_nap_rating) {
             renderNapRatingButtons(napRatingWrap, day.nap_rating || '');
-            napRatingSetAllBtn.onclick = function () {
-                var current = day.nap_rating || '';
-                if (!current) {
-                    napRatingSetAllStatus.textContent = 'Set a rating for this child first.';
-                    setTimeout(function () { napRatingSetAllStatus.textContent = ''; }, 2500);
-                    return;
-                }
-                post('set_nap_rating_all', { chid: state.chid, rating: current }).then(function (res) {
-                    if (res.success) {
-                        var count = res.written.length;
-                        napRatingSetAllStatus.textContent = count ?
-                            ('Set for ' + count + ' kid' + (count === 1 ? '' : 's') + '.') :
-                            'Everyone already had a rating.';
-                        setTimeout(function () { napRatingSetAllStatus.textContent = ''; }, 2500);
-                        if (res.day) { renderAdminDay(res.day); }
-                    }
-                });
-            };
         }
 
         naptimeCard.style.display = (day.show_naptime_notice || day.show_naptime_buttons || day.naps.length || day.show_nap_rating) ? '' : 'none';
@@ -1709,6 +1803,7 @@
             day.bottles.forEach(function (b) {
                 bWrap.appendChild(buildBottleChip(b, true));
             });
+            applyCardCollapse('bottles', 'bottle_card_toggle', 'admin_bottle_history', day.bottles.length);
         }
 
         renderAdminMealSections(day);
@@ -1732,6 +1827,7 @@
                 });
             });
         });
+        applyCardCollapse('notes', 'notes_card_toggle', 'admin_notes_history', day.notes.length);
     }
 
     // ------------------------------------------------------------------

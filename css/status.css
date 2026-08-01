@@ -257,7 +257,6 @@ html, body {
 .mood-chip-content {
     display: flex;
     align-items: center;
-    padding-right: 10px;
     gap: 3px;
     justify-content: space-between;
     width: 100%;

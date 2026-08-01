@@ -580,92 +580,87 @@
         var avatar = document.querySelector('#screen_parent #avatar');
         avatar.innerHTML = day.avatar;
 
-        // Mood (card hidden entirely if none today)
-        var moodCard = document.getElementById('mood_card');
-        moodCard.style.display = day.moods.length ? '' : 'none';
-        var moodWrap = document.getElementById('mood_timeline');
-        moodWrap.innerHTML = '';
-        day.moods.forEach(function (m) {
-            var chip = document.createElement('div');
-            chip.className = 'mood-chip';
-            chip.style.background = m.color;
-            chip.innerHTML = '<span class="emoji">' + m.emoji + '</span><span>' + escapeHtml(m.label) + '</span><span>' + escapeHtml(m.time) + '</span>';
-            moodWrap.appendChild(chip);
+        document.getElementById('parent_naptime_notice_text').style.display = day.show_naptime_notice ? '' : 'none';
+
+        // Notify notes are pulled out and pinned above everything else -
+        // they're the notes staff specifically flagged to catch a
+        // parent's eye, not just another moment in the day.
+        var notifyNotes = day.notes.filter(function (n) { return n.notify; });
+        var notifyCard = document.getElementById('parent_notify_card');
+        notifyCard.style.display = notifyNotes.length ? '' : 'none';
+        var notifyWrap = document.getElementById('parent_notify_notes');
+        notifyWrap.innerHTML = '';
+        notifyNotes.forEach(function (n) {
+            notifyWrap.appendChild(buildParentNoteChip(n));
         });
 
-        // Potty Time (read-only; card hidden entirely if none today)
-        var pottyCard = document.getElementById('potty_card');
-        pottyCard.style.display = day.potty.length ? '' : 'none';
-        var pottyWrap = document.getElementById('potty_timeline');
-        pottyWrap.innerHTML = '';
-        day.potty.forEach(function (p) {
-            pottyWrap.appendChild(buildPottyChip(p, false));
-        });
-
-        // Incidents (read-only; card hidden entirely if none today)
-        var incCard = document.getElementById('parent_incidents_card');
-        incCard.style.display = day.incidents.length ? '' : 'none';
-        if (day.incidents.length) {
-            var incWrap = document.getElementById('parent_incidents_timeline');
-            incWrap.innerHTML = '';
-            day.incidents.forEach(function (inc) {
-                incWrap.appendChild(buildIncidentChip(inc, false));
-            });
-        }
-        // Naptime - one consolidated card: notice text shows for every
-        // child 1-3pm, buttons only for kids under the age cutoff, and
-        // history always shows below when there's any. Card itself is
-        // hidden entirely when none of the three apply.
-        var noticeText = document.getElementById('parent_naptime_notice_text');
-
-        noticeText.style.display = day.show_naptime_notice ? '' : 'none';
-
-        // Naptime history (read-only; card hidden entirely if none today)
-        var napsCard = document.getElementById('parent_naps_card');
-        var napRatingBadge = document.getElementById('parent_nap_rating_badge');
-        var napRatingInfo = day.show_nap_rating ? state.napRatings[day.nap_rating] : null;
-        if (napRatingInfo) {
-            napRatingBadge.textContent = napRatingInfo.emoji + ' ' + napRatingInfo.label;
-            napRatingBadge.style.display = '';
-        } else {
-            napRatingBadge.style.display = 'none';
-        }
-        napsCard.style.display = (day.naps.length || napRatingInfo) ? '' : 'none';
-        if (day.naps.length) {
-            var napsWrap = document.getElementById('parent_naps_timeline');
-            napsWrap.innerHTML = '';
-            day.naps.forEach(function (nap) {
-                napsWrap.appendChild(buildNapChip(nap, false));
-            });
-        }
-
-        // Bottles (card hidden entirely if none logged today)
-        var bottleCard = document.getElementById('parent_bottle_card');
-        bottleCard.style.display = (day.show_bottles && day.bottles.length) ? '' : 'none';
-        if (day.show_bottles && day.bottles.length) {
-            var bWrap = document.getElementById('parent_bottle_timeline');
-            bWrap.innerHTML = '';
-            day.bottles.forEach(function (b) {
-                bWrap.appendChild(buildBottleChip(b, false));
-            });
-        }
-
-        // Menu (Breakfast / Lunch / Dinner)
+        // Menu (Breakfast / Lunch / Dinner) - not a timestamped event, so
+        // it sits above the timeline as context for the day rather than
+        // slotted in among the chips.
         renderParentMealSections(day);
 
-        // Notes (card hidden entirely if none today)
-        document.getElementById('notes_card').style.display = day.notes.length ? '' : 'none';
-        var notesWrap = document.getElementById('notes_list');
-        notesWrap.innerHTML = '';
-        day.notes.forEach(function (n) {
-            var item = document.createElement('div');
-            item.className = 'note-item';
-            item.style.background = n.color;
-            item.style.color = n.textcolor;
-            item.innerHTML = '<div class="note-meta"><span>' + escapeHtml(n.tag_title) + '</span><span>' + escapeHtml(n.time) + '</span></div>' +
-                '<div class="note-text">' + escapeHtml(n.note) + '</div>';
-            notesWrap.appendChild(item);
+        // Naptime rating (kids 2+ get a single per-day rating instead of
+        // logged nap times, so it has no "time" to sort into the
+        // timeline either).
+        var napRatingCard = document.getElementById('parent_nap_rating_card');
+        var napRatingInfo = day.show_nap_rating ? state.napRatings[day.nap_rating] : null;
+        napRatingCard.style.display = napRatingInfo ? '' : 'none';
+        if (napRatingInfo) {
+            var napChip = document.getElementById('parent_nap_rating_chip');
+            napChip.innerHTML = '<span class="emoji">' + napRatingInfo.emoji + '</span><span>' + escapeHtml(napRatingInfo.label) + '</span>';
+        }
+
+        // Everything else - mood, potty, bottles, logged naps, incidents,
+        // and regular (non-notify) notes - flows into one chronological
+        // timeline, chip after chip, instead of being split into
+        // separate areas.
+        var entries = [];
+        day.moods.forEach(function (m) {
+            entries.push({ hm: m.hm, node: buildParentMoodChip(m) });
         });
+        day.potty.forEach(function (p) {
+            entries.push({ hm: p.hm, node: buildPottyChip(p, false) });
+        });
+        if (day.show_bottles) {
+            day.bottles.forEach(function (b) {
+                entries.push({ hm: b.hm, node: buildBottleChip(b, false) });
+            });
+        }
+        day.naps.forEach(function (nap) {
+            entries.push({ hm: nap.hm, node: buildNapChip(nap, false) });
+        });
+        day.incidents.forEach(function (inc) {
+            entries.push({ hm: inc.hm, node: buildIncidentChip(inc, false) });
+        });
+        day.notes.filter(function (n) { return !n.notify; }).forEach(function (n) {
+            entries.push({ hm: n.hm, node: buildParentNoteChip(n) });
+        });
+        entries.sort(function (a, b) {
+            return a.hm < b.hm ? -1 : (a.hm > b.hm ? 1 : 0);
+        });
+
+        var timelineWrap = document.getElementById('parent_timeline');
+        timelineWrap.innerHTML = '';
+        entries.forEach(function (entry) { timelineWrap.appendChild(entry.node); });
+        document.getElementById('parent_timeline_empty').style.display = entries.length ? 'none' : '';
+    }
+
+    function buildParentMoodChip(m) {
+        var chip = document.createElement('div');
+        chip.className = 'mood-chip';
+        chip.style.background = m.color;
+        chip.innerHTML = '<span class="emoji">' + m.emoji + '</span><span>' + escapeHtml(m.label) + '</span><span>' + escapeHtml(m.time) + '</span>';
+        return chip;
+    }
+
+    function buildParentNoteChip(n) {
+        var item = document.createElement('div');
+        item.className = 'note-item';
+        item.style.background = n.color;
+        item.style.color = n.textcolor;
+        item.innerHTML = '<div class="note-meta"><span class="note-tag">' + escapeHtml(n.tag_title) + '</span><span class="note-time">' + escapeHtml(n.time) + '</span></div>' +
+            '<div class="note-text">' + escapeHtml(n.note) + '</div>';
+        return item;
     }
 
     // Simple per-day nap rating for kids 2+ (no individually logged naps
@@ -696,7 +691,7 @@
 
         var content = document.createElement('span');
         content.className = 'mood-chip-content';
-        content.innerHTML = '<span class="emoji">\ud83d\ude34</span><span>' + nap.minutes + ' min nap \u00b7 started ' + escapeHtml(nap.time) + '</span>';
+        content.innerHTML = '<span class="emoji">\ud83d\ude34</span><span>' + nap.minutes + ' min nap started</span><span>' + escapeHtml(nap.time) + '</span>';
         chip.appendChild(content);
 
         if (editable) {
@@ -814,6 +809,7 @@
             section.querySelector('.menu-text').textContent = text;
             container.appendChild(section);
         });
+        container.style.display = container.children.length ? '' : 'none';
     }
 
     // ==================================================================
@@ -908,7 +904,7 @@
         var badge = document.createElement('button');
         badge.type = 'button';
         badge.className = 'attachment-badge';
-        badge.innerHTML = '\ud83d\udcf7 ' + attachments.length;
+        badge.innerHTML = '<i class="fa-solid fa-camera"></i>';
         badge.title = attachments.length === 1 ? 'View attachment' : 'View ' + attachments.length + ' attachments';
         badge.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -926,7 +922,7 @@
         attachments.forEach(function (a) {
             var isImage = /\.(jpg|jpeg|png|gif|webp|heic)$/i.test(a.filename);
             html += '<a href="' + a.url + '" target="_blank" class="attachment-viewer-item">' +
-                (isImage ? '<img src="' + a.url + '" alt="attachment">' : '\ud83d\udcc4 ' + escapeHtml(a.filename)) +
+                (isImage ? '<img src="' + a.url + '" alt="attachment">' : '📷 ' + escapeHtml(a.filename)) +
                 '</a>';
         });
         html += '</div>';
@@ -951,12 +947,26 @@
 
         var content = document.createElement('span');
         content.className = 'mood-chip-content';
-        content.innerHTML = '<span class="emoji">' + p.emoji + '</span><span>' + escapeHtml(p.label) + extras + '</span><span>' + escapeHtml(p.time) + '</span>';
-        chip.appendChild(content);
+
+        var emoji = document.createElement('span');
+        emoji.className = 'emoji';
+        emoji.textContent = p.emoji;
+        content.appendChild(emoji);
+
+        var label = document.createElement('span');
+        label.textContent = escapeHtml(p.label) + extras;
 
         if (p.attachments && p.attachments.length) {
-            chip.appendChild(buildAttachmentBadge(p.attachments));
+            let badge = buildAttachmentBadge(p.attachments);
+            label.appendChild(badge);
         }
+        content.appendChild(label);
+
+        var time = document.createElement('span');
+        time.textContent = escapeHtml(p.time);
+        content.appendChild(time);
+
+        chip.appendChild(content);
 
         if (editable) {
             var editBtn = document.createElement('button');
@@ -1071,12 +1081,26 @@
 
         var content = document.createElement('span');
         content.className = 'mood-chip-content';
-        content.innerHTML = '<span class="emoji">' + inc.emoji + '</span><span>' + escapeHtml(inc.label) + '</span><span>' + escapeHtml(inc.time) + '</span>';
-        chip.appendChild(content);
+
+        var emoji = document.createElement('span');
+        emoji.className = 'emoji';
+        emoji.textContent = inc.emoji;
+        content.appendChild(emoji);
+
+        var label = document.createElement('span');
+        label.textContent = escapeHtml(inc.label);
 
         if (inc.attachments && inc.attachments.length) {
-            chip.appendChild(buildAttachmentBadge(inc.attachments));
+            let badge = buildAttachmentBadge(inc.attachments);
+            label.appendChild(badge);
         }
+        content.appendChild(label);
+
+        var time = document.createElement('span');
+        time.textContent = escapeHtml(inc.time);
+        content.appendChild(time);
+
+        chip.appendChild(content);
 
         if (editable) {
             var editBtn = document.createElement('button');
@@ -1140,7 +1164,8 @@
 
         var html = '<div class="potty-panel-header">' +
             '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>' +
-            '<button type="button" class="link-button" data-role="close">Done</button>' +
+            '<label class="potty-attach-icon-btn" title="Add Photo">\ud83d\udcf7' +
+            '<input type="file" data-role="file" accept="image/*,.pdf" multiple style="display:none;"></label>' +
             '</div>';
 
         html += '<div class="potty-type-switch">';
@@ -1155,9 +1180,11 @@
 
         html += '<textarea class="app-textarea" data-role="note" rows="3" placeholder="What happened?"></textarea>';
 
-        html += '<div class="potty-attachments" data-role="attachments"></div>' +
-            '<label class="secondary-button potty-attach-btn">\ud83d\udcf7 Add Photo' +
-            '<input type="file" data-role="file" accept="image/*,.pdf" multiple style="display:none;"></label>';
+        html += '<div class="potty-attachments" data-role="attachments"></div>';
+
+        html += '<div class="potty-panel-footer">' +
+            '<button type="button" class="primary-button" data-role="close">\ud83d\udcbe Save</button>' +
+            '</div>';
 
         panel.innerHTML = html;
 
@@ -1245,7 +1272,8 @@
 
         var html = '<div class="potty-panel-header">' +
             '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>' +
-            '<button type="button" class="link-button" data-role="close">Done</button>' +
+            '<label class="potty-attach-icon-btn" title="Add Photo">\ud83d\udcf7' +
+            '<input type="file" data-role="file" accept="image/*,.pdf" multiple style="display:none;"></label>' +
             '</div>';
 
         html += '<div class="potty-type-switch">';
@@ -1268,9 +1296,11 @@
                 '<label><input class="styled-checkbox" type="checkbox" data-role="pooped"' + (p.pooped ? ' checked' : '') + '> \ud83d\udca9 Pooped</label></div>';
         }
 
-        html += '<div class="potty-attachments" data-role="attachments"></div>' +
-            '<label class="secondary-button potty-attach-btn">\ud83d\udcf7 Add Photo' +
-            '<input type="file" data-role="file" accept="image/*,.pdf" multiple style="display:none;"></label>';
+        html += '<div class="potty-attachments" data-role="attachments"></div>';
+
+        html += '<div class="potty-panel-footer">' +
+            '<button type="button" class="primary-button" data-role="close">\ud83d\udcbe Save</button>' +
+            '</div>';
 
         panel.innerHTML = html;
 
@@ -1815,7 +1845,7 @@
             item.className = 'note-item';
             item.style.background = n.color;
             item.style.color = n.textcolor;
-            item.innerHTML = '<div class="note-meta"><span>' + (n.notify ? ' \ud83d\udd14' : '') + escapeHtml(n.tag_title) + '</span><span>' + escapeHtml(n.time) + '</span></div>' +
+            item.innerHTML = '<div class="note-meta"><span class="note-tag">' + (n.notify ? ' \ud83d\udd14' : '') + escapeHtml(n.tag_title) + '</span><span class="note-time">' + escapeHtml(n.time) + '</span></div>' +
                 '<div class="note-text">' + escapeHtml(n.note) + '</div>' +
                 '<button title="Delete" type="button" class="note-delete" data-nid="' + n.nid + '"></button>';
             notesWrap.appendChild(item);

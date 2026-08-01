@@ -134,22 +134,11 @@ html, body {
     font-size: 14px;
     font-weight: 600;
     color: #495057;
-    margin: 10px 0 0;
-}
-
-.card-history-toggle[aria-expanded="true"] {
-  border-radius: 10px 10px 0 0;
-}
-
-.card-history-toggle:hover {
-    transform: translateY(0px);
+    margin: 10px 0;
 }
 
 .card-history {
     text-align: left;
-    background: #fff5f5;
-    padding: 10px 2px;
-    border-radius: 0 0 10px 10px;
 }
 
 .rating-set-all-btn {
@@ -256,6 +245,7 @@ html, body {
     align-items: center;
     gap: 5px;
     width: 100%;
+    box-sizing: border-box;
     padding: 8px 12px;
     border-radius: 20px;
     color: #fff;
@@ -503,14 +493,18 @@ html, body {
 .note-item {
     border-radius: 12px;
     padding: 10px 12px;
+    width: 100%;
+    box-sizing: border-box;
 }
 .note-item .note-meta {
     display: flex;
     justify-content: space-between;
-    font-size: 14px;
+    font-size: 18px;
     opacity: 0.85;
     margin-bottom: 8px;
     align-items: center;
+}
+span.note-tag {
     font-weight: bold;
 }
 .note-item .note-text {
@@ -654,11 +648,24 @@ html, body {
 }
 
 @media (min-width: 700px) {
-    .admin-grid, #swipe_area {
+    .admin-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         max-width: 900px;
         margin: 0 auto;
+    }
+    #swipe_area {
+        display: grid;
+        grid-template-columns: 1fr;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    /* The day's timeline is the main event and always spans the full
+       width; the smaller context cards above it (notify notes, meals,
+       naptime rating) share the two columns only when they're actually
+       present, so an empty/hidden one never leaves a blank column. */
+    #parent_timeline_card {
+        grid-column: 1 / -1;
     }
 }
 
@@ -842,11 +849,25 @@ html, body {
     padding: 0;
 }
 
-.potty-attach-btn {
+.potty-attach-icon-btn {
+    margin-left: auto;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    font-size: 20px;
+    line-height: 1;
     cursor: pointer;
+    background: none;
+    padding: 4px;
+}
+
+.potty-panel-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+.potty-panel-footer .primary-button {
+    width: auto;
+    padding: 10px 20px;
 }
 
 /* ---------- Potty/Incident timeline row spacing ---------- */
@@ -866,14 +887,15 @@ html, body {
 .attachment-badge {
     border: none;
     border-radius: 16px;
-    background: rgba(255,255,255,0.9);
-    color: #22282E;
+    background: none;
+    color: #bfc1c7;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 23px;
     padding: 6px 10px;
     margin-left: 4px;
     display: inline-flex;
     align-items: center;
+    vertical-align: middle;
     gap: 4px;
 }
 

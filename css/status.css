@@ -511,13 +511,11 @@ span.note-tag {
     line-height: 1.4;
 }
 .note-item .note-delete {
-    background: none;
     border: none;
     font-size: 16px;
     opacity: 0.85;
     padding: 0;
     color: white;
-    padding: 5px 0 0;
     float: right;
 }
 

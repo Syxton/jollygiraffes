@@ -1847,7 +1847,7 @@
             item.style.color = n.textcolor;
             item.innerHTML = '<div class="note-meta"><span class="note-tag">' + (n.notify ? ' \ud83d\udd14' : '') + escapeHtml(n.tag_title) + '</span><span class="note-time">' + escapeHtml(n.time) + '</span></div>' +
                 '<div class="note-text">' + escapeHtml(n.note) + '</div>' +
-                '<button title="Delete" type="button" class="note-delete" data-nid="' + n.nid + '"></button>';
+                '<button title="Delete" type="button" class="note-delete chip-icon-btn" data-nid="' + n.nid + '"></button>';
             notesWrap.appendChild(item);
         });
         notesWrap.querySelectorAll('.note-delete').forEach(function (btn) {

@@ -29,7 +29,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 <title>Daily Status - <?php echo $sitename; ?></title>
     <!-- Font Awesome -->
     <script data-search-pseudo-elements defer
-        type="text/javascript"
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
     <link rel="stylesheet" href="css/status.css?version=2026073110">

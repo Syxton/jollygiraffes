@@ -220,6 +220,8 @@ function smart_resize_image(
             imagejpeg($image_resized, $output, $quality);
             break;
         case IMAGETYPE_PNG:
+            // Scale quality from 0-100 to 0-9
+            $quality = 9 - round(($quality / 100) * 9);
             imagepng($image_resized, $output, $quality);
             break;
         default:

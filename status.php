@@ -31,7 +31,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <script data-search-pseudo-elements defer
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026073111">
+    <link rel="stylesheet" href="css/status.css?version=2026080804">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -102,6 +102,11 @@ $sitename = htmlspecialchars($CFG->sitename);
 
             <div id="parent_meal_sections"></div>
 
+            <section class="card" id="parent_activities_card" style="display:none;">
+                <h2>🎨 Activities</h2>
+                <div class="activity-chips" id="parent_activity_chips"></div>
+            </section>
+
             <section class="card" id="parent_nap_rating_card" style="display:none;">
                 <h2>😴 Naptime</h2>
                 <div class="mood-timeline">
@@ -128,7 +133,11 @@ $sitename = htmlspecialchars($CFG->sitename);
         <select id="admin_child_select" class="child-select"></select>
 
         <div class="naptime-notice-text" id="admin_naptime_notice_text" style="display:none;">Shhh... It's naptime (1pm - 3pm).</div>
-        <div class="child_avatar" id="avatar"></div>
+        <div class="avatar-editable" id="avatar_wrap">
+            <div class="child_avatar" id="avatar"></div>
+            <button type="button" class="avatar-upload-btn" id="avatar_upload_btn" title="Change Photo">📷</button>
+            <input type="file" id="avatar_upload_input" accept="image/*" style="display:none;">
+        </div>
 
         <div class="day-label" id="admin_day_label">Today</div>
 
@@ -139,6 +148,21 @@ $sitename = htmlspecialchars($CFG->sitename);
                 <button type="button" class="card-history-toggle" id="mood_card_toggle" style="display:none;"></button>
                 <div class="card-history" id="admin_mood_history">
                     <div class="mood-timeline" id="admin_mood_timeline"></div>
+                </div>
+            </section>
+
+            <section class="card" id="admin_activities_card">
+                <h2>🎨 Activities</h2>
+                <div class="activity-buttons" id="activity_buttons"></div>
+                <button type="button" class="secondary-button" id="activities_copy_toggle">Copy to Kids&hellip;</button>
+                <span class="save-status" id="activities_copy_status"></span>
+                <div class="menu-copy-panel" id="activities_copy_panel" style="display:none;">
+                    <p class="muted menu-copy-hint">Copy today's activities to:</p>
+                    <div class="menu-copy-list" id="activities_copy_list"></div>
+                    <div class="menu-copy-buttons">
+                        <button type="button" class="link-button" id="activities_copy_cancel">Cancel</button>
+                        <button type="button" class="primary-button" id="activities_copy_confirm">Copy</button>
+                    </div>
                 </div>
             </section>
 
@@ -216,6 +240,11 @@ $sitename = htmlspecialchars($CFG->sitename);
         <div class="potty-panel" id="bottle_panel"></div>
     </div>
 
+    <!-- ACTIVITY photo panel (admin) - populated/shown by JS -->
+    <div id="activity_panel_overlay" class="potty-panel-overlay" style="display:none;">
+        <div class="potty-panel" id="activity_panel"></div>
+    </div>
+
     <!-- ATTACHMENT VIEWER (both views) - populated/shown by JS -->
     <div id="attachment_viewer_overlay" class="potty-panel-overlay" style="display:none;">
         <div class="potty-panel" id="attachment_viewer_panel"></div>
@@ -238,6 +267,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js?version=2026073111"></script>
+<script src="scripts/status.js?version=2026080804"></script>
 </body>
 </html>

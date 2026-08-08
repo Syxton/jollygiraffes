@@ -15,6 +15,7 @@
         bottleOunces: [1, 2, 3, 4, 5, 6, 7, 8],
         meals: {},
         mealRatings: {},
+        activities: {},
         napRatings: {},
         bottle: { label: 'Bottle', emoji: '\ud83c\udf7c', color: '#4DABF7' },
         tags: [],
@@ -33,6 +34,18 @@
         var keys = Object.keys(state.meals);
         keys.sort(function (a, b) {
             var ia = MEAL_ORDER.indexOf(a), ib = MEAL_ORDER.indexOf(b);
+            if (ia === -1) { ia = 99; }
+            if (ib === -1) { ib = 99; }
+            return ia - ib;
+        });
+        return keys;
+    }
+
+    var ACTIVITY_ORDER = ['books', 'outdoor_playground', 'indoor_playground', 'art', 'pretend_play', 'sensory', 'belly_time', 'videos'];
+    function orderedActivityKeys() {
+        var keys = Object.keys(state.activities);
+        keys.sort(function (a, b) {
+            var ia = ACTIVITY_ORDER.indexOf(a), ib = ACTIVITY_ORDER.indexOf(b);
             if (ia === -1) { ia = 99; }
             if (ib === -1) { ib = 99; }
             return ia - ib;
@@ -139,6 +152,7 @@
             state.pottyTypes = res.pottyTypes || {};
             state.meals = res.meals || {};
             state.mealRatings = res.mealRatings || {};
+            state.activities = res.activities || {};
             state.napRatings = res.napRatings || {};
             state.bottle = res.bottle || state.bottle;
             if (state.role === 'admin') {
@@ -167,6 +181,7 @@
                 state.pottyTypes = res.pottyTypes || {};
                 state.meals = res.meals || {};
                 state.mealRatings = res.mealRatings || {};
+                state.activities = res.activities || {};
                 state.napRatings = res.napRatings || {};
                 state.bottle = res.bottle || state.bottle;
                 if (res.role === 'admin') {
@@ -606,6 +621,9 @@
         // slotted in among the chips.
         renderParentMealSections(day);
 
+        // Activities - same idea: a set for the day, not a timeline entry.
+        renderParentActivitiesSection(day);
+
         // Naptime rating (kids 2+ get a single per-day rating instead of
         // logged nap times, so it has no "time" to sort into the
         // timeline either).
@@ -817,6 +835,32 @@
             container.appendChild(section);
         });
         container.style.display = container.children.length ? '' : 'none';
+    }
+
+    // ------------------------------------------------------------------
+    // Activities - read-only chips for parents. Card hides entirely when
+    // nothing's been checked yet today.
+    // ------------------------------------------------------------------
+    function renderParentActivitiesSection(day) {
+        var card = document.getElementById('parent_activities_card');
+        var wrap = document.getElementById('parent_activity_chips');
+        wrap.innerHTML = '';
+        var activities = day.activities || {};
+        var any = false;
+        orderedActivityKeys().forEach(function (key) {
+            var entry = activities[key];
+            if (!entry || !entry.on) { return; }
+            any = true;
+            var info = state.activities[key];
+            var chip = document.createElement('span');
+            chip.className = 'activity-chip';
+            chip.innerHTML = '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>';
+            if (entry.attachments && entry.attachments.length) {
+                chip.appendChild(buildAttachmentBadge(entry.attachments));
+            }
+            wrap.appendChild(chip);
+        });
+        card.style.display = any ? '' : 'none';
     }
 
     // ==================================================================
@@ -1493,6 +1537,30 @@
                 });
             });
         });
+
+        bindActivitiesCopyPanel();
+
+        document.getElementById('avatar_upload_btn').addEventListener('click', function () {
+            document.getElementById('avatar_upload_input').click();
+        });
+        document.getElementById('avatar_upload_input').addEventListener('change', function (e) {
+            var file = e.target.files && e.target.files[0];
+            e.target.value = '';
+            if (!file || !state.chid) { return; }
+            var formData = new FormData();
+            formData.append('action', 'upload_avatar');
+            formData.append('chid', state.chid);
+            formData.append('file', file);
+            fetch('ajax/status_ajax.php', { method: 'POST', body: formData })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (res.success) {
+                        renderAdminDay(res.day);
+                    } else {
+                        alert(res.message || 'Upload failed.');
+                    }
+                });
+        });
     }
 
     // ------------------------------------------------------------------
@@ -1697,6 +1765,179 @@
     }
 
     // ------------------------------------------------------------------
+    // Activities - multi-select toggle buttons (unlike mood/potty, more
+    // than one can be active at once) with a "Copy to Kids" panel that
+    // mirrors today's whole checked set onto other children.
+    // ------------------------------------------------------------------
+    function renderActivitiesCopyList(wrap) {
+        wrap.innerHTML = '';
+        var others = state.children.filter(function (c) { return c.chid !== state.chid; });
+        if (!others.length) {
+            wrap.innerHTML = '<p class="muted">No other kids to copy to.</p>';
+            return;
+        }
+        var groups = {};
+        others.forEach(function (c) {
+            var fam = c.family_name || 'Family';
+            if (!groups[fam]) {
+                var group = document.createElement('div');
+                group.className = 'menu-copy-group';
+                var title = document.createElement('div');
+                title.className = 'menu-copy-group-title';
+                title.textContent = fam;
+                group.appendChild(title);
+                groups[fam] = group;
+                wrap.appendChild(group);
+            }
+            var label = document.createElement('label');
+            label.className = 'menu-copy-item';
+            label.innerHTML = '<input class="styled-checkbox" type="checkbox" value="' + c.chid + '"> ' + escapeHtml(c.name);
+            groups[fam].appendChild(label);
+        });
+    }
+
+    function renderAdminActivities(day) {
+        var buttonsWrap = document.getElementById('activity_buttons');
+        buttonsWrap.innerHTML = '';
+        var activities = day.activities || {};
+
+        orderedActivityKeys().forEach(function (key) {
+            var info = state.activities[key];
+            var entry = activities[key] || { on: false, arid: 0, attachments: [] };
+
+            var wrap = document.createElement('div');
+            wrap.className = 'activity-btn-wrap';
+
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'activity-btn' + (entry.on ? ' active' : '');
+            btn.innerHTML = '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>';
+            btn.addEventListener('click', function () {
+                post('toggle_activity', { chid: state.chid, activity: key, on: entry.on ? '' : '1' }).then(function (res) {
+                    if (res.success) { renderAdminDay(res.day); }
+                });
+            });
+            wrap.appendChild(btn);
+
+            // Photo button only shows once an activity is checked - same
+            // as Potty Time/Incidents, which only offer attachments on an
+            // entry that already exists.
+            if (entry.on) {
+                var camBtn = document.createElement('button');
+                camBtn.type = 'button';
+                camBtn.className = 'activity-attach-btn' + (entry.attachments.length ? ' has-attachments' : '');
+                camBtn.innerHTML = '<i class="fa-solid fa-camera"></i>' +
+                    (entry.attachments.length ? '<span class="attach-count">' + entry.attachments.length + '</span>' : '');
+                camBtn.title = entry.attachments.length ? 'View/add photos' : 'Add a photo';
+                camBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    openActivityPanel(info, entry.arid, entry.attachments);
+                });
+                wrap.appendChild(camBtn);
+            }
+
+            buttonsWrap.appendChild(wrap);
+        });
+    }
+
+    // Simple photo panel for one Activities entry - just a header with an
+    // "Add Photo" control and the attachment grid, no type/time/note
+    // fields since there's nothing else to edit here.
+    function openActivityPanel(info, arid, attachments) {
+        var overlay = document.getElementById('activity_panel_overlay');
+        var panel = document.getElementById('activity_panel');
+        var panelState = { attachments: attachments || [] };
+
+        var html = '<div class="potty-panel-header">' +
+            '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>' +
+            '<label class="potty-attach-icon-btn" title="Add Photo">\ud83d\udcf7' +
+            '<input type="file" data-role="file" accept="image/*" multiple style="display:none;"></label>' +
+            '</div>' +
+            '<div class="potty-attachments" data-role="attachments"></div>' +
+            '<div class="potty-panel-footer">' +
+            '<button type="button" class="primary-button" data-role="close">Done</button>' +
+            '</div>';
+        panel.innerHTML = html;
+
+        panel.querySelector('[data-role="close"]').addEventListener('click', function () {
+            overlay.style.display = 'none';
+        });
+
+        renderAttachmentGrid(panel.querySelector('[data-role="attachments"]'), panelState, function () { return arid; });
+
+        panel.querySelector('[data-role="file"]').addEventListener('change', function (e) {
+            uploadActivityAttachments(e.target.files, arid, panelState, function () {
+                renderAttachmentGrid(panel.querySelector('[data-role="attachments"]'), panelState, function () { return arid; });
+                fetchDayAdmin();
+            });
+            e.target.value = '';
+        });
+
+        overlay.style.display = '';
+    }
+
+    // Same sequential-upload pattern as uploadAttachments(), just posting
+    // 'arid' (an Activities row) instead of 'evid'+'context'.
+    function uploadActivityAttachments(fileList, arid, panelState, onDone) {
+        var files = Array.prototype.slice.call(fileList);
+        if (!files.length) { return; }
+
+        function uploadNext(i) {
+            if (i >= files.length) { onDone(); return; }
+            var formData = new FormData();
+            formData.append('action', 'upload_attachment');
+            formData.append('chid', state.chid);
+            formData.append('arid', arid);
+            formData.append('file', files[i]);
+            fetch('ajax/status_ajax.php', { method: 'POST', body: formData })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (res.success) {
+                        panelState.attachments = res.attachments;
+                    } else {
+                        alert(res.message || 'Upload failed.');
+                    }
+                    uploadNext(i + 1);
+                });
+        }
+        uploadNext(0);
+    }
+
+    function bindActivitiesCopyPanel() {
+        var toggle  = document.getElementById('activities_copy_toggle');
+        var panel   = document.getElementById('activities_copy_panel');
+        var list    = document.getElementById('activities_copy_list');
+        var status_ = document.getElementById('activities_copy_status');
+
+        toggle.addEventListener('click', function () {
+            var opening = panel.style.display === 'none';
+            panel.style.display = opening ? '' : 'none';
+            if (opening) { renderActivitiesCopyList(list); }
+        });
+        document.getElementById('activities_copy_cancel').addEventListener('click', function () {
+            panel.style.display = 'none';
+        });
+        document.getElementById('activities_copy_confirm').addEventListener('click', function () {
+            var checked = list.querySelectorAll('input[type="checkbox"]:checked');
+            var chids = Array.prototype.map.call(checked, function (cb) { return cb.value; });
+            if (!chids.length) {
+                status_.textContent = 'Select at least one child.';
+                return;
+            }
+            post('copy_activities_to_children', { chid: state.chid, chids: chids.join(',') }).then(function (res) {
+                if (res.success) {
+                    var count = res.written.length;
+                    status_.textContent = 'Copied to ' + count + ' kid' + (count === 1 ? '' : 's') + '.';
+                    panel.style.display = 'none';
+                } else {
+                    status_.textContent = res.message || 'Could not copy.';
+                }
+                setTimeout(function () { status_.textContent = ''; }, 2500);
+            });
+        });
+    }
+
+    // ------------------------------------------------------------------
     // Mood - admin chips are editable (change which mood it was) and
     // deletable, unlike the read-only parent chips.
     // ------------------------------------------------------------------
@@ -1877,6 +2118,7 @@
         }
 
         renderAdminMealSections(day);
+        renderAdminActivities(day);
 
         var notesWrap = document.getElementById('admin_notes_list');
         notesWrap.innerHTML = '';

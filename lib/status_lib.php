@@ -84,6 +84,21 @@ if (!isset($STATUSLIB)) {
         'not_hungry' => ['label' => 'Not Hungry', 'emoji' => '😕'],
     ];
 
+    // Activities: multi-select (unlike moods/potty, several can be true
+    // for the same child/day at once). Stored as one row per child/day/
+    // activity in status_activity - presence of a row means it happened.
+    // Don't rename existing keys once you have data.
+    $GLOBALS['STATUS_ACTIVITIES'] = [
+        'books'              => ['label' => 'Books',              'emoji' => '📚'],
+        'outdoor_playground' => ['label' => 'Outdoor Playground', 'emoji' => '🛝'],
+        'indoor_playground'  => ['label' => 'Indoor Playground',  'emoji' => '🏠'],
+        'art'                => ['label' => 'Art',                'emoji' => '🎨'],
+        'pretend_play'       => ['label' => 'Pretend Play',       'emoji' => '🎭'],
+        'sensory'            => ['label' => 'Sensory',            'emoji' => '🖐️'],
+        'belly_time'         => ['label' => 'Belly Time',         'emoji' => '🐢'],
+        'videos'             => ['label' => 'Videos',             'emoji' => '📺'],
+    ];
+
     // Bottles: a timestamped tap like moods, only shown under this age.
     $GLOBALS['STATUS_BOTTLE_TAG']        = 'bottle';
     $GLOBALS['STATUS_BOTTLE_INFO']       = ['label' => 'Bottle', 'emoji' => '🍼', 'color' => '#4DABF7'];
@@ -248,6 +263,39 @@ if (!isset($STATUSLIB)) {
               PRIMARY KEY (`id`),
               UNIQUE KEY `chid_day` (`chid`,`daykey`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;");
+
+        // documents.arid links an attachment to one Activities entry
+        // (status_activity row) - kept separate from evid (events table)
+        // so ids from the two tables can never collide for the same child.
+        if (!status_column_exists('documents', 'arid')) {
+            execute_db_sql("ALTER TABLE documents ADD COLUMN arid int(11) NOT NULL DEFAULT '0'");
+            execute_db_sql("ALTER TABLE documents ADD KEY arid (arid)");
+        }
+
+        // status_activity: multi-select, so unlike status_menu (one row
+        // per meal slot) this is one row per child/day/activity. The row
+        // persists once created even when unchecked (active=0) so photo
+        // attachments stay linked to it if the activity gets re-checked
+        // later the same day - only explicit attachment deletion removes
+        // them.
+        execute_db_sql("
+            CREATE TABLE IF NOT EXISTS `status_activity` (
+              `id` int(11) NOT NULL AUTO_INCREMENT,
+              `chid` int(11) NOT NULL,
+              `daykey` int(11) NOT NULL,
+              `activity` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+              `active` tinyint(1) NOT NULL DEFAULT '1',
+              `timelog` int(11) NOT NULL,
+              PRIMARY KEY (`id`),
+              UNIQUE KEY `chid_day_activity` (`chid`,`daykey`,`activity`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;");
+
+        // Upgrade path: `active` didn't exist when this table was first
+        // introduced (presence of a row = on, toggling off deleted it).
+        // Existing rows all represented "on", so they default to active=1.
+        if (!status_column_exists('status_activity', 'active')) {
+            execute_db_sql("ALTER TABLE status_activity ADD COLUMN active tinyint(1) NOT NULL DEFAULT '1'");
+        }
 
         status_sync_family_access();
     }
@@ -698,7 +746,7 @@ if (!isset($STATUSLIB)) {
     // Day data
     // -----------------------------------------------------------------
     function status_get_day($chid, $daykey = false) {
-        global $STATUS_MOODS, $STATUS_POTTY_TYPES, $STATUS_MEALS, $STATUS_INCIDENT_TYPES, $STATUS_NAP_TAG, $CFG;
+        global $STATUS_MOODS, $STATUS_POTTY_TYPES, $STATUS_MEALS, $STATUS_ACTIVITIES, $STATUS_INCIDENT_TYPES, $STATUS_NAP_TAG, $CFG;
 
         if (!isset($PAGELIB)) {
             include_once($CFG->dirroot . '/lib/pagelib.php');
@@ -852,6 +900,28 @@ if (!isset($STATUSLIB)) {
             }
         }
 
+        // Activities - multi-select, so this is the set of activity keys
+        // with a row for this child/day, each carrying whether it's
+        // currently checked plus its own photo attachments (rows persist
+        // across on/off toggles - see status_migrate() - so attachments
+        // survive an accidental uncheck).
+        $activities = [];
+        foreach ($STATUS_ACTIVITIES as $actkey => $actinfo) {
+            $activities[$actkey] = ["on" => false, "arid" => 0, "attachments" => []];
+        }
+        if ($result = get_db_result("SELECT * FROM status_activity WHERE chid='$chid' AND daykey='$daykey'")) {
+            while ($row = fetch_row($result)) {
+                if (array_key_exists($row["activity"], $activities)) {
+                    $arid = (int) $row["id"];
+                    $activities[$row["activity"]] = [
+                        "on"          => (bool) $row["active"],
+                        "arid"        => $arid,
+                        "attachments" => status_get_activity_attachments($chid, $arid),
+                    ];
+                }
+            }
+        }
+
         $nokidpic = "";
         if (!$kidpic = get_child_picture_style($chid)) {
             $nokidpic = 'class="blank_pic"';
@@ -874,6 +944,7 @@ if (!isset($STATUSLIB)) {
             "show_nap_rating"  => !$show_naptime_buttons,
             "menus"        => $menus,
             "ratings"      => $ratings,
+            "activities"   => $activities,
             "notes"        => $notes,
             "bottles"      => $bottles,
             "show_bottles" => $show_bottles,
@@ -1161,8 +1232,12 @@ if (!isset($STATUSLIB)) {
         $chid = intval($chid);
         $did  = intval($did);
         if ($row = get_db_row("SELECT * FROM documents WHERE did='$did' AND chid='$chid'")) {
-            $evid = $row["evid"];
+            $evid = intval($row["evid"]);
+            $arid = isset($row["arid"]) ? intval($row["arid"]) : 0;
             status_delete_attachment_row($row);
+            if ($arid) {
+                return status_get_activity_attachments($chid, $arid);
+            }
             return status_get_attachments($chid, $evid);
         }
         return [];
@@ -1322,6 +1397,128 @@ if (!isset($STATUSLIB)) {
             }
         }
         return $suggestions;
+    }
+
+    // Toggles one activity on/off for a child/day. The row persists once
+    // created (see status_migrate()) so any photos attached to it stay
+    // linked even if it's unchecked and re-checked later the same day.
+    function status_toggle_activity($chid, $activity, $on) {
+        global $STATUS_ACTIVITIES;
+        if (!isset($STATUS_ACTIVITIES[$activity])) {
+            return false;
+        }
+        $chid = intval($chid);
+        $day  = status_daykey();
+        $time = get_timestamp();
+        $actesc = dbescape($activity);
+        $activeval = $on ? 1 : 0;
+        if ($existing = get_db_row("SELECT id FROM status_activity WHERE chid='$chid' AND daykey='$day' AND activity='$actesc'")) {
+            execute_db_sql("UPDATE status_activity SET active='$activeval', timelog='$time' WHERE id='" . intval($existing["id"]) . "'");
+        } else {
+            execute_db_sql("INSERT INTO status_activity (chid, daykey, activity, active, timelog) VALUES ('$chid','$day','$actesc','$activeval','$time')");
+        }
+        return status_get_day($chid, $day);
+    }
+
+    // Copies $fromChid's currently-checked activities for today onto each
+    // target child, replacing whatever that child had checked (mirrors
+    // how meal copy overwrites the target's menu text entirely). Existing
+    // rows are toggled rather than deleted/recreated, so a target child's
+    // pre-existing photo attachments for an activity stay put whether
+    // that activity ends up checked or not. Returns the chids written.
+    function status_copy_activities($fromChid, $chids) {
+        global $STATUS_ACTIVITIES;
+        $fromChid = intval($fromChid);
+        $day  = status_daykey();
+        $time = get_timestamp();
+
+        $selected = [];
+        if ($result = get_db_result("SELECT activity FROM status_activity WHERE chid='$fromChid' AND daykey='$day' AND active=1")) {
+            while ($row = fetch_row($result)) {
+                if (isset($STATUS_ACTIVITIES[$row["activity"]])) {
+                    $selected[] = $row["activity"];
+                }
+            }
+        }
+        $selectedSet = array_flip($selected);
+
+        $written = [];
+        foreach ($chids as $chid) {
+            $chid = intval($chid);
+            if (!$chid) {
+                continue;
+            }
+
+            // Uncheck anything currently on that isn't in the new set -
+            // the row (and any attachments) stays, just marked inactive.
+            if ($result = get_db_result("SELECT id, activity FROM status_activity WHERE chid='$chid' AND daykey='$day' AND active=1")) {
+                while ($row = fetch_row($result)) {
+                    if (!isset($selectedSet[$row["activity"]])) {
+                        execute_db_sql("UPDATE status_activity SET active=0, timelog='$time' WHERE id='" . intval($row["id"]) . "'");
+                    }
+                }
+            }
+
+            foreach ($selected as $activity) {
+                $actesc = dbescape($activity);
+                if ($existing = get_db_row("SELECT id FROM status_activity WHERE chid='$chid' AND daykey='$day' AND activity='$actesc'")) {
+                    execute_db_sql("UPDATE status_activity SET active=1, timelog='$time' WHERE id='" . intval($existing["id"]) . "'");
+                } else {
+                    execute_db_sql("INSERT INTO status_activity (chid, daykey, activity, active, timelog) VALUES ('$chid','$day','$actesc','1','$time')");
+                }
+            }
+            $written[] = $chid;
+        }
+        return $written;
+    }
+
+    // Photo attachments on an Activities entry - same documents-table
+    // pattern as Potty Time/Incidents, just linked via arid instead of
+    // evid so the two never collide for the same child.
+    function status_get_activity_attachments($chid, $arid) {
+        global $CFG;
+        $chid = intval($chid);
+        $arid = intval($arid);
+        $attachments = [];
+        if (!$arid) {
+            return $attachments;
+        }
+        if ($result = get_db_result("SELECT * FROM documents WHERE chid='$chid' AND arid='$arid' ORDER BY timelog ASC")) {
+            while ($row = fetch_row($result)) {
+                $attachments[] = [
+                    "did"      => (int) $row["did"],
+                    "filename" => $row["filename"],
+                    "url"      => $CFG->fileserveurl . "?did=" . (int) $row["did"],
+                ];
+            }
+        }
+        return $attachments;
+    }
+
+    function status_add_activity_attachment($chid, $arid, $filename) {
+        $chid = intval($chid);
+        $arid = intval($arid);
+        $aid  = intval(get_db_field("aid", "children", "chid='$chid'"));
+        $time = get_timestamp();
+        execute_db_sql("INSERT INTO documents (aid, chid, arid, tag, filename, description, timelog)
+                         VALUES ('$aid','$chid','$arid','activity','" . dbescape($filename) . "','','$time')");
+        return status_get_activity_attachments($chid, $arid);
+    }
+
+    // Replaces a child's avatar. Only one avatar document per child, so
+    // any existing one (row + file on disk) is removed first - mirrors
+    // status_delete_attachment_row(), just scoped to the 'avatar' tag.
+    function status_set_avatar($chid, $filename) {
+        global $CFG;
+        $chid = intval($chid);
+        if ($existing = get_db_row("SELECT * FROM documents WHERE chid='$chid' AND tag='avatar'")) {
+            status_delete_attachment_row($existing);
+        }
+        $aid  = intval(get_db_field("aid", "children", "chid='$chid'"));
+        $time = get_timestamp();
+        execute_db_sql("INSERT INTO documents (aid, chid, tag, filename, description, timelog)
+                         VALUES ('$aid','$chid','avatar','" . dbescape($filename) . "','','$time')");
+        return status_get_day($chid);
     }
 
     // notify=1 uses the same field the app's sign-out bulletin feature reads.

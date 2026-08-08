@@ -75,6 +75,7 @@ switch ($action) {
                 "bottleOunces"  => $GLOBALS['STATUS_BOTTLE_OUNCES'],
                 "meals"    => $GLOBALS['STATUS_MEALS'],
                 "mealRatings" => $GLOBALS['STATUS_MEAL_RATINGS'],
+                "activities" => $GLOBALS['STATUS_ACTIVITIES'],
                 "napRatings" => $GLOBALS['STATUS_NAP_RATINGS'],
                 "bottle"   => $GLOBALS['STATUS_BOTTLE_INFO'],
                 "tags"     => status_notes_tags(),
@@ -90,6 +91,7 @@ switch ($action) {
                 "pottyTypes" => $GLOBALS['STATUS_POTTY_TYPES'],
                 "meals"    => $GLOBALS['STATUS_MEALS'],
                 "mealRatings" => $GLOBALS['STATUS_MEAL_RATINGS'],
+                "activities" => $GLOBALS['STATUS_ACTIVITIES'],
                 "napRatings" => $GLOBALS['STATUS_NAP_RATINGS'],
                 "bottle"   => $GLOBALS['STATUS_BOTTLE_INFO'],
             ]);
@@ -106,6 +108,7 @@ switch ($action) {
             $result['pottyTypes'] = $GLOBALS['STATUS_POTTY_TYPES'];
             $result['meals']    = $GLOBALS['STATUS_MEALS'];
             $result['mealRatings'] = $GLOBALS['STATUS_MEAL_RATINGS'];
+            $result['activities'] = $GLOBALS['STATUS_ACTIVITIES'];
             $result['napRatings'] = $GLOBALS['STATUS_NAP_RATINGS'];
             $result['bottle']   = $GLOBALS['STATUS_BOTTLE_INFO'];
         }
@@ -125,6 +128,7 @@ switch ($action) {
             $result['bottleOunces']  = $GLOBALS['STATUS_BOTTLE_OUNCES'];
             $result['meals']    = $GLOBALS['STATUS_MEALS'];
             $result['mealRatings'] = $GLOBALS['STATUS_MEAL_RATINGS'];
+            $result['activities'] = $GLOBALS['STATUS_ACTIVITIES'];
             $result['napRatings'] = $GLOBALS['STATUS_NAP_RATINGS'];
             $result['bottle']   = $GLOBALS['STATUS_BOTTLE_INFO'];
             $result['tags']     = status_notes_tags();
@@ -267,6 +271,7 @@ switch ($action) {
         status_require_admin();
         $chid    = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         $evid    = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        $arid    = isset($_POST['arid']) ? intval($_POST['arid']) : 0;
         $context = isset($_POST['context']) ? $_POST['context'] : 'attachment';
         status_require_child_access($chid);
         if (empty($_FILES['file']['name']) || empty($_FILES['file']['tmp_name']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
@@ -287,7 +292,11 @@ switch ($action) {
         if (!move_uploaded_file($_FILES['file']['tmp_name'], "$folder/$newname")) {
             status_json(["success" => false, "message" => "Upload failed."]);
         }
-        $attachments = status_add_attachment($chid, $evid, $newname, $context);
+        if ($arid) {
+            $attachments = status_add_activity_attachment($chid, $arid, $newname);
+        } else {
+            $attachments = status_add_attachment($chid, $evid, $newname, $context);
+        }
         status_json(["success" => true, "attachments" => $attachments]);
         break;
 
@@ -415,6 +424,55 @@ switch ($action) {
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         $meal = isset($_POST['meal']) ? $_POST['meal'] : '';
         status_json(["success" => true, "suggestions" => status_menu_suggestions($chid, $meal)]);
+        break;
+
+    case 'toggle_activity':
+        status_require_admin();
+        $chid     = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $activity = isset($_POST['activity']) ? $_POST['activity'] : '';
+        $on       = !empty($_POST['on']);
+        $day      = status_toggle_activity($chid, $activity, $on);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Invalid activity."]);
+        break;
+
+    case 'copy_activities_to_children':
+        status_require_admin();
+        $chid      = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $chids_raw = isset($_POST['chids']) ? $_POST['chids'] : '';
+        $chids     = array_filter(array_map('intval', explode(',', $chids_raw)));
+        if (empty($chid) || empty($chids)) {
+            status_json(["success" => false, "message" => "Choose at least one child."]);
+        }
+        $written = status_copy_activities($chid, $chids);
+        status_json(["success" => true, "written" => $written]);
+        break;
+
+    case 'upload_avatar':
+        status_require_admin();
+        $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_child_access($chid);
+        if (empty($_FILES['file']['name']) || empty($_FILES['file']['tmp_name']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+            status_json(["success" => false, "message" => "No file received."]);
+        }
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowed)) {
+            status_json(["success" => false, "message" => "That file type isn't supported."]);
+        }
+        if ($_FILES['file']['size'] > 15 * 1024 * 1024) {
+            status_json(["success" => false, "message" => "File is too large (15MB max)."]);
+        }
+        $folder = $CFG->userfilespath . "/children/$chid";
+        recursive_mkdir($folder);
+        $newname = "avatar_" . time() . "_" . mt_rand(1000, 9999) . "." . $ext;
+        $dest = "$folder/$newname";
+        if (!move_uploaded_file($_FILES['file']['tmp_name'], $dest)) {
+            status_json(["success" => false, "message" => "Upload failed."]);
+        }
+        // Matches the main app's avatar handling (square thumbnail).
+        smart_resize_image($dest, 150, 150, true, "file", "true", "false", "60");
+        $day = status_set_avatar($chid, $newname);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't save that photo."]);
         break;
 
     case 'add_note':

@@ -23,7 +23,9 @@
         daykey: null,
         pin: '',
         lastAdminDay: null,
-        cardCollapsed: {}
+        cardCollapsed: {},
+        previewMode: false,
+        adminPreviewChid: null
     };
 
     var MEAL_ORDER = ['breakfast', 'lunch', 'dinner'];
@@ -385,6 +387,9 @@
     // PARENT VIEW
     // ==================================================================
     function startParent() {
+        state.previewMode = false;
+        document.getElementById('preview_banner').style.display = 'none';
+        document.getElementById('parent_logout').style.display = '';
         if (!state.children.length) {
             showScreen('screen_parent');
             document.getElementById('parent_child_tabs').innerHTML = '<p class="muted" style="padding:12px 16px;">No children found on this account.</p>';
@@ -422,7 +427,9 @@
         document.getElementById('day_prev').addEventListener('click', function () { shiftDay(-1); });
         document.getElementById('day_next').addEventListener('click', function () { shiftDay(1); });
         document.getElementById('day_label').addEventListener('click', openDatePicker);
-        document.getElementById('parent_logout').addEventListener('click', logout);
+        document.getElementById('parent_logout').addEventListener('click', function () {
+            if (state.previewMode) { exitParentPreview(); } else { logout(); }
+        });
 
         var swipeArea = document.getElementById('swipe_area');
         var touchStartX = null;
@@ -832,6 +839,37 @@
         renderQuickNoteButtons();
         renderIncidentButtons();
         bindAdminEvents();
+        fetchDayAdmin();
+    }
+
+    // ------------------------------------------------------------------
+    // Preview as Parent - lets staff see the currently-selected child's
+    // status exactly as that child's parent would see it (read-only,
+    // same rendering code the parent screen uses), without logging out
+    // of the admin session. Always opens on today, since the admin view
+    // itself never looks at past days either.
+    // ------------------------------------------------------------------
+    function enterParentPreview() {
+        if (!state.chid) { return; }
+        state.previewMode = true;
+        state.adminPreviewChid = state.chid;
+        document.getElementById('parent_child_tabs').innerHTML = '';
+        document.getElementById('preview_banner').style.display = '';
+        document.getElementById('parent_logout').style.display = 'none';
+        state.daykey = null;
+        state.todayDaykey = null;
+        showScreen('screen_parent');
+        bindParentNav();
+        fetchDayParent();
+    }
+
+    function exitParentPreview() {
+        state.previewMode = false;
+        document.getElementById('preview_banner').style.display = 'none';
+        document.getElementById('parent_logout').style.display = '';
+        state.chid = state.adminPreviewChid || state.chid;
+        document.getElementById('admin_child_select').value = state.chid;
+        showScreen('screen_admin');
         fetchDayAdmin();
     }
 
@@ -1422,6 +1460,8 @@
             fetchDayAdmin();
         });
         document.getElementById('admin_logout').addEventListener('click', logout);
+        document.getElementById('admin_preview_btn').addEventListener('click', enterParentPreview);
+        document.getElementById('exit_preview_btn').addEventListener('click', exitParentPreview);
         document.getElementById('admin_links_btn').addEventListener('click', openLinksPanel);
         document.getElementById('links_back_btn').addEventListener('click', function () {
             showScreen('screen_admin');

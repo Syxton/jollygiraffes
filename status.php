@@ -31,7 +31,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <script data-search-pseudo-elements defer
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026073110">
+    <link rel="stylesheet" href="css/status.css?version=2026073111">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -72,6 +72,10 @@ $sitename = htmlspecialchars($CFG->sitename);
 
     <!-- PARENT REPORT VIEW -->
     <div id="screen_parent" class="status-screen" style="display:none;">
+        <div class="preview-banner" id="preview_banner" style="display:none;">
+            <span>👀 Previewing as parent - this is exactly what they'd see</span>
+            <button type="button" class="preview-exit-btn" id="exit_preview_btn">Exit Preview</button>
+        </div>
         <header class="topbar">
             <div class="topbar-title"><?php echo $sitename; ?></div>
             <button class="link-button" id="parent_logout">Log out</button>
@@ -116,6 +120,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <div id="screen_admin" class="status-screen" style="display:none;">
         <header class="topbar">
             <div class="topbar-title"><?php echo $sitename; ?> - Staff</div>
+            <button class="link-button" id="admin_preview_btn">👀 Preview as Parent</button>
             <button class="link-button" id="admin_links_btn">Family Links</button>
             <button class="link-button" id="admin_logout">Log out</button>
         </header>
@@ -233,6 +238,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js?version=2026073110"></script>
+<script src="scripts/status.js?version=2026073111"></script>
 </body>
 </html>

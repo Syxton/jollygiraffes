@@ -81,6 +81,33 @@ html, body {
     margin-top: 14px;
 }
 
+/* ---------- Admin "preview as parent" banner ---------- */
+.preview-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: #FFF3BF;
+    color: #7A5B00;
+    border-bottom: 1px solid #E6C200;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 6;
+}
+.preview-exit-btn {
+    background: #7A5B00;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
 /* ---------- Shared layout ---------- */
 .topbar {
     display: flex;

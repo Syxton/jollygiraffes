@@ -15,6 +15,8 @@ callfunction();
 function employee_timesheet($thisweekpay = false) {
     global $CFG, $MYVARS;
 
+    $returnme = "";
+
     // Get all active employees
     $SQL = "SELECT * FROM employee WHERE deleted = 0 ORDER BY last,first";
     if ($result = get_db_result($SQL)) {

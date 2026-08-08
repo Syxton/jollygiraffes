@@ -9,6 +9,8 @@
 ***************************************************************************/
 
 include('header.php');
+include_once($CFG->dirroot . '/lib/status_lib.php');
+status_start_session();
 
 $MYVARS->GET = $_GET;
 
@@ -17,6 +19,26 @@ $aid = empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"];
 $chid = empty($MYVARS->GET["chid"]) ? false : $MYVARS->GET["chid"];
 $cid = empty($MYVARS->GET["cid"]) ? false : $MYVARS->GET["cid"];
 $actid = empty($MYVARS->GET["actid"]) ? false : $MYVARS->GET["actid"];
+
+// Must be logged in, and only allowed to browse documents for a child/contact/account/activity
+// the current session actually has rights to - mirrors the check files.php does per-file.
+if (!status_current_role()) {
+    exit;
+}
+if (!empty($did)) {
+    $checkDoc = get_db_row("SELECT * FROM documents WHERE did='$did'");
+    if (!$checkDoc || !status_can_access_document($checkDoc)) {
+        exit;
+    }
+} elseif (!empty($chid) && !status_can_access_child($chid)) {
+    exit;
+} elseif (!empty($cid) && !status_can_access_contact($cid)) {
+    exit;
+} elseif (!empty($aid) && !status_can_access_account($aid)) {
+    exit;
+}
+// Note: $actid (activity attachments) is intentionally viewable by any logged-in session,
+// same as status_can_access_document treats it - activities aren't tied to one family.
 
 $document = get_db_row("SELECT * FROM documents WHERE did='$did'");
 $returnme = '<div style="left: 47.5%;position: fixed;display: block;top: 0;z-index: 100;"><button onclick="$(\'.printthis\').print();">PRINT</button></div><div id="printthis" class="printthis" style="text-align:center;position:absolute;">';
@@ -77,7 +99,7 @@ if ($documents) {
             })
 
             // *finally*, set the src attribute of the new image to our image
-            .attr(\'src\', \'' . $CFG->userfilesurl . "/$folder/" . $document["filename"] . '\');
+            .attr(\'src\', \'' . $CFG->fileserveurl . "?did=" . (int) $document["did"] . '\');
         });
         ';
     }

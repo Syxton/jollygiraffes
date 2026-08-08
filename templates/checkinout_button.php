@@ -1,5 +1,5 @@
 <button class="big_button signinout bb_middle textfill"
-        onclick="$('.employee_button').hide();
+        onclick="$('.employee_button').hide(); $('.kiosk_button').hide();
                 $.ajax({
                     type: 'POST',
                     url: 'ajax/ajax.php',

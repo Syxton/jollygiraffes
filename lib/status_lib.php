@@ -509,6 +509,59 @@ if (!isset($STATUSLIB)) {
         return false;
     }
 
+    // Returns true if the currently logged-in session is allowed to view/edit this account.
+    function status_can_access_account($aid) {
+        $role = status_current_role();
+        if ($role == 'admin') {
+            return true;
+        }
+        if ($role == 'parent') {
+            return intval(status_current_aid()) === intval($aid);
+        }
+        return false;
+    }
+
+    // Returns true if the currently logged-in session is allowed to view/edit this contact.
+    function status_can_access_contact($cid) {
+        $role = status_current_role();
+        if ($role == 'admin') {
+            return true;
+        }
+        if ($role == 'parent') {
+            $aid = status_current_aid();
+            $contact_aid = get_db_field("aid", "contacts", "cid='" . intval($cid) . "' AND deleted=0");
+            return $contact_aid !== false && intval($contact_aid) === intval($aid);
+        }
+        return false;
+    }
+
+    // Returns true if the currently logged-in session is allowed to view a given `documents`
+    // row. Used by files.php (the authenticated file gateway) before it will stream anything
+    // off disk, so this is the single choke point that decides who can see an upload.
+    function status_can_access_document($document) {
+        if (!status_current_role()) {
+            return false; // not logged in at all
+        }
+        if (status_current_role() == 'admin') {
+            return true;
+        }
+        if (!empty($document["chid"])) {
+            return status_can_access_child($document["chid"]);
+        }
+        if (!empty($document["cid"])) {
+            return status_can_access_contact($document["cid"]);
+        }
+        if (!empty($document["aid"])) {
+            return status_can_access_account($document["aid"]);
+        }
+        if (!empty($document["actid"])) {
+            // Activity attachments (classroom bulletins etc.) aren't tied to one family -
+            // any authenticated user (admin or parent) may view them.
+            return true;
+        }
+        return false;
+    }
+
     // -----------------------------------------------------------------
     // Age helpers (Bottles section only applies under a certain age)
     // -----------------------------------------------------------------
@@ -634,7 +687,7 @@ if (!isset($STATUSLIB)) {
                 $attachments[] = [
                     "did"      => (int) $row["did"],
                     "filename" => $row["filename"],
-                    "url"      => $CFG->userfilesurl . "/children/$chid/" . $row["filename"],
+                    "url"      => $CFG->fileserveurl . "?did=" . (int) $row["did"],
                 ];
             }
         }

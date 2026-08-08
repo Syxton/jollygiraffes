@@ -1051,15 +1051,22 @@ svg {
 
 .topright_button {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 5px;
+    right: 20px;
     font-size: clamp(15px, 5vmin, 30px);
 }
 
 .topleft_button {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 5px;
+    left: 5px;
+    font-size: clamp(15px, 5vmin, 30px);
+}
+
+.bottomleft_button {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
     font-size: clamp(15px, 5vmin, 30px);
 }
 
@@ -1215,6 +1222,10 @@ svg {
 
 .refresh_timecard:hover {
     cursor: pointer;
+}
+
+.employee_wrapper {
+    display: inline-block;
 }
 
 .employee_time_status {

@@ -309,33 +309,43 @@ function get_employee_status($employeeid) {
 }
 
 function get_employee_timeclock_button() {
+    if (!status_current_role()) {
+        return "";
+    }
+
+    if (!get_db_field("employeeid", "employee", "deleted=0")) {
+        return "";
+    }
+
     return '<div class="top-left"><button class="employee_button topleft_button" onclick="$.ajax({
               type: \'POST\',
               url: \'ajax/ajax.php\',
               timeout: 10000,
               data: { action: \'employee_timesheet\' },
-              success: function(data) { $(\'.employee_button\').hide(); $(\'#display_level\').html(data); refresh_all(); }
+              success: function(data) { $(\'.employee_button\').hide(); $(\'.kiosk_button\').hide(); $(\'#display_level\').html(data); refresh_all(); }
               });"">Employee</button></div>';
 }
 
 function get_numpad($aid = "\'\'", $admin = "false", $type = "\'\'", $display = "#display_level", $id = "numpad") {
     $admin_text   = empty($admin) ? 'Enter your Password' : 'Administrator Password';
     $buttonaction = 'if ($(this).prevAll(\'input:first\').val().length < 4) { $(this).prevAll(\'input:first\').val($(this).prevAll(\'input:first\').val() + $(\'.keypad:first\',this).html())} if ($(this).prevAll(\'input:first\').val().length == 4) { $(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', false); }else{ $(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', true); }';
-    return '<div id="' . $id . '" title="' . $admin_text . '" style="display:none;text-align:center;padding:.5em .5em;">
+    return '
+    <div id="' . $id . '" title="' . $admin_text . '" style="display:none;text-align:center;padding:.5em .5em;">
+        <form onsubmit="return false;">
             <label for="password">Password</label>
-              <input size="4" maxlength="4" type="password" disabled name="' . $id . '_password" id="' . $id . '_password" value="" class="text ui-widget-content ui-corner-all" style="text-align: center;font-size:3em;width:225px;padding:0px 10px;" />
-            <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">1</span></button>
-            <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">2</span></button>
-            <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">3</span></button>
-            <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">4</span></button>
-            <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">5</span></button>
-            <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">6</span></button>
-            <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">7</span></button>
-            <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">8</span></button>
-            <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">9</span></button>
-            <button onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">0</span></button><div style="clear:both;"></div>
-            <button onclick="$(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', true); $(this).prevAll(\'input:first\').val(\'\')" class="keypad_button_big ui-corner-all" >Clear</button>
-            <button disabled class="' . $id . 'keypad_submit keypad_button_big ui-corner-all" style="width:140px;" onclick="var submitbutton = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+            <input autocomplete="off" size="4" maxlength="4" type="password" disabled name="' . $id . '_password" id="' . $id . '_password" value="" class="text ui-widget-content ui-corner-all" style="text-align: center;font-size:3em;width:225px;padding:0px 10px;" />
+            <button type="button" onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">1</span></button>
+            <button type="button" onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">2</span></button>
+            <button type="button" onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">3</span></button>
+            <button type="button" onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">4</span></button>
+            <button type="button" onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">5</span></button>
+            <button type="button" onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">6</span></button>
+            <button type="button" onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">7</span></button>
+            <button type="button" onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">8</span></button>
+            <button type="button" onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">9</span></button>
+            <button type="button" onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">0</span></button><div style="clear:both;"></div>
+            <button type="button" onclick="$(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', true); $(this).prevAll(\'input:first\').val(\'\')" class="keypad_button_big ui-corner-all" >Clear</button>
+            <button type="button" disabled class="' . $id . 'keypad_submit keypad_button_big ui-corner-all" style="width:140px;" onclick="var submitbutton = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
               type: \'POST\',
               url: \'ajax/ajax.php\',
               timeout: 10000,
@@ -345,7 +355,8 @@ function get_numpad($aid = "\'\'", $admin = "false", $type = "\'\'", $display = 
               data: { action: \'validate\',type:\'' . $type . '\',values: $(\'.notes_values\').serializeArray(),rnid: $(\'.rnid\').serializeArray(),cid: $(\'.contact input.cid\',\'.ui-selected\').serializeArray(),chid: $(\'.child input.chid\').serializeArray(), employeeid: $(\'#selectedemployee\').val(), aid: \'' . $aid . '\', admin: \'' . $admin . '\', password: $(\'#' . $id . '_password:input\',\'.ui-dialog\').val() },
               success: function(data) { $(submitbutton).button(\'option\', \'disabled\', false); if (data != \'false\') { $(\'.' . $id . 'keypad_submit\').closest(\'#' . $id . '\').dialog(\'close\'); $(\'' . $display . '\').html(data); refresh_all(); }else{ $(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', true); $(\'.' . $id . 'keypad_submit\').prevAll(\'input:first\').val(\'\'); $(\'.' . $id . 'keypad_submit\').closest(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
               });">Submit</button>
-        </div>';
+        </form>
+    </div>';
 }
 
 function is_checked_in($chid) {
@@ -704,7 +715,9 @@ function get_required_notes_forms($tag) {
 function children_document_link($chid, $tag) {
     global $CFG;
     if ($document = get_db_row("SELECT * FROM documents WHERE chid='$chid' AND tag='$tag'")) {
-        return $CFG->userfilesurl . "/children/$chid/" . $document["filename"];
+        // Files no longer have a direct URL - everything goes through the authenticated
+        // files.php gateway, keyed off the document id.
+        return $CFG->fileserveurl . "?did=" . (int) $document["did"];
     }
     return false;
 }
@@ -712,8 +725,12 @@ function children_document_link($chid, $tag) {
 function get_child_picture_style($chid) {
     global $CFG;
 
-    if ($pic = children_document_link($chid, "avatar")) {
-        if (file_exists($CFG->docroot . str_replace($CFG->wwwroot, "", $pic))) {
+    $document = get_db_row("SELECT * FROM documents WHERE chid='$chid' AND tag='avatar'");
+    if ($document) {
+        $onDisk = $CFG->userfilespath . DIRECTORY_SEPARATOR . "children" . DIRECTORY_SEPARATOR . $chid . DIRECTORY_SEPARATOR . $document["filename"];
+
+        if (file_exists($onDisk)) {
+            $pic = $CFG->fileserveurl . "?did=" . (int) $document["did"];
             return 'background: whitesmoke url(\'' . $pic . '\') no-repeat;';
         } else {
            // File doesn't exist so clean it up.

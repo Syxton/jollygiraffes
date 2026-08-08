@@ -62,6 +62,7 @@ function refresh_all() {
     if ($('#admin_display').length) {
         $('.admin_button').hide();
         $('.employee_button').hide();
+        $('.kiosk_button').hide();
     } else {
         $('.admin_button').show();
     }

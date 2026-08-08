@@ -37,27 +37,15 @@ function delete_file($filepath){
 }
 
 function recursive_mkdir($folder){
-    global $CFG;
-    $doc = $mkfolder = "";
-    if (strstr($folder, $CFG->docroot)) {
-        $doc = $CFG->docroot . DIRECTORY_SEPARATOR;
-        $folder = str_replace($CFG->docroot, "", $folder);
+    // NOTE: previously this manually rebuilt the path segment-by-segment and only worked
+    // correctly when $folder lived under $CFG->docroot (it stripped docroot, then re-prefixed
+    // it). Now that uploads live outside docroot, that stripping never matches and the old
+    // logic would silently drop the leading slash and create directories in the wrong place.
+    // PHP's mkdir() has supported a $recursive flag since 5.0, so just use that directly.
+    if (is_dir($folder)) {
+        return true;
     }
-
-    $folder = preg_split("/[\\\\\/]/", $folder);
-
-    for ($i = 0; isset($folder[$i]); $i++) {
-        if (!strlen(trim($folder[$i]))) {
-            continue;
-        }
-        $mkfolder .= $folder[$i];
-
-        if (!is_dir($doc . $mkfolder)) {
-            mkdir($doc . "$mkfolder", 0777);
-            chmod($doc . "$mkfolder", 0777);
-        }
-        $mkfolder .= DIRECTORY_SEPARATOR;
-    }
+    return mkdir($folder, 0777, true);
 }
 
 function recursive_delete($folderPath){

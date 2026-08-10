@@ -2481,7 +2481,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
             $transactions .= '
                 <div style="padding: 0px 12px;">
                     <div style="text-align: right;color: darkred;">
-                        <strong>Beginning Year Balance:</strong> $' . number_format($beginning_balance, 2) . '
+                        <strong>Beginning Year Balance:</strong> $' . number_format($beginning_balance * -1, 2) . '
                     </div>
                     <div style="text-align: right;color: darkred;">
                         <strong>Owed:</strong> $' . number_format($total_billed, 2) . '
@@ -2491,7 +2491,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                     </div>
                     <hr align="right" style="width:100px;" />
                     <div style="text-align: right">
-                        <strong>Balance:</strong> $' . number_format($balance, 2) . '
+                        <strong>Balance:</strong> $' . number_format($balance * -1, 2) . '
                     </div>
                 </div>';
 
@@ -3193,7 +3193,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
                         <div class="child_count">
                             Children: ' . $kid_count . '<br />
                             <span class="' . $balanceclass . '">
-                                Balance: $' . $account_balance . '
+                                Balance: $' . number_format($account_balance * -1, 2) . '
                             </span>
                         </div>',
                 ]),
@@ -3653,7 +3653,7 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
                                 });
                                 $(\'.keypad_buttons\').toggleClass(\'selected_button\',true);
                                 $(\'.keypad_buttons\').not($(\'#admin_menu_billing\')).toggleClass(\'selected_button\',false);">
-                                Balance: $' . $account_balance . '
+                                Balance: $' . number_format($account_balance * -1, 2) . '
                             </a>
                         </div>',
                 ]),

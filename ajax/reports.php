@@ -339,21 +339,22 @@ switch ($report) {
                     $total_owed += $totalfee;
                     $total_owed = empty($total_owed) ? "0.00" : $total_owed;
                     $balance   = $total_owed - $totalpaid;
-                    $returnme .= "
-                        <div style='text-align:right;color:darkred;'>
-                            <strong>Owed:</strong> $" . number_format($total_owed, 2) . "
+                    $returnme .= '
+                        <div style="text-align:right;color:darkred;">
+                            <strong>Owed:</strong> $' . number_format($total_owed, 2) . '
                         </div>
-                        <div style='text-align:right;color:blue;'>
-                            <strong>Paid:</strong> $" . number_format($totalpaid, 2) . "
+                        <div style="text-align:right;color:blue;">
+                            <strong>Paid:</strong> $' . number_format($totalpaid, 2) . '
                         </div>
-                        <hr align='right' style='width:100px;'/>
-                        <div style='text-align:right'>
-                            <strong>Balance:</strong> $" . number_format($balance, 2) . "
-                        </div>";
+                        <hr align="right" style="width:100px;"/>
+                        <div style="text-align:right">
+                            <strong>Balance:</strong> $' . number_format($balance * -1, 2) . '
+                        </div>
+                    </div>';
                 } else {
-                    $returnme .= "<div style='text-align:center'>No Invoices</div>";
+                    $returnme .= '<div style="text-align:center">No Invoices</div>';
                 }
-                $returnme .= "</div>";
+                $returnme .= '</div>';
             }
             $returnme .= '</div>';
         }
@@ -493,17 +494,17 @@ switch ($report) {
                     $total_owed += $totalfee;
                     $total_owed = empty($total_owed) ? "0.00" : $total_owed;
                     $balance   = $total_owed - $totalpaid;
-                    $returnme .= "
-                        <div style='text-align:right;color:darkred;'>
-                            <strong>Owed:</strong> $" . number_format($total_owed, 2) . "
+                    $returnme .= '
+                        <div style="text-align:right;color:darkred;">
+                            <strong>Owed:</strong> $' . number_format($total_owed, 2) . '
                         </div>
-                        <div style='text-align:right;color:blue;'>
-                            <strong>Paid:</strong> $" . number_format($totalpaid, 2) . "
+                        <div style="text-align:right;color:blue;">
+                            <strong>Paid:</strong> $' . number_format($totalpaid, 2) . '
                         </div>
-                        <hr align='right' style='width:100px;'/>
-                        <div style='text-align:right'>
-                            <strong>Balance:</strong> $" . number_format($balance, 2) . "
-                        </div>";
+                        <hr align="right" style="width:100px;"/>
+                        <div style="text-align:right">
+                            <strong>Balance:</strong> $' . number_format($balance * -1, 2) . '
+                        </div>';
                 } else {
                     $returnme .= "<div style='text-align:center'>No Invoices</div>";
                 }
@@ -635,10 +636,15 @@ switch ($report) {
             $returnme .= '<div style="font-size:16px;"><strong>Payments</strong></div>
                             <div style="padding: 5px;">';
             while ($payment = fetch_row($payments)) {
-                $returnme .= '  <div>
-                                    <div style="padding: 0px 10px;"><strong>' . date('m/d/Y', display_time($payment["timelog"])) . '</strong> - Payment of $' . number_format($payment["payment"], 2) . '</div>
-                                    <div style="padding: 0px 50px;"><em>' . $payment["note"] . '</em></div>
-                                 </div><br />';
+                $returnme .= '
+                    <div>
+                        <div style="padding: 0px 10px;">
+                            <strong>' . date('m/d/Y', display_time($payment["timelog"])) . '</strong> - Payment of $' . number_format($payment["payment"], 2) . '
+                        </div>
+                        <div style="padding: 0px 50px;">
+                            <em>' . $payment["note"] . '</em>
+                        </div>
+                    </div><br />';
             }
             $returnme .= '</div>';
         }
@@ -646,15 +652,29 @@ switch ($report) {
         if ($invoices = get_db_result($SQL)) {
             $returnme .= '<div style="font-size:16px;"><strong>Activity</strong></div>';
             while ($invoice = fetch_row($invoices)) {
-                $returnme .= '<div class="week" style="vertical-align: top;padding: 5px;">
-                                    <div><strong>Week of ' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</strong></div>';
-                $returnme .= '<div style="padding-left: 30px;">' . $invoice["receipt"] . '</div>';
-                $returnme .= '</div>';
+                $returnme .= '
+                    <div class="week" style="vertical-align: top;padding: 5px;">
+                        <div>
+                            <strong>Week of ' . date('F \t\h\e jS, Y', $invoice["fromdate"]) . '</strong>
+                        </div>
+                        <div style="padding-left: 30px;">
+                            ' . $invoice["receipt"] . '
+                        </div>
+                    </div>';
             }
             $totalowed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='$aid' $timesql2");
             $totalowed = empty($totalowed) ? "0.00" : $totalowed;
             $balance   = $totalowed - $totalpaid;
-            $returnme .= "<div style='text-align:right;color:darkred;'><strong>Owed:</strong> $" . number_format($totalowed, 2) . "</div><div style='text-align:right;color:blue;'><strong>Paid:</strong> $" . number_format($totalpaid, 2) . "</div><hr align='right' style='width:100px;'/><div style='text-align:right'><strong>Balance:</strong> $" . number_format($balance, 2) . "</div>";
+            $returnme .= '
+                <div style="text-align:right;color:darkred;">
+                    <strong>Owed:</strong> $' . number_format($totalowed * -1, 2) . '
+                </div>
+                <div style="text-align:right;color:blue;">
+                    <strong>Paid:</strong> $' . number_format($totalpaid * -1, 2) . '
+                </div><hr align="right" style="width:100px;"/>
+                <div style="text-align:right">
+                    <strong>Balance:</strong> $' . number_format($balance * -1, 2) . '
+                </div>';
         } else {
             $returnme .= "<div style='text-align:center'>No Invoices</div>";
         }

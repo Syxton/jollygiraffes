@@ -236,20 +236,20 @@
         var okBtn = document.createElement('button');
         okBtn.type = 'button';
         okBtn.className = 'chip-icon-btn';
-        okBtn.textContent = '✔️';
+        okBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
         okBtn.title = 'Save time';
 
         var cancelBtn = document.createElement('button');
         cancelBtn.type = 'button';
         cancelBtn.className = 'chip-icon-btn';
-        cancelBtn.textContent = '❌';
+        cancelBtn.innerHTML = '<i class="fa-solid fa-ban"></i>';
         cancelBtn.title = 'Cancel';
 
         chip.innerHTML = '';
-        chip.appendChild(input);
-        //chip.appendChild(label);
-        chip.appendChild(okBtn);
         chip.appendChild(cancelBtn);
+        chip.appendChild(input);
+        chip.appendChild(okBtn);
+
 
         // Assign as a property (not just the HTML attribute) after the
         // input is in the DOM - more reliable across mobile browsers.
@@ -666,7 +666,13 @@
 
         var timelineWrap = document.getElementById('parent_timeline');
         timelineWrap.innerHTML = '';
-        entries.forEach(function (entry) { timelineWrap.appendChild(entry.node); });
+        entries.forEach(function (entry) {
+            let divider = document.createElement('div');
+            divider.className = 'timeline-divider';
+            timelineWrap.appendChild(divider);
+
+            timelineWrap.appendChild(entry.node);
+        });
         document.getElementById('parent_timeline_empty').style.display = entries.length ? 'none' : '';
     }
 
@@ -723,7 +729,7 @@
             var clockBtn = document.createElement('button');
             clockBtn.type = 'button';
             clockBtn.className = 'chip-icon-btn';
-            clockBtn.textContent = '\ud83d\udd50';
+            clockBtn.innerHTML = '<i class="fa-solid fa-clock"></i>';
             clockBtn.title = 'Change start time';
             clockBtn.addEventListener('click', function () {
                 openTimeEditor(chip, nap.hm, function (hour, minute) {
@@ -737,7 +743,7 @@
             var delBtn = document.createElement('button');
             delBtn.type = 'button';
             delBtn.className = 'chip-icon-btn';
-            delBtn.textContent = '🗑️';
+            delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
             delBtn.title = 'Delete';
             delBtn.addEventListener('click', function () {
                 post('delete_nap', { chid: state.chid, evid: nap.evid }).then(function (res) {
@@ -769,7 +775,7 @@
             var ozBtn = document.createElement('button');
             ozBtn.type = 'button';
             ozBtn.className = 'chip-icon-btn';
-            ozBtn.textContent = '\ud83c\udf7c';
+            ozBtn.innerHTML = '<i class="fa-solid fa-glass-water"></i>';
             ozBtn.title = 'Change amount';
             ozBtn.addEventListener('click', function () {
                 openBottlePanel(function (ounces) {
@@ -783,7 +789,7 @@
             var clockBtn = document.createElement('button');
             clockBtn.type = 'button';
             clockBtn.className = 'chip-icon-btn';
-            clockBtn.textContent = '\ud83d\udd50';
+            clockBtn.innerHTML = '<i class="fa-solid fa-clock"></i>';
             clockBtn.title = 'Change time';
             clockBtn.addEventListener('click', function () {
                 openTimeEditor(chip, b.hm, function (hour, minute) {
@@ -797,7 +803,7 @@
             var delBtn = document.createElement('button');
             delBtn.type = 'button';
             delBtn.className = 'chip-icon-btn';
-            delBtn.textContent = '🗑️';
+            delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
             delBtn.title = 'Delete';
             delBtn.addEventListener('click', function () {
                 post('delete_bottle', { chid: state.chid, evid: b.evid }).then(function (res) {
@@ -986,7 +992,7 @@
         var badge = document.createElement('button');
         badge.type = 'button';
         badge.className = 'attachment-badge';
-        badge.innerHTML = '<i class="fa-solid fa-camera"></i>';
+        badge.innerHTML = '<i class="fa-solid fa-paperclip"></i>';
         badge.title = attachments.length === 1 ? 'View attachment' : 'View ' + attachments.length + ' attachments';
         badge.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -1054,7 +1060,7 @@
             var editBtn = document.createElement('button');
             editBtn.type = 'button';
             editBtn.className = 'chip-icon-btn';
-            editBtn.textContent = '✏️';
+            editBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
             editBtn.title = 'Edit';
             editBtn.addEventListener('click', function () { openPottyPanel(p); });
             chip.appendChild(editBtn);
@@ -1062,7 +1068,7 @@
             var delBtn = document.createElement('button');
             delBtn.type = 'button';
             delBtn.className = 'chip-icon-btn';
-            delBtn.textContent = '🗑️';
+            delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
             delBtn.title = 'Delete';
             delBtn.addEventListener('click', function () {
                 post('delete_potty', { chid: state.chid, evid: p.evid }).then(function (res) {
@@ -1188,7 +1194,7 @@
             var editBtn = document.createElement('button');
             editBtn.type = 'button';
             editBtn.className = 'chip-icon-btn';
-            editBtn.textContent = '✏️';
+            editBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
             editBtn.title = 'Edit';
             editBtn.addEventListener('click', function () { openIncidentPanel(inc); });
             chip.appendChild(editBtn);
@@ -1196,7 +1202,7 @@
             var delBtn = document.createElement('button');
             delBtn.type = 'button';
             delBtn.className = 'chip-icon-btn';
-            delBtn.textContent = '🗑️';
+            delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
             delBtn.title = 'Delete';
             delBtn.addEventListener('click', function () {
                 post('delete_incident', { chid: state.chid, evid: inc.evid }).then(function (res) {
@@ -1246,7 +1252,7 @@
 
         var html = '<div class="potty-panel-header">' +
             '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>' +
-            '<label class="potty-attach-icon-btn" title="Add Photo">\ud83d\udcf7' +
+            '<label class="potty-attach-icon-btn" title="Add Photo"><i class="fa-solid fa-camera"></i>&nbsp;Attach' +
             '<input type="file" data-role="file" accept="image/*,.pdf" multiple style="display:none;"></label>' +
             '</div>';
 
@@ -1354,7 +1360,7 @@
 
         var html = '<div class="potty-panel-header">' +
             '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>' +
-            '<label class="potty-attach-icon-btn" title="Add Photo">\ud83d\udcf7' +
+            '<label class="potty-attach-icon-btn" title="Add Photo"><i class="fa-solid fa-camera"></i>&nbsp;Attach' +
             '<input type="file" data-role="file" accept="image/*,.pdf" multiple style="display:none;"></label>' +
             '</div>';
 
@@ -1850,7 +1856,7 @@
 
         var html = '<div class="potty-panel-header">' +
             '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>' +
-            '<label class="potty-attach-icon-btn" title="Add Photo">\ud83d\udcf7' +
+            '<label class="potty-attach-icon-btn" title="Add Photo"><i class="fa-solid fa-camera"></i>&nbsp;Attach' +
             '<input type="file" data-role="file" accept="image/*" multiple style="display:none;"></label>' +
             '</div>' +
             '<div class="potty-attachments" data-role="attachments"></div>' +
@@ -1954,21 +1960,21 @@
         var clockBtn = document.createElement('button');
         clockBtn.type = 'button';
         clockBtn.className = 'chip-icon-btn';
-        clockBtn.textContent = '⏰';
+        clockBtn.innerHTML = '<i class="fa-solid fa-clock"></i>';
         clockBtn.title = 'Change time';
         chip.appendChild(clockBtn);
 
         var editBtn = document.createElement('button');
         editBtn.type = 'button';
         editBtn.className = 'chip-icon-btn';
-        editBtn.textContent = '✏️';
+        editBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
         editBtn.title = 'Change mood';
         chip.appendChild(editBtn);
 
         var delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'chip-icon-btn';
-        delBtn.textContent = '🗑️';
+        delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
         delBtn.title = 'Delete';
         chip.appendChild(delBtn);
 

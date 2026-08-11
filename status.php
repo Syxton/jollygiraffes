@@ -31,7 +31,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <script data-search-pseudo-elements defer
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026080804">
+    <link rel="stylesheet" href="css/status.css?version=2026080805">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -73,7 +73,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <!-- PARENT REPORT VIEW -->
     <div id="screen_parent" class="status-screen" style="display:none;">
         <div class="preview-banner" id="preview_banner" style="display:none;">
-            <span>👀 Previewing as parent - this is exactly what they'd see</span>
+            <span><i class="fa-solid fa-person-pregnant"></i>&nbsp;Parent View</span>
             <button type="button" class="preview-exit-btn" id="exit_preview_btn">Exit Preview</button>
         </div>
         <header class="topbar">
@@ -125,7 +125,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <div id="screen_admin" class="status-screen" style="display:none;">
         <header class="topbar">
             <div class="topbar-title"><?php echo $sitename; ?> - Staff</div>
-            <button class="link-button" id="admin_preview_btn">👀 Preview as Parent</button>
+            <button class="link-button" id="admin_preview_btn"><i class="fa-solid fa-person-pregnant"></i>&nbsp;Parent View</button>
             <button class="link-button" id="admin_links_btn">Family Links</button>
             <button class="link-button" id="admin_logout">Log out</button>
         </header>
@@ -135,7 +135,9 @@ $sitename = htmlspecialchars($CFG->sitename);
         <div class="naptime-notice-text" id="admin_naptime_notice_text" style="display:none;">Shhh... It's naptime (1pm - 3pm).</div>
         <div class="avatar-editable" id="avatar_wrap">
             <div class="child_avatar" id="avatar"></div>
-            <button type="button" class="avatar-upload-btn" id="avatar_upload_btn" title="Change Photo">📷</button>
+            <button type="button" class="avatar-upload-btn" id="avatar_upload_btn" title="Change Photo">
+                <i class="fa-solid fa-camera"></i>
+            </button>
             <input type="file" id="avatar_upload_input" accept="image/*" style="display:none;">
         </div>
 
@@ -267,6 +269,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js?version=2026080804"></script>
+<script src="scripts/status.js?version=2026080805"></script>
 </body>
 </html>

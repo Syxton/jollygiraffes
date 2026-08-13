@@ -91,7 +91,7 @@ if (!isset($STATUSLIB)) {
     $GLOBALS['STATUS_ACTIVITIES'] = [
         'books'              => ['label' => 'Books',              'emoji' => '📚'],
         'outdoor_playground' => ['label' => 'Outdoor Playground', 'emoji' => '🛝'],
-        'indoor_playground'  => ['label' => 'Indoor Playground',  'emoji' => '🏠'],
+        'indoor_playground'  => ['label' => 'Indoor Play',        'emoji' => '🏠'],
         'art'                => ['label' => 'Art',                'emoji' => '🎨'],
         'pretend_play'       => ['label' => 'Pretend Play',       'emoji' => '🎭'],
         'sensory'            => ['label' => 'Sensory',            'emoji' => '🖐️'],

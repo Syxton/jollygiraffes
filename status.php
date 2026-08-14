@@ -31,7 +31,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <script data-search-pseudo-elements defer
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026080805">
+    <link rel="stylesheet" href="css/status.css?version=2026081403">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -76,10 +76,16 @@ $sitename = htmlspecialchars($CFG->sitename);
             <span><i class="fa-solid fa-person-pregnant"></i>&nbsp;Parent View</span>
             <button type="button" class="preview-exit-btn" id="exit_preview_btn">Exit Preview</button>
         </div>
-        <header class="topbar">
-            <div class="topbar-title"><?php echo $sitename; ?></div>
-            <button class="link-button" id="parent_logout">Log out</button>
-        </header>
+        <div class="topbar-wrap">
+            <header class="topbar">
+                <div class="topbar-title">🦒 <?php echo $sitename; ?></div>
+                <div class="sticky-child-bar" id="parent_sticky_child_bar">
+                    <div class="sticky-child-avatar" id="parent_sticky_avatar"></div>
+                    <div class="sticky-child-name" id="parent_sticky_name"></div>
+                </div>
+                <button class="link-button" id="parent_logout">Log out</button>
+            </header>
+        </div>
 
         <div class="child-tabs" id="parent_child_tabs"></div>
 
@@ -123,12 +129,24 @@ $sitename = htmlspecialchars($CFG->sitename);
 
     <!-- ADMIN / STAFF EDIT VIEW -->
     <div id="screen_admin" class="status-screen" style="display:none;">
-        <header class="topbar">
-            <div class="topbar-title"><?php echo $sitename; ?> - Staff</div>
-            <button class="link-button" id="admin_preview_btn"><i class="fa-solid fa-person-pregnant"></i>&nbsp;Parent View</button>
-            <button class="link-button" id="admin_links_btn">Family Links</button>
-            <button class="link-button" id="admin_logout">Log out</button>
-        </header>
+        <div class="topbar-wrap">
+            <header class="topbar">
+                <div class="topbar-title">
+                    <span>🦒 <?php echo $sitename; ?> Staff</span>
+                    <div class="sticky-child-bar" id="admin_sticky_child_bar">
+                        <div class="topbar-child-info">
+                            <div class="sticky-child-avatar" id="admin_sticky_avatar"></div>
+                            <div class="sticky-child-name" id="admin_sticky_name"></div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <button class="link-button" id="admin_preview_btn"><i class="fa-solid fa-person-pregnant"></i>&nbsp;Parent View</button>
+                    <button class="link-button" id="admin_links_btn">Family Links</button>
+                    <button class="link-button" id="admin_logout">Log out</button>
+                </div>
+            </header>
+        </div>
 
         <select id="admin_child_select" class="child-select"></select>
 
@@ -269,6 +287,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js?version=2026080805"></script>
+<script src="scripts/status.js?version=2026081403"></script>
 </body>
 </html>

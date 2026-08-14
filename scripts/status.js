@@ -209,6 +209,84 @@
         return div.innerHTML;
     }
 
+    // Shared chip layout used by mood/potty/bottle/nap/incident entries:
+    // time (left, larger) -> emoji -> status label -> spacer -> optional
+    // attachment badge -> optional action buttons (admin only), always in
+    // that order so every entry in a timeline reads the same way.
+    //
+    // opts:
+    //   background   - chip background color
+    //   extraClass   - extra class(es) on the outer chip element
+    //   time         - time string, shown first in a bold pill
+    //   emoji        - emoji string
+    //   label        - plain-text label (already unescaped; this function
+    //                  escapes it)
+    //   extraText    - optional plain text appended after label (e.g. potty
+    //                  emoji extras), also escaped
+    //   attachments  - optional array, renders the attachment badge
+    //   note         - optional plain-text note shown on its own line below
+    //   buttons      - optional array of {icon, title, onClick}, admin-only
+    //                  action buttons rendered after the attachment badge
+    function buildStatusChip(opts) {
+        var chip = document.createElement('div');
+        chip.className = 'mood-chip' + (opts.extraClass ? ' ' + opts.extraClass : '');
+        if (opts.background) { chip.style.background = opts.background; }
+        if (opts.note) { chip.classList.add('mood-chip-with-note'); }
+
+        var row = document.createElement('span');
+        row.className = 'mood-chip-row';
+
+        var timeandtype = document.createElement('span');
+        timeandtype.className = 'timeandtype';
+
+        var time = document.createElement('span');
+        time.className = 'chip-time';
+        time.textContent = opts.time || '';
+        timeandtype.appendChild(time);
+
+        var emoji = document.createElement('span');
+        emoji.className = 'emoji';
+        emoji.textContent = opts.emoji || '';
+        timeandtype.appendChild(emoji);
+
+        row.appendChild(timeandtype);
+
+        var label = document.createElement('span');
+        label.className = 'chip-label';
+        label.textContent = (opts.label || '') + (opts.extraText || '');
+        row.appendChild(label);
+
+        var buttonarea = document.createElement('span');
+        buttonarea.className = 'chip-button-area';
+
+        if (opts.attachments && opts.attachments.length) {
+            buttonarea.appendChild(buildAttachmentBadge(opts.attachments));
+        }
+
+        if (opts.buttons && opts.buttons.length) {
+            opts.buttons.forEach(function (b) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'chip-icon-btn';
+                btn.innerHTML = '<i class="fa-solid fa-' + b.icon + '"></i>';
+                btn.title = b.title;
+                btn.addEventListener('click', b.onClick);
+                buttonarea.appendChild(btn);
+            });
+        }
+        row.appendChild(buttonarea);
+        chip.appendChild(row);
+
+        if (opts.note) {
+            var noteEl = document.createElement('span');
+            noteEl.className = 'mood-chip-note';
+            noteEl.textContent = opts.note;
+            chip.appendChild(noteEl);
+        }
+
+        return chip;
+    }
+
     // Formats "HH:MM" as a friendly "h:mm am/pm" label. Shared by the
     // inline chip time editor and the Potty Time panel's time field.
     function updateTimeLabel(labelEl, hm) {
@@ -598,6 +676,11 @@
         var name = document.querySelector('#screen_parent #name');
         name.innerHTML = day.name;
 
+        // Sticky child bar (stays visible while scrolling so it's always
+        // clear whose day you're looking at)
+        document.getElementById('parent_sticky_name').textContent = day.name;
+        document.getElementById('parent_sticky_avatar').innerHTML = day.avatar;
+
         // Avatar
         var avatar = document.querySelector('#screen_parent #avatar');
         avatar.innerHTML = day.avatar;
@@ -677,20 +760,33 @@
     }
 
     function buildParentMoodChip(m) {
-        var chip = document.createElement('div');
-        chip.className = 'mood-chip';
-        chip.style.background = m.color;
-        chip.innerHTML = '<span class="emoji">' + m.emoji + '</span><span>' + escapeHtml(m.label) + '</span><span>' + escapeHtml(m.time) + '</span>';
-        return chip;
+        return buildStatusChip({
+            background: m.color,
+            time: m.time,
+            emoji: m.emoji,
+            label: m.label
+        });
     }
 
     function buildParentNoteChip(n) {
         var item = document.createElement('div');
-        item.className = 'note-item';
+        item.className = 'mood-chip mood-chip-with-note';
         item.style.background = n.color;
         item.style.color = n.textcolor;
-        item.innerHTML = '<div class="note-meta"><span class="note-tag">' + escapeHtml(n.tag_title) + '</span><span class="note-time">' + escapeHtml(n.time) + '</span></div>' +
-            '<div class="note-text">' + escapeHtml(n.note) + '</div>';
+        item.innerHTML = `
+            <div class="mood-chip-row">
+                <span class="chip-time timeandtype">
+                    ` + escapeHtml(n.time) + `
+                </span>
+                <span class="chip-label">
+                    ` + escapeHtml(n.tag_title) + `
+                </span>
+                <div class="chip-button-area">
+                </div>
+            </div>
+            <div class="mood-chip-note">
+                ` + escapeHtml(n.note) + `
+            </div>`;
         return item;
     }
 
@@ -717,41 +813,37 @@
     }
 
     function buildNapChip(nap, editable) {
-        var chip = document.createElement('div');
-        chip.className = 'mood-chip nap';
-
-        var content = document.createElement('span');
-        content.className = 'mood-chip-content';
-        content.innerHTML = '<span class="emoji">\ud83d\ude34</span><span>' + nap.minutes + ' min nap started</span><span>' + escapeHtml(nap.time) + '</span>';
-        chip.appendChild(content);
-
+        var buttons = [];
         if (editable) {
-            var clockBtn = document.createElement('button');
-            clockBtn.type = 'button';
-            clockBtn.className = 'chip-icon-btn';
-            clockBtn.innerHTML = '<i class="fa-solid fa-clock"></i>';
-            clockBtn.title = 'Change start time';
-            clockBtn.addEventListener('click', function () {
-                openTimeEditor(chip, nap.hm, function (hour, minute) {
-                    post('edit_nap_time', { chid: state.chid, evid: nap.evid, hour: hour, minute: minute }).then(function (res) {
+            buttons.push({
+                icon: 'clock',
+                title: 'Change start time',
+                onClick: function () {
+                    openTimeEditor(chip, nap.hm, function (hour, minute) {
+                        post('edit_nap_time', { chid: state.chid, evid: nap.evid, hour: hour, minute: minute }).then(function (res) {
+                            if (res.success) { renderAdminDay(res.day); }
+                        });
+                    });
+                }
+            });
+            buttons.push({
+                icon: 'trash',
+                title: 'Delete',
+                onClick: function () {
+                    post('delete_nap', { chid: state.chid, evid: nap.evid }).then(function (res) {
                         if (res.success) { renderAdminDay(res.day); }
                     });
-                });
+                }
             });
-            chip.appendChild(clockBtn);
-
-            var delBtn = document.createElement('button');
-            delBtn.type = 'button';
-            delBtn.className = 'chip-icon-btn';
-            delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-            delBtn.title = 'Delete';
-            delBtn.addEventListener('click', function () {
-                post('delete_nap', { chid: state.chid, evid: nap.evid }).then(function (res) {
-                    if (res.success) { renderAdminDay(res.day); }
-                });
-            });
-            chip.appendChild(delBtn);
         }
+
+        var chip = buildStatusChip({
+            extraClass: 'nap',
+            time: nap.time,
+            emoji: '\ud83d\ude34',
+            label: nap.minutes + ' min nap started',
+            buttons: buttons
+        });
 
         return chip;
     }
@@ -761,57 +853,51 @@
     // for admin)
     // ------------------------------------------------------------------
     function buildBottleChip(b, editable) {
-        var chip = document.createElement('div');
-        chip.className = 'mood-chip';
-        chip.style.background = state.bottle.color;
-
         var amountStr = b.amount ? ' \u00b7 ' + b.amount + 'oz' : '';
-        var content = document.createElement('span');
-        content.className = 'mood-chip-content';
-        content.innerHTML = '<span class="emoji">' + state.bottle.emoji + '</span><span>' + escapeHtml(state.bottle.label) + amountStr + '</span><span>' + escapeHtml(b.time) + '</span>';
-        chip.appendChild(content);
-
+        var buttons = [];
         if (editable) {
-            var ozBtn = document.createElement('button');
-            ozBtn.type = 'button';
-            ozBtn.className = 'chip-icon-btn';
-            ozBtn.innerHTML = '<i class="fa-solid fa-glass-water"></i>';
-            ozBtn.title = 'Change amount';
-            ozBtn.addEventListener('click', function () {
-                openBottlePanel(function (ounces) {
-                    post('edit_bottle_ounces', { chid: state.chid, evid: b.evid, ounces: ounces }).then(function (res) {
+            buttons.push({
+                icon: 'glass-water',
+                title: 'Change amount',
+                onClick: function () {
+                    openBottlePanel(function (ounces) {
+                        post('edit_bottle_ounces', { chid: state.chid, evid: b.evid, ounces: ounces }).then(function (res) {
+                            if (res.success) { renderAdminDay(res.day); }
+                        });
+                    });
+                }
+            });
+            buttons.push({
+                icon: 'clock',
+                title: 'Change time',
+                onClick: function () {
+                    openTimeEditor(chip, b.hm, function (hour, minute) {
+                        post('edit_bottle_time', { chid: state.chid, evid: b.evid, hour: hour, minute: minute }).then(function (res) {
+                            if (res.success) { renderAdminDay(res.day); }
+                        });
+                    });
+                }
+            });
+            buttons.push({
+                icon: 'trash',
+                title: 'Delete',
+                onClick: function () {
+                    post('delete_bottle', { chid: state.chid, evid: b.evid }).then(function (res) {
                         if (res.success) { renderAdminDay(res.day); }
                     });
-                });
+                }
             });
-            chip.appendChild(ozBtn);
-
-            var clockBtn = document.createElement('button');
-            clockBtn.type = 'button';
-            clockBtn.className = 'chip-icon-btn';
-            clockBtn.innerHTML = '<i class="fa-solid fa-clock"></i>';
-            clockBtn.title = 'Change time';
-            clockBtn.addEventListener('click', function () {
-                openTimeEditor(chip, b.hm, function (hour, minute) {
-                    post('edit_bottle_time', { chid: state.chid, evid: b.evid, hour: hour, minute: minute }).then(function (res) {
-                        if (res.success) { renderAdminDay(res.day); }
-                    });
-                });
-            });
-            chip.appendChild(clockBtn);
-
-            var delBtn = document.createElement('button');
-            delBtn.type = 'button';
-            delBtn.className = 'chip-icon-btn';
-            delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-            delBtn.title = 'Delete';
-            delBtn.addEventListener('click', function () {
-                post('delete_bottle', { chid: state.chid, evid: b.evid }).then(function (res) {
-                    if (res.success) { renderAdminDay(res.day); }
-                });
-            });
-            chip.appendChild(delBtn);
         }
+
+        var chip = buildStatusChip({
+            background: state.bottle.color,
+            time: b.time,
+            emoji: state.bottle.emoji,
+            label: state.bottle.label,
+            extraText: amountStr,
+            buttons: buttons
+        });
+
         return chip;
     }
 
@@ -1022,10 +1108,6 @@
     }
 
     function buildPottyChip(p, editable) {
-        var chip = document.createElement('div');
-        chip.className = 'mood-chip potty-chip';
-        chip.style.background = p.color;
-
         var extras = '';
         if (p.cream)  { extras += ' \ud83e\uddf4'; }
         if (p.peed)   { extras += ' \ud83d\udca7'; }
@@ -1033,52 +1115,34 @@
         var typeInfo = state.pottyTypes[p.type];
         if (typeInfo && typeInfo.asks_potty && !p.peed && !p.pooped) { extras += ' 👎'; }
 
-        var content = document.createElement('span');
-        content.className = 'mood-chip-content';
-
-        var emoji = document.createElement('span');
-        emoji.className = 'emoji';
-        emoji.textContent = p.emoji;
-        content.appendChild(emoji);
-
-        var label = document.createElement('span');
-        label.textContent = escapeHtml(p.label) + extras;
-
-        if (p.attachments && p.attachments.length) {
-            let badge = buildAttachmentBadge(p.attachments);
-            label.appendChild(badge);
-        }
-        content.appendChild(label);
-
-        var time = document.createElement('span');
-        time.textContent = escapeHtml(p.time);
-        content.appendChild(time);
-
-        chip.appendChild(content);
-
+        var buttons = [];
         if (editable) {
-            var editBtn = document.createElement('button');
-            editBtn.type = 'button';
-            editBtn.className = 'chip-icon-btn';
-            editBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
-            editBtn.title = 'Edit';
-            editBtn.addEventListener('click', function () { openPottyPanel(p); });
-            chip.appendChild(editBtn);
-
-            var delBtn = document.createElement('button');
-            delBtn.type = 'button';
-            delBtn.className = 'chip-icon-btn';
-            delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-            delBtn.title = 'Delete';
-            delBtn.addEventListener('click', function () {
-                post('delete_potty', { chid: state.chid, evid: p.evid }).then(function (res) {
-                    if (res.success) { renderAdminDay(res.day); }
-                });
+            buttons.push({
+                icon: 'pencil',
+                title: 'Edit',
+                onClick: function () { openPottyPanel(p); }
             });
-            chip.appendChild(delBtn);
+            buttons.push({
+                icon: 'trash',
+                title: 'Delete',
+                onClick: function () {
+                    post('delete_potty', { chid: state.chid, evid: p.evid }).then(function (res) {
+                        if (res.success) { renderAdminDay(res.day); }
+                    });
+                }
+            });
         }
 
-        return chip;
+        return buildStatusChip({
+            extraClass: 'potty-chip',
+            background: p.color,
+            time: p.time,
+            emoji: p.emoji,
+            label: p.label,
+            extraText: extras,
+            attachments: p.attachments,
+            buttons: buttons
+        });
     }
 
     function renderPottyTypeButtons() {
@@ -1163,56 +1227,34 @@
     }
 
     function buildIncidentChip(inc, editable) {
-        var chip = document.createElement('div');
-        chip.className = 'mood-chip potty-chip';
-        chip.style.background = inc.color;
-
-        var content = document.createElement('span');
-        content.className = 'mood-chip-content';
-
-        var emoji = document.createElement('span');
-        emoji.className = 'emoji';
-        emoji.textContent = inc.emoji;
-        content.appendChild(emoji);
-
-        var label = document.createElement('span');
-        label.textContent = escapeHtml(inc.label);
-
-        if (inc.attachments && inc.attachments.length) {
-            let badge = buildAttachmentBadge(inc.attachments);
-            label.appendChild(badge);
-        }
-        content.appendChild(label);
-
-        var time = document.createElement('span');
-        time.textContent = escapeHtml(inc.time);
-        content.appendChild(time);
-
-        chip.appendChild(content);
-
+        var buttons = [];
         if (editable) {
-            var editBtn = document.createElement('button');
-            editBtn.type = 'button';
-            editBtn.className = 'chip-icon-btn';
-            editBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
-            editBtn.title = 'Edit';
-            editBtn.addEventListener('click', function () { openIncidentPanel(inc); });
-            chip.appendChild(editBtn);
-
-            var delBtn = document.createElement('button');
-            delBtn.type = 'button';
-            delBtn.className = 'chip-icon-btn';
-            delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-            delBtn.title = 'Delete';
-            delBtn.addEventListener('click', function () {
-                post('delete_incident', { chid: state.chid, evid: inc.evid }).then(function (res) {
-                    if (res.success) { renderAdminDay(res.day); }
-                });
+            buttons.push({
+                icon: 'pencil',
+                title: 'Edit',
+                onClick: function () { openIncidentPanel(inc); }
             });
-            chip.appendChild(delBtn);
+            buttons.push({
+                icon: 'trash',
+                title: 'Delete',
+                onClick: function () {
+                    post('delete_incident', { chid: state.chid, evid: inc.evid }).then(function (res) {
+                        if (res.success) { renderAdminDay(res.day); }
+                    });
+                }
+            });
         }
 
-        return chip;
+        return buildStatusChip({
+            extraClass: 'potty-chip',
+            background: inc.color,
+            time: inc.time,
+            emoji: inc.emoji,
+            label: inc.label,
+            attachments: inc.attachments,
+            note: inc.note,
+            buttons: buttons
+        });
     }
 
     var incidentPanelState = null;
@@ -1948,79 +1990,67 @@
     // deletable, unlike the read-only parent chips.
     // ------------------------------------------------------------------
     function buildAdminMoodChip(m) {
-        var chip = document.createElement('div');
-        chip.className = 'mood-chip';
-        chip.style.background = m.color;
+        var chip = buildStatusChip({
+            background: m.color,
+            time: m.time,
+            emoji: m.emoji,
+            label: m.label,
+            buttons: [
+                {
+                    icon: 'clock',
+                    title: 'Change time',
+                    onClick: function () {
+                        openTimeEditor(chip, m.hm, function (hour, minute) {
+                            post('edit_mood_time', { chid: state.chid, evid: m.evid, hour: hour, minute: minute }).then(function (res) {
+                                if (res.success) { renderAdminDay(res.day); }
+                            });
+                        });
+                    }
+                },
+                {
+                    icon: 'pencil',
+                    title: 'Change mood',
+                    onClick: function () {
+                        var committed = false;
+                        var select = document.createElement('select');
+                        select.className = 'mood-edit-select';
+                        Object.keys(state.moods).forEach(function (key) {
+                            var opt = document.createElement('option');
+                            opt.value = key;
+                            opt.textContent = state.moods[key].label;
+                            if (key === m.mood) { opt.selected = true; }
+                            select.appendChild(opt);
+                        });
+                        chip.innerHTML = '';
+                        chip.appendChild(select);
+                        select.focus();
 
-        var content = document.createElement('span');
-        content.className = 'mood-chip-content';
-        content.innerHTML = '<span class="emoji">' + m.emoji + '</span><span>' + escapeHtml(m.label) + '</span><span>' + escapeHtml(m.time) + '</span>';
-        chip.appendChild(content);
-
-        var clockBtn = document.createElement('button');
-        clockBtn.type = 'button';
-        clockBtn.className = 'chip-icon-btn';
-        clockBtn.innerHTML = '<i class="fa-solid fa-clock"></i>';
-        clockBtn.title = 'Change time';
-        chip.appendChild(clockBtn);
-
-        var editBtn = document.createElement('button');
-        editBtn.type = 'button';
-        editBtn.className = 'chip-icon-btn';
-        editBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
-        editBtn.title = 'Change mood';
-        chip.appendChild(editBtn);
-
-        var delBtn = document.createElement('button');
-        delBtn.type = 'button';
-        delBtn.className = 'chip-icon-btn';
-        delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-        delBtn.title = 'Delete';
-        chip.appendChild(delBtn);
-
-        clockBtn.addEventListener('click', function () {
-            openTimeEditor(chip, m.hm, function (hour, minute) {
-                post('edit_mood_time', { chid: state.chid, evid: m.evid, hour: hour, minute: minute }).then(function (res) {
-                    if (res.success) { renderAdminDay(res.day); }
-                });
-            });
-        });
-
-        editBtn.addEventListener('click', function () {
-            var committed = false;
-            var select = document.createElement('select');
-            select.className = 'mood-edit-select';
-            Object.keys(state.moods).forEach(function (key) {
-                var opt = document.createElement('option');
-                opt.value = key;
-                opt.textContent = state.moods[key].label;
-                if (key === m.mood) { opt.selected = true; }
-                select.appendChild(opt);
-            });
-            chip.innerHTML = '';
-            chip.appendChild(select);
-            select.focus();
-
-            select.addEventListener('change', function () {
-                committed = true;
-                var newmood = select.value;
-                if (newmood === m.mood) {
-                    if (state.lastAdminDay) { renderAdminDay(state.lastAdminDay); }
-                    return;
+                        select.addEventListener('change', function () {
+                            committed = true;
+                            var newmood = select.value;
+                            if (newmood === m.mood) {
+                                if (state.lastAdminDay) { renderAdminDay(state.lastAdminDay); }
+                                return;
+                            }
+                            post('edit_mood', { chid: state.chid, evid: m.evid, mood: newmood }).then(function (res) {
+                                if (res.success) { renderAdminDay(res.day); }
+                            });
+                        });
+                        select.addEventListener('blur', function () {
+                            if (!committed && state.lastAdminDay) { renderAdminDay(state.lastAdminDay); }
+                        });
+                    }
+                },
+                {
+                    icon: 'trash',
+                    title: 'Delete',
+                    onClick: function () {
+                        post('delete_mood', { chid: state.chid, evid: m.evid }).then(function (res) {
+                            if (res.success) { renderAdminDay(res.day); }
+                        });
+                    }
                 }
-                post('edit_mood', { chid: state.chid, evid: m.evid, mood: newmood }).then(function (res) {
-                    if (res.success) { renderAdminDay(res.day); }
-                });
-            });
-            select.addEventListener('blur', function () {
-                if (!committed && state.lastAdminDay) { renderAdminDay(state.lastAdminDay); }
-            });
-        });
-
-        delBtn.addEventListener('click', function () {
-            post('delete_mood', { chid: state.chid, evid: m.evid }).then(function (res) {
-                if (res.success) { renderAdminDay(res.day); }
-            });
+            ]
         });
 
         return chip;
@@ -2036,6 +2066,11 @@
     function renderAdminDay(day) {
         state.lastAdminDay = day;
         document.getElementById('admin_day_label').textContent = day.date_label + ' (today)';
+
+        // Sticky child bar (stays visible while scrolling so staff always
+        // know which child's log they're editing)
+        document.getElementById('admin_sticky_name').textContent = day.name;
+        document.getElementById('admin_sticky_avatar').innerHTML = day.avatar;
 
         // Avatar
         var avatar = document.querySelector('#screen_admin #avatar');
@@ -2130,12 +2165,31 @@
         notesWrap.innerHTML = '';
         day.notes.forEach(function (n) {
             var item = document.createElement('div');
-            item.className = 'note-item';
+            item.className = 'mood-chip mood-chip-with-note';
             item.style.background = n.color;
             item.style.color = n.textcolor;
-            item.innerHTML = '<div class="note-meta"><span class="note-tag">' + (n.notify ? ' \ud83d\udd14' : '') + escapeHtml(n.tag_title) + '</span><span class="note-time">' + escapeHtml(n.time) + '</span></div>' +
-                '<div class="note-text">' + escapeHtml(n.note) + '</div>' +
-                '<button title="Delete" type="button" class="note-delete chip-icon-btn" data-nid="' + n.nid + '"></button>';
+            item.innerHTML = `
+            <div class="mood-chip-row">
+                <span class="chip-time timeandtype">
+                    ` + escapeHtml(n.time) + `
+                </span>
+                <span class="chip-label">
+                    ` + (n.notify ? ' \ud83d\udd14' : '') + escapeHtml(n.tag_title) + `
+                </span>
+                <div class="chip-button-area">
+                    <button title="Edit" type="button" class="note-edit chip-icon-btn" data-nid="` + n.nid + `">
+                        <i class="fa-solid fa-pencil"></i>
+                    </button>
+                    <button title="Delete" type="button" class="note-delete chip-icon-btn" data-nid="` + n.nid + `">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="mood-chip-note">
+                ` + escapeHtml(n.note) + `
+            </div>
+            `;
+
             notesWrap.appendChild(item);
         });
         notesWrap.querySelectorAll('.note-delete').forEach(function (btn) {

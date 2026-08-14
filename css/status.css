@@ -109,21 +109,44 @@ html, body {
 }
 
 /* ---------- Shared layout ---------- */
+.topbar-wrap {
+    position: sticky;
+    top: 0;
+    z-index: 2000;
+}
 .topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 16px;
     background: #fff;
     border-bottom: 1px solid #E7EAEC;
     position: sticky;
     top: 0;
     z-index: 5;
 }
+#screen_parent .topbar-wrap .topbar {
+    flex-direction: row;
+    padding: 10px;
+}
+.topbar-child-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px;
+}
+
+.topbar-wrap .topbar {
+    position: static;
+    flex-direction: column;
+}
 .topbar-title {
     font-size: 18px;
     font-weight: 600;
-    flex: 1;
+    width: 100%;
+    padding-left: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 .link-button {
     background: none;
@@ -131,6 +154,67 @@ html, body {
     color: #3D7EF7;
     font-size: 14px;
     padding: 8px 10px;
+}
+
+/* Sticky child identity bar - sits right under the topbar, in the same
+   sticky stack, so it scrolls away only when leaving the whole page,
+   not when scrolling down within the day's timeline. Keeps the
+   currently-viewed child obvious without repeating the full avatar +
+   name block that already appears further down the page. */
+.sticky-child-bar {
+    /* Hidden by default */
+    opacity: 0;
+
+    /* Link animation to the scroll position */
+    animation: reveal-child-bar linear both;
+    animation-timeline: scroll(root);
+
+    /* Control the scroll range (e.g., fully visible after scrolling 200px) */
+    animation-range: entry 10px exit 200px;
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0px;
+    background: linear-gradient(180deg, #FFFFFF 0%, #FAFBFC 100%);
+    border-bottom: 1px solid #EDEFF1;
+    box-shadow: 0 2px 6px rgba(20, 30, 40, 0.04);
+    justify-content: flex-end;
+}
+
+@keyframes reveal-child-bar {
+  to {
+    opacity: 1;
+  }
+}
+
+#preview_banner + .topbar-wrap {
+    top: 48px;
+}
+
+.sticky-child-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
+    background: #E7EAEC;
+    box-shadow: 0 0 0 2px #fff, 0 1px 3px rgba(0,0,0,0.15);
+}
+.sticky-child-avatar > div {
+    width: 100%;
+    height: 100%;
+    background-position: center center !important;
+    background-size: cover !important;
+}
+.sticky-child-name {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.1px;
+    color: #22282E;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .card {
@@ -295,6 +379,19 @@ html, body {
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     justify-content: space-between;
 }
+.mood-chip.mood-chip-with-note {
+    flex-direction: column;
+    align-items: stretch;
+    border-radius: 14px;
+}
+.mood-chip-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    justify-content: space-between;
+    min-height: 40px;
+}
 .mood-chip .emoji { font-size: 30px; }
 .mood-chip-content {
     display: flex;
@@ -302,6 +399,15 @@ html, body {
     gap: 3px;
     justify-content: space-between;
     width: 100%;
+}
+.mood-chip-note, .menu-text {
+    font-size: .75em;
+    word-break: break-word;
+    text-align: right;
+    background: #e7e7e7;
+    border-radius: 5px;
+    color: #000000;
+    padding: 10px;
 }
 .chip-icon-btn {
     background: #fffdfd;
@@ -326,6 +432,29 @@ html, body {
     padding: 4px 6px;
     width: 100%;
     font-size: 15px;
+}
+.swipe-area .chip-time {
+    font-size: 25px;
+}
+.timeandtype {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 25%;
+    min-width: 130px;
+}
+.swipe-area .timeandtype {
+    min-width: 155px;
+}
+.chip-button-area {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 120px;
+    justify-content: flex-end;
+}
+.swipe-area .chip-button-area {
+    width: 35px;
 }
 
 .mood-buttons {
@@ -519,13 +648,6 @@ html, body {
 }
 
 /* ---------- Menu / Notes ---------- */
-
-.menu-text {
-    white-space: pre-wrap;
-    font-size: 15px;
-    line-height: 1.5;
-}
-
 .menu-suggestions {
     margin-bottom: 10px;
 }
@@ -617,39 +739,6 @@ html, body {
     flex-direction: column;
     gap: 10px;
     margin-bottom: 8px;
-}
-.note-item {
-    border-radius: 12px;
-    padding: 10px 12px;
-    width: 100%;
-    box-sizing: border-box;
-}
-.note-item .note-meta {
-    display: flex;
-    justify-content: space-between;
-    font-size: 18px;
-    opacity: 0.85;
-    margin-bottom: 8px;
-    align-items: center;
-}
-span.note-tag {
-    font-weight: bold;
-}
-.note-item .note-text {
-    font-size: 14px;
-    line-height: 1.4;
-}
-.note-item .note-delete {
-    border: none;
-    font-size: 16px;
-    opacity: 0.85;
-    padding: 0;
-    color: white;
-    float: right;
-}
-
-.note-item .note-delete:before {
-    content: '🗑️';
 }
 
 .note-form {

@@ -31,7 +31,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <script data-search-pseudo-elements defer
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026081404">
+    <link rel="stylesheet" href="css/status.css?version=2026081405">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -233,6 +233,7 @@ $sitename = htmlspecialchars($CFG->sitename);
                     <div class="notes-list" id="admin_notes_list"></div>
                 </div>
                 <div class="note-form">
+                    <div class="note-form-editing-label" id="note_editing_label" style="display:none;">Editing note &ndash; <span class="link-button-inline" id="note_editing_cancel">cancel</span></div>
                     <select id="note_tag_select"></select>
                     <textarea class="app-textarea" id="note_text_input" rows="2" placeholder="Write a note..."></textarea>
                     <label class="notify-label">
@@ -287,6 +288,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js?version=2026081404"></script>
+<script src="scripts/status.js?version=2026081405"></script>
 </body>
 </html>

@@ -26,7 +26,8 @@
         lastAdminDay: null,
         cardCollapsed: {},
         previewMode: false,
-        adminPreviewChid: null
+        adminPreviewChid: null,
+        editingNoteId: null
     };
 
     var MEAL_ORDER = ['breakfast', 'lunch', 'dinner'];
@@ -1542,6 +1543,29 @@
         });
     }
 
+    // Puts the note form into "edit" mode for an existing note: pre-fills
+    // its fields, swaps the button label, and remembers which nid to save
+    // back to. stopEditingNote() (Cancel, or a successful save) restores
+    // the form to its normal "add a new note" state.
+    function startEditingNote(n) {
+        state.editingNoteId = n.nid;
+        document.getElementById('note_tag_select').value = n.tag;
+        document.getElementById('note_text_input').value = n.note;
+        document.getElementById('note_notify_checkbox').checked = !!n.notify;
+        document.getElementById('add_note_btn').textContent = 'Save Note';
+        document.getElementById('note_editing_label').style.display = '';
+        document.getElementById('note_text_input').focus();
+    }
+
+    function stopEditingNote() {
+        state.editingNoteId = null;
+        document.getElementById('note_tag_select').value = '';
+        document.getElementById('note_text_input').value = '';
+        document.getElementById('note_notify_checkbox').checked = false;
+        document.getElementById('add_note_btn').textContent = 'Add Note';
+        document.getElementById('note_editing_label').style.display = 'none';
+    }
+
     function bindAdminEvents() {
         if (adminBound) { return; }
         adminBound = true;
@@ -1549,6 +1573,7 @@
         document.getElementById('admin_child_select').addEventListener('change', function (e) {
             state.chid = parseInt(e.target.value, 10);
             try { localStorage.setItem('jg_admin_chid', state.chid); } catch (err) { /* ignore */ }
+            stopEditingNote();
             fetchDayAdmin();
         });
         document.getElementById('admin_logout').addEventListener('click', logout);
@@ -1560,11 +1585,24 @@
         });
 
         renderNoteTagSelect();
+        document.getElementById('note_editing_cancel').addEventListener('click', stopEditingNote);
         document.getElementById('add_note_btn').addEventListener('click', function () {
             var tag = document.getElementById('note_tag_select').value;
             var text = document.getElementById('note_text_input').value.trim();
             var notify = document.getElementById('note_notify_checkbox').checked;
             if (!text) { return; }
+            if (state.editingNoteId) {
+                post('edit_note', { chid: state.chid, nid: state.editingNoteId, tag: tag, note: text, notify: notify ? '1' : '' }).then(function (res) {
+                    if (res.success) {
+                        stopEditingNote();
+                        flashExpandCard('notes', 'notes_card_toggle', 'admin_notes_history');
+                        renderAdminDay(res.day);
+                    } else {
+                        alert(res.message || "Couldn't save that note.");
+                    }
+                });
+                return;
+            }
             post('add_note', { chid: state.chid, tag: tag, note: text, notify: notify ? '1' : '' }).then(function (res) {
                 if (res.success) {
                     document.getElementById('note_text_input').value = '';
@@ -2192,10 +2230,20 @@
 
             notesWrap.appendChild(item);
         });
+        notesWrap.querySelectorAll('.note-edit').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var nid = parseInt(btn.getAttribute('data-nid'), 10);
+                var n = day.notes.filter(function (note) { return note.nid === nid; })[0];
+                if (n) { startEditingNote(n); }
+            });
+        });
         notesWrap.querySelectorAll('.note-delete').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 post('delete_note', { chid: state.chid, nid: btn.getAttribute('data-nid') }).then(function (res) {
-                    if (res.success) { renderAdminDay(res.day); }
+                    if (res.success) {
+                        if (state.editingNoteId === parseInt(btn.getAttribute('data-nid'), 10)) { stopEditingNote(); }
+                        renderAdminDay(res.day);
+                    }
                 });
             });
         });

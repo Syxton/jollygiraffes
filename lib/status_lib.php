@@ -1539,6 +1539,22 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
+    function status_edit_note($nid, $chid, $tag, $note, $notify) {
+        $tags = array_column(status_notes_tags(), 'tag');
+        if (!in_array($tag, $tags)) {
+            return false;
+        }
+        $nid    = intval($nid);
+        $chid   = intval($chid);
+        $notify = $notify ? 1 : 0;
+        $note   = dbescape($note);
+        $tag    = dbescape($tag);
+        // Only notes this feature created (daykey != 0)
+        execute_db_sql("UPDATE notes SET tag='$tag', note='$note', notify='$notify'
+                         WHERE nid='$nid' AND chid='$chid' AND daykey != 0");
+        return status_get_day($chid, status_daykey());
+    }
+
     function status_delete_note($nid, $chid) {
         $nid  = intval($nid);
         $chid = intval($chid);

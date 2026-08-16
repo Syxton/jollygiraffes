@@ -488,6 +488,20 @@ switch ($action) {
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Please choose a valid tag."]);
         break;
 
+    case 'edit_note':
+        status_require_admin();
+        $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $nid    = isset($_POST['nid']) ? intval($_POST['nid']) : 0;
+        $tag    = isset($_POST['tag']) ? $_POST['tag'] : '';
+        $note   = isset($_POST['note']) ? trim($_POST['note']) : '';
+        $notify = !empty($_POST['notify']);
+        if ($note === '') {
+            status_json(["success" => false, "message" => "Note can't be empty."]);
+        }
+        $day = status_edit_note($nid, $chid, $tag, $note, $notify);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Please choose a valid tag."]);
+        break;
+
     case 'delete_note':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;

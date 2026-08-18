@@ -37,22 +37,37 @@ if (!status_current_role()) {
 include_once('header.html');
 
 // Main Layout
-echo get_admin_button() . get_employee_timeclock_button() . get_kiosk_lock_button() . '
+echo '
+    <div id="display_level" class="display_level ui-corner-all">
+        <div style="display: flex;align-items: flex-start;justify-content: space-between;">
+            <div>
+            ' . get_employee_timeclock_button() . '
+            </div>
+            <div id="clock" class="light">
+                <div class="display">
+                    <div class="weekdays"></div>
+                    <div class="ampm"></div>
+                    <div class="digits"></div>
+                </div>
+            </div>
+            <div style="width:150px;text-align: right;">
+            ' . get_admin_button() . '
+            </div>
+        </div>
+    ' . get_home_page() . '
+    <div class="footer-text">
+        ' . get_kiosk_lock_button() . '
+        <div>
+            ' . $CFG->sitename . "<br />" . $CFG->streetaddress . '
+        </div>
+    </div>
+
+    </div>
     <div id="dialog-confirm" title="Confirm" style="display:none;">
         <p>
             <span class="ui-icon ui-icon-alert" style="margin-right: auto;margin-left: auto;"></span>
             <label></label>
         </p>
-    </div>
-    <div id="display_level" class="display_level ui-corner-all">
-        <div id="clock" class="light">
-            <div class="display">
-                <div class="weekdays"></div>
-                <div class="ampm"></div>
-                <div class="digits"></div>
-            </div>
-        </div>
-    ' . get_home_page() . '
     </div>
     <div class="loadingscreen" style="display:none;"></div>';
 
@@ -65,15 +80,15 @@ include_once('footer.html');
 function kiosk_lock_screen() {
     global $CFG;
     return '
-    <div id="kiosk_lock" class="display_level ui-corner-all" style="text-align:center;padding-top:60px;">
+    <div id="kiosk_lock" class="display_level ui-corner-all" style="align-items: center;justify-content: center;text-align:center;">
         <h1>' . htmlspecialchars($CFG->sitename) . '</h1>
         <p style="font-size:1.2em;">Enter the admin PIN to unlock the check-in screen.</p>
         <input size="4" maxlength="4" type="password" inputmode="numeric" disabled
             name="kiosk_password" id="kiosk_password" value="" autocomplete="off"
             class="text ui-widget-content ui-corner-all"
             style="text-align:center;font-size:3em;width:225px;padding:0px 10px;" />
-        <div id="kiosk_lock_error" style="color:#c00;min-height:1.5em;margin-top:10px;"></div>
-        <div style="margin-top:10px;">
+        <div id="kiosk_lock_error" style="color:#c00;"></div>
+        <div>
             ' . kiosk_keypad_button(1) . kiosk_keypad_button(2) . kiosk_keypad_button(3) . '
             <div style="clear:both;"></div>
             ' . kiosk_keypad_button(4) . kiosk_keypad_button(5) . kiosk_keypad_button(6) . '
@@ -128,7 +143,8 @@ function kiosk_keypad_button($digit) {
 
 function get_kiosk_lock_button() {
     global $CFG;
-    return '<div class="bottom-left"><button class="kiosk_button bottomleft_button" onclick="
+    return '
+    <div><button class="kiosk_button bottomleft_button" onclick="
         $.ajax({
             type: \'POST\',
             url: \'' . $CFG->wwwroot . '/ajax/kiosk_login.php\',

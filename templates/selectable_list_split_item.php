@@ -5,9 +5,11 @@
     $right = isset($right) ? $right : '';
 ?>
 
+<div class="layout-split-row list_box_split">
 <div class="list_box_item_left <?php echo $leftclass; ?>" >
     <?php echo $left; ?>
 </div>
 <div class="list_box_item_right <?php echo $rightclass; ?>">
     <?php echo $right; ?>
+</div>
 </div>

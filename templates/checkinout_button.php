@@ -1,4 +1,4 @@
-<button class="big_button signinout bb_middle textfill"
+<button class="big_button signinout"
         onclick="$('.employee_button').hide(); $('.kiosk_button').hide();
                 $.ajax({
                     type: 'POST',
@@ -12,7 +12,5 @@
                         refresh_all();
                     }
                 });">
-    <span style="font-size:10px;">
-        <?php echo $button_text; ?>
-    </span>
+    <?php echo $button_text; ?>
 </button>

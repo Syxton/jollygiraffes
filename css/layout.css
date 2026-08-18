@@ -1,34 +1,3 @@
-/***************************************************************************
- * layout.css - Flexbox layout primitives
- * -------------------------------------------------------------------------
- * Replaces the JS-computed .fill_height / .fill_width / .fill_height_middle
- * / .fill_width_middle / .fill_height_once / .fill_width_once classes that
- * script.js previously recalculated in pixels on every `resize` event.
- *
- * Why this fixes the overlap bugs:
- *   - The old approach read offsets/margins with jQuery and set an inline
- *     height/width in pixels. On mobile, the viewport height changes when
- *     the browser chrome (URL bar) shows/hides, which fires `resize`
- *     asynchronously and often *after* other layout-affecting JS (keyboard
- *     opening, modal opening) has already run — so the cached pixel value
- *     goes stale and panels overlap or clip until the next resize event.
- *   - Flexbox / CSS `height: 100%` + `min-height: 0` recalculates on every
- *     paint, for free, with no JS and no race condition.
- *   - It also removes a `resize` handler that was doing DOM reads/writes
- *     for every matching element on the page on every single frame while
- *     dragging a browser window or rotating a phone — a real perf cost on
- *     lower-end tablets/phones used at a front desk kiosk.
- *
- * MIGRATION: this file is additive. It only styles elements that also
- * carry the `.layout-flex` marker class (added alongside the legacy
- * class, e.g. class="fill_height layout-flex"), so it can be rolled
- * out template-by-template without a big-bang rewrite. See
- * docs/CSS_MIGRATION.md for the file-by-file checklist. Once every
- * consumer of .fill_height/.fill_width has `layout-flex` added, the
- * fill_height_width()/fill_height_width_once() functions in script.js
- * (and this file's compatibility shims below) can be deleted outright.
- ***************************************************************************/
-
 /* ---- Base: any container that holds a "fill" child becomes a flex
    column/row and gives up manual height math entirely. ---- */
 .layout-flex-col {
@@ -103,8 +72,8 @@
  * ------------------------------------------------------------------- */
 .layout-split-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
+    flex: 1;
+    align-items: center;
 }
 
 .layout-split-row > * {
@@ -114,7 +83,6 @@
 
 @media (max-width: 700px) {
     .layout-split-row {
-        flex-direction: column;
     }
     .layout-split-row > * {
         flex: 1 1 auto;
@@ -135,4 +103,113 @@
 .layout-overlay {
     position: absolute;
     inset: 0;
+}
+
+/* =====================================================================
+   Admin workspace — CSS Grid
+   Replaces float:left .container_list + percentage heights.
+   ===================================================================== */
+
+.admin_layout_wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+}
+
+.admin_layout_wrapper > .admin_menu {
+    flex: 0 0 auto;
+}
+
+.admin_layout_wrapper > .admin_display {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;          /* override styles.css 92% */
+    width: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---- Grid shell: list | actions / info ---- */
+.admin_main_layout.layout-grid-admin {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    gap: 8px;
+    box-sizing: border-box;
+
+    grid-template-columns: minmax(200px, 40%) 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        "list actions"
+        "list info";
+}
+
+.admin_main_layout.layout-grid-admin > .container_list {
+    grid-area: list;
+    float: none;           /* kill styles.css float */
+    width: auto;
+    height: auto;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+}
+
+.admin_main_layout.layout-grid-admin > .container_actions {
+    grid-area: actions;
+    margin-bottom: 0;
+}
+
+.admin_main_layout.layout-grid-admin > .container_info {
+    grid-area: info;
+    height: auto;          /* kill styles.css 95% */
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Nested scroll regions inside info (tabs, tags list, etc.) */
+.admin_main_layout.layout-grid-admin > .container_info .infobox,
+.admin_main_layout.layout-grid-admin > .container_info .scroll-pane.fill_height,
+.admin_main_layout.layout-grid-admin > .container_info .fill_height.layout-flex {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    overflow-y: auto;
+}
+
+/* ---- Expanded list (legacy .expanded on list / info / actions) ---- */
+.admin_main_layout.layout-grid-admin:has(> .container_list.expanded),
+.admin_main_layout.layout-grid-admin.is-expanded {
+    grid-template-columns: 0 1fr;
+}
+
+.admin_main_layout.layout-grid-admin:has(> .container_list.expanded) > .container_list,
+.admin_main_layout.layout-grid-admin.is-expanded > .container_list {
+    overflow: hidden;
+    border-width: 0;
+    padding: 0;
+}
+
+/* ---- Narrow viewports: stack ---- */
+@media (max-width: 700px) {
+    .admin_main_layout.layout-grid-admin {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(100px, 28vh) auto 1fr;
+        grid-template-areas:
+            "list"
+            "actions"
+            "info";
+    }
+
+    .admin_main_layout.layout-grid-admin:has(> .container_list.expanded),
+    .admin_main_layout.layout-grid-admin.is-expanded {
+        grid-template-columns: 1fr;
+        grid-template-rows: 0 auto 1fr;
+    }
 }

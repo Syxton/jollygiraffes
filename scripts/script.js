@@ -1,5 +1,4 @@
 $(window).resize(function() {
-    fill_height_width();
     $(".scroll-pane").sbscroller("refresh");
     $(".textfill").textfill();
     smart_scrollbars();
@@ -121,8 +120,6 @@ function refresh_all() {
     });
 
     setTimeout(function() {
-        fill_height_width();
-        fill_height_width_once();
         $(".scroll-pane").not(":has(.scroll-content)").sbscroller();
         $(".scroll-pane").sbscroller("refresh");
         smart_scrollbars();
@@ -183,60 +180,6 @@ function refresh_tags_editor() {
     return;
 }
 
-/*
- * MIGRATION NOTE: elements marked with the new `.layout-flex` class
- * (see css/layout.css) are sized by CSS flexbox now, not JS. They are
- * skipped here with :not('.layout-flex') so the two systems never
- * fight over the same element's inline height/width while templates
- * are migrated one at a time. Once every .fill_height/.fill_width
- * element in the templates carries `.layout-flex` (see
- * docs/CSS_MIGRATION.md), these two functions and their calls in
- * script.js/ajax responses can be deleted entirely.
- */
-function fill_height_width() {
-    $('.fill_height:not(.layout-flex)').each(function() {
-        var offset = $(this).offset();
-        var poffset = $(this).parent().offset();
-        var pmargins = $(this).parent().outerHeight(true) - $(this).parent().height();
-        var margins = $(this).outerHeight(true) - $(this).height();
-        $(this).height((poffset.top + $(this).parent().height() - pmargins) - offset.top - margins);
-    });
-    $('.fill_width:not(.layout-flex)').each(function() {
-        var offset = $(this).offset();
-        var poffset = $(this).parent().offset();
-        var margins = $(this).outerWidth(true) - $(this).width();
-        $(this).width((poffset.left + $(this).parent().width()) - offset.left);
-    });
-    $('.fill_height_middle:not(.layout-flex)').each(function() {
-        var offset = $(this).offset();
-        var poffset = $(this).parent().offset();
-        var pmargins = $(this).parent().outerHeight(true) - $(this).parent().height();
-        var margins = $(this).outerHeight(true) - $(this).height();
-        $(this).height((poffset.top + $(this).parent().height() - pmargins) - offset.top - margins - $('.bottom').height());
-    });
-    $('.fill_width_middle:not(.layout-flex)').each(function() {
-        var offset = $(this).offset();
-        var poffset = $(this).parent().offset();
-        var margins = $(this).outerWidth(true) - $(this).width();
-        $(this).width((poffset.left + $(this).parent().width()) - offset.left - $('.side').width());
-    });
-}
-
-function fill_height_width_once() {
-    $('.fill_height_once:not(.layout-flex)').each(function() {
-        var offset = $(this).offset();
-        var poffset = $(this).parent().offset();
-        var pmargins = $(this).parent().outerHeight(true) - $(this).parent().height();
-        var margins = $(this).outerHeight(true) - $(this).height();
-        $(this).height((poffset.top + $(this).parent().height() - pmargins) - offset.top - margins);
-    });
-    $('.fill_width_once:not(.layout-flex)').each(function() {
-        var offset = $(this).offset();
-        var poffset = $(this).parent().offset();
-        var margins = $(this).outerWidth(true) - $(this).width();
-        $(this).width((poffset.left + $(this).parent().width()) - offset.left);
-    });
-}
 
 function uploader(id, callback, fields) {
     var fd = new FormData();

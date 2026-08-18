@@ -1,3 +1,4 @@
+<div class="admin_layout_wrapper layout-flex-col">
 <div class="admin_menu">
     <button class="keypad_buttons <?php echo $account_selected; ?>" id="accounts"
             onclick="$('.keypad_buttons').toggleClass('selected_button', true);
@@ -148,3 +149,4 @@
 <div id="admin_display" class="admin_display fill_height layout-flex">
     <?php echo $content; ?>
 </div>
+</div><!-- /.admin_layout_wrapper -->

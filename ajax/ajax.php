@@ -139,8 +139,9 @@ function get_check_in_out_form() {
         }
     }
 
+    $center = from_template("inoutform1topbuttons.php", ["type" => $type]);
     echo from_template("inoutform1.php", [
-        "home_button" => go_home_button(),
+        "home_button" => go_home_button("Back", $center),
         "alphabet" => from_template("alphabet.php", ["letters" => $letters]),
         "children" => $children,
         "type" => $type
@@ -189,6 +190,7 @@ function check_in_out_form() {
             WHERE n.deleted = 0
             ORDER BY r.sort";
     $qnum = get_db_count($SQL);
+
     if ($qnum) {
         $questions_open = '
             var selected = true;
@@ -216,6 +218,8 @@ function check_in_out_form() {
         "notes_header" => $note_header,
         "numpads" => $numpads,
         "qnum" => $qnum,
+        "questions_open" => $questions_open,
+        "questions_closed" => $questions_closed,
     ]);
 }
 
@@ -378,7 +382,7 @@ function check_in_out($chids, $cid, $type, $time = false) {
     $wait = empty($notify) ? "6000" : "15000"; // if there are notifications, give them more time to read
 
     $returnme .= $bday . '<div class="heading" style="margin:0px 10px;"><h1>Checked ' . ucwords($type) . ' on ' . $readabletime . ' by ' . $contact . '</h1>' . $remaining_balance . '</div>
-                 <div class="container_main scroll-pane ui-corner-all fill_height_middle">' . $content . '</div>';
+                 <div class="container_main scroll-pane ui-corner-all fill_height_middle layout-flex">' . $content . '</div>';
 
     if ($type == "out" && !empty($notify)) {
         $returnme .= '
@@ -586,12 +590,13 @@ function get_admin_page($type = false, $id = false) {
     $active_display = $activepid ? "" : "display:none;";
 
     $identifier  = time() . "edit_account_" . $account["aid"];
-    $returnme = get_form("add_edit_account", ["account" => $account], $identifier) . '
-        <span id="activepidname" class="top-center">' . $programname . '</span>
-        <button title="Edit Admin" class="topright_button" type="button" onclick="CreateDialog(\'add_edit_account_' . $identifier . '\', 200, 315)">
+    $center = '<span id="activepidname">' . $programname . '</span>';
+    $right = get_form("add_edit_account", ["account" => $account], $identifier) . '
+        <button title="Edit Admin" type="button" onclick="CreateDialog(\'add_edit_account_' . $identifier . '\', 200, 315)">
             Edit Admin
-        </button>
-        ' . go_home_button('Exit Admin') . '
+        </button>';
+
+    $returnme = go_home_button('Exit Admin', $center, $right) . '
         ' . from_template("admin_layout.php", [
             "account_selected"    => $account_selected,
             "enrollment_selected" => $enrollment_selected,
@@ -2273,7 +2278,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
                     $transactions .= from_template("billing_flexsection_layout.php", [
                         "class" => "invoice_payments",
-                        "style" => "background-color:darkCyan;",
+                        "style" => "background-color:darkCyan;flex-direction: column;",
                         "header" => from_template("payment_header_stacked.php", ["amount" => $total_paid]),
                         "contents" => $receipts,
                     ]);
@@ -2318,7 +2323,9 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 $total_billed += $total_fee;
                 $total_billed = empty($total_billed) ? "0.00" : $total_billed;
             } else { // Order all transactions by date
-                $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2"));
+                if ($total_fee = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2")) {
+                    $total_fee = abs($total_fee);
+                }
                 $total_fee = empty($total_fee) ? "0.00" : $total_fee;
 
                 $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2");
@@ -2394,6 +2401,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                     "callback"     => "billing",
                                     "callbackinfo" => $aid
                                 ], $identifier);
+                                $edit_payment_button .= from_template("edit_payment_button.php", ["identifier" => $identifier]);
 
                                 $delete_payment = from_template("delete_payment_button.php", [
                                     "payid" => $result["id"],
@@ -2419,7 +2427,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
                                 $transactions .= from_template("billing_flexsection_layout.php", [
                                     "class" => "invoice_payments",
-                                    "style" => "background-color:darkCyan;padding: 5px;color: white;",
+                                    "style" => "background-color:darkCyan;flex-direction: column;padding: 5px;color: white;",
                                     "header" => $header,
                                     "contents" => $content,
                                 ]);
@@ -2546,7 +2554,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 </div>';
         }
         $returnme = '
-            <div class="scroll-pane fill_height">
+            <div class="scroll-pane fill_height layout-flex">
                 <div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px; 5px;">
                     Invoices: ' . $yearselector . '
                 </div>
@@ -2964,7 +2972,7 @@ function get_reports_list($return = false, $pid = null, $aid = null, $chid = nul
     }
 
     // Activity from / to
-    $returnme .= '<div class="scroll-pane document_list_item ui-corner-all fill_height" style="text-align:center">
+    $returnme .= '<div class="scroll-pane document_list_item ui-corner-all fill_height layout-flex" style="text-align:center">
                         <form id="myValidForm" method="get" action="ajax/reports.php" onsubmit="return false;">
                             <input type="hidden" name="report" id="report" value="" />
                             <input type="hidden" name="id" id="id" value="' . $id . '" />
@@ -3464,7 +3472,7 @@ function get_tags_info($return = false, $tagtype = null, $tag = null) {
             <div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px;">
                 Tags:
             </div>
-            <div id="tags" class="scroll-pane infobox fill_height">';
+            <div id="tags" class="scroll-pane infobox fill_height layout-flex">';
         while ($tagrow = fetch_row($tags)) {
             $identifier = time() . "note_$tagtype" . "_" . $tagrow["tag"];
 

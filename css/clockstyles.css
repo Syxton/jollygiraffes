@@ -4,9 +4,7 @@
 
 
 #clock{
-	width: 350px;
-	margin: auto;
-	position:relative;
+	margin: 0 auto;
     zoom: .8;
 }
 
@@ -25,7 +23,6 @@
 
 #clock .display{
 	text-align:center;
-	padding: 30px 20px 20px;
 	position:relative;
     background-color: rgba(255, 255, 255, .6) !important;
 }
@@ -60,7 +57,8 @@
 
 #clock.light .display{
 	background-color:#dddddd;
-	border: inset 4px rgba(0,0,0,.1);
+	padding: 10px;
+	border-radius: 10px;
 }
 
 
@@ -307,11 +305,9 @@
 
 #clock .weekdays{
 	font-size:12px;
-	position:absolute;
 	width:100%;
-	top:10px;
-	left:0;
 	text-align:center;
+	padding-bottom: 10px;
 }
 
 

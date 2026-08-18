@@ -1,18 +1,17 @@
 <!--
-    NOTE: container_list / container_actions / container_info are
-    siblings here — the flex context (.layout-flex-col) belongs on
-    THEIR shared parent, which lives outside this partial. Add
-    `layout-flex-col` to whatever wraps this template's output before
-    relying on `.fill_height.layout-flex` below. See
-    docs/CSS_MIGRATION.md.
+  Admin workspace: list | actions + info
+  Uses CSS Grid (.layout-grid-admin). No floats, no JS height math.
+  See docs/CSS_MIGRATION.md / layout.css.
 -->
-<div class="container_list scroll-pane ui-corner-all">
-    <?php echo $header; ?>
-    <?php echo $list; ?>
-</div>
-<div class="container_actions ui-corner-all" id="actions_div">
-    <?php echo $actions; ?>
-</div>
-<div class="container_info ui-corner-all fill_height layout-flex" id="info_div">
-    <?php echo $info; ?>
+<div class="admin_main_layout layout-grid-admin">
+    <div class="container_list scroll-pane ui-corner-all">
+        <?php echo $header; ?>
+        <?php echo $list; ?>
+    </div>
+    <div class="container_actions ui-corner-all" id="actions_div">
+        <?php echo $actions; ?>
+    </div>
+    <div class="container_info ui-corner-all" id="info_div">
+        <?php echo $info; ?>
+    </div>
 </div>

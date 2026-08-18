@@ -378,7 +378,7 @@ $.keyboard = function(el, options){
 				base.capsLock = (((k >= 65 && k <= 90) && !e.shiftKey) ||
 					((k >= 97 && k <= 122) && e.shiftKey)) ? true : false;
 
-				// restrict input - keyCode in keypress special keys: 
+				// restrict input - keyCode in keypress special keys:
 				// see http://www.asquare.net/javascript/tests/KeyCode.html
 				if (o.restrictInput) {
 					// allow navigation keys to work - Chrome doesn't fire a keypress event (8 = bksp)
@@ -674,7 +674,7 @@ $.keyboard = function(el, options){
 	base.checkMaxLength = function(){
 		var t, p = base.$preview.val();
 		if (o.maxLength !== false && p.length > o.maxLength) {
-			t = Math.min(base.$preview.caret().start, o.maxLength); 
+			t = Math.min(base.$preview.caret().start, o.maxLength);
 			base.$preview.val( p.substring(0, o.maxLength) );
 			// restore caret on change, otherwise it ends up at the end.
 			base.$preview.caret( t, t );
@@ -759,7 +759,7 @@ $.keyboard = function(el, options){
 		if (base.msie && val.substr(pos.start, 1) === '\n') { pos.start += 1; pos.end += 1; }
 
 		if (o.useCombos) {
-			// keep 'a' and 'o' in the regex for ae and oe ligature (æ,œ)
+			// keep 'a' and 'o' in the regex for ae and oe ligature (ï¿½,ï¿½)
 			// thanks to KennyTM: http://stackoverflow.com/q/4275077
 			// original regex /([`\'~\^\"ao])([a-z])/mig moved to $.keyboard.comboRegex
 			if (base.msie) {
@@ -951,7 +951,7 @@ $.keyboard = function(el, options){
 		if ( e && e.type === 'keyup' ) {
 			return ( e.which === 27 )  ? base.close() : '';
 		}
-		// keep keyboard open if alwaysOpen or stayOpen is true - fixes mutliple always open keyboards or 
+		// keep keyboard open if alwaysOpen or stayOpen is true - fixes mutliple always open keyboards or
 		// single stay open keyboard
 		if ( !base.isOpen ) { return; }
 		// ignore autoaccept if using escape - good idea?
@@ -1120,7 +1120,7 @@ $.keyboard = function(el, options){
 								);
 								$('<span>&nbsp;</span>')
 									// previously {sp:1} would add 1em margin to each side of a 0 width span
-									// now Firefox doesn't seem to render 0px dimensions, so now we set the 
+									// now Firefox doesn't seem to render 0px dimensions, so now we set the
 									// 1em margin x 2 for the width
 									.width( (action.match('px') ? margin + 'px' : (margin * 2) + 'em') )
 									.addClass('ui-keyboard-button ui-keyboard-spacer')
@@ -1235,7 +1235,7 @@ $.keyboard = function(el, options){
 				}
 			}
 		});
-	
+
 		if (sets > 1) { base.sets = true; }
 		layout.hasMappedKeys = !( $.isEmptyObject(layout.mappedKeys) ); // $.isEmptyObject() requires jQuery 1.4+
 		layout.$keyboard = container;
@@ -1379,15 +1379,15 @@ $.keyboard = function(el, options){
 		'alpha' : {
 			'default': [
 				'` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
-				'{tab} a b c d e f g h i j [ ] \\',
-				'k l m n o p q r s ; \' {enter}',
+				'a b c d e f g h i j [ ] \\',
+				'k l m n o p q r s ; \'',
 				'{shift} t u v w x y z , . / {shift}',
 				'{accept} {space} {cancel}'
 			],
 			'shift': [
 				'~ ! @ # $ % ^ & * ( ) _ + {bksp}',
-				'{tab} A B C D E F G H I J { } |',
-				'K L M N O P Q R S : " {enter}',
+				'A B C D E F G H I J { } |',
+				'K L M N O P Q R S : "',
 				'{shift} T U V W X Y Z < > ? {shift}',
 				'{accept} {space} {cancel}'
 			]
@@ -1395,15 +1395,15 @@ $.keyboard = function(el, options){
 		'qwerty' : {
 			'default': [
 				'` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
-				'{tab} q w e r t y u i o p [ ] \\',
-				'a s d f g h j k l ; \' {enter}',
+				'q w e r t y u i o p [ ] \\',
+				'a s d f g h j k l ; \'',
 				'{shift} z x c v b n m , . / {shift}',
 				'{accept} {space} {cancel}'
 			],
 			'shift': [
 				'~ ! @ # $ % ^ & * ( ) _ + {bksp}',
-				'{tab} Q W E R T Y U I O P { } |',
-				'A S D F G H J K L : " {enter}',
+				'Q W E R T Y U I O P { } |',
+				'A S D F G H J K L : "',
 				'{shift} Z X C V B N M < > ? {shift}',
 				'{accept} {space} {cancel}'
 			]
@@ -1411,29 +1411,29 @@ $.keyboard = function(el, options){
 		'international' : {
 			'default': [
 				'` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
-				'{tab} q w e r t y u i o p [ ] \\',
-				'a s d f g h j k l ; \' {enter}',
+				'q w e r t y u i o p [ ] \\',
+				'a s d f g h j k l ; \'',
 				'{shift} z x c v b n m , . / {shift}',
 				'{accept} {alt} {space} {alt} {cancel}'
 			],
 			'shift': [
 				'~ ! @ # $ % ^ & * ( ) _ + {bksp}',
-				'{tab} Q W E R T Y U I O P { } |',
-				'A S D F G H J K L : " {enter}',
+				'Q W E R T Y U I O P { } |',
+				'A S D F G H J K L : "',
 				'{shift} Z X C V B N M < > ? {shift}',
 				'{accept} {alt} {space} {alt} {cancel}'
 			],
 			'alt': [
 				'~ \u00a1 \u00b2 \u00b3 \u00a4 \u20ac \u00bc \u00bd \u00be \u2018 \u2019 \u00a5 \u00d7 {bksp}',
-				'{tab} \u00e4 \u00e5 \u00e9 \u00ae \u00fe \u00fc \u00fa \u00ed \u00f3 \u00f6 \u00ab \u00bb \u00ac',
-				'\u00e1 \u00df \u00f0 f g h j k \u00f8 \u00b6 \u00b4 {enter}',
+				'\u00e4 \u00e5 \u00e9 \u00ae \u00fe \u00fc \u00fa \u00ed \u00f3 \u00f6 \u00ab \u00bb \u00ac',
+				'\u00e1 \u00df \u00f0 f g h j k \u00f8 \u00b6 \u00b4',
 				'{shift} \u00e6 x \u00a9 v b \u00f1 \u00b5 \u00e7 > \u00bf {shift}',
 				'{accept} {alt} {space} {alt} {cancel}'
 			],
 			'alt-shift': [
 				'~ \u00b9 \u00b2 \u00b3 \u00a3 \u20ac \u00bc \u00bd \u00be \u2018 \u2019 \u00a5 \u00f7 {bksp}',
-				'{tab} \u00c4 \u00c5 \u00c9 \u00ae \u00de \u00dc \u00da \u00cd \u00d3 \u00d6 \u00ab \u00bb \u00a6',
-				'\u00c4 \u00a7 \u00d0 F G H J K \u00d8 \u00b0 \u00a8 {enter}',
+				'\u00c4 \u00c5 \u00c9 \u00ae \u00de \u00dc \u00da \u00cd \u00d3 \u00d6 \u00ab \u00bb \u00a6',
+				'\u00c4 \u00a7 \u00d0 F G H J K \u00d8 \u00b0 \u00a8',
 				'{shift} \u00c6 X \u00a2 V B \u00d1 \u00b5 \u00c7 . \u00bf {shift}',
 				'{accept} {alt} {space} {alt} {cancel}'
 			]
@@ -1442,14 +1442,14 @@ $.keyboard = function(el, options){
 			'default': [
 				'` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
 				'{tab} q w f p g j l u y ; [ ] \\',
-				'{bksp} a r s t d h n e i o \' {enter}',
+				'{bksp} a r s t d h n e i o \'',
 				'{shift} z x c v b k m , . / {shift}',
 				'{accept} {space} {cancel}'
 			],
 			'shift' : [
 				'~ ! @ # $ % ^ & * ( ) _ + {bksp}',
-				'{tab} Q W F P G J L U Y : { } |', 
-				'{bksp} A R S T D H N E I O " {enter}',
+				'{tab} Q W F P G J L U Y : { } |',
+				'{bksp} A R S T D H N E I O "',
 				'{shift} Z X C V B K M < > ? {shift}',
 				'{accept} {space} {cancel}'
 			]
@@ -1458,14 +1458,14 @@ $.keyboard = function(el, options){
 			'default': [
 				'` 1 2 3 4 5 6 7 8 9 0 [ ] {bksp}',
 				'{tab} \' , . p y f g c r l / = \\',
-				'a o e u i d h t n s - {enter}',
+				'a o e u i d h t n s -',
 				'{shift} ; q j k x b m w v z {shift}',
 				'{accept} {space} {cancel}'
 			],
 			'shift' : [
 				'~ ! @ # $ % ^ & * ( ) { } {bksp}',
-				'{tab} " < > P Y F G C R L ? + |', 
-				'A O E U I D H T N S _ {enter}',
+				'{tab} " < > P Y F G C R L ? + |',
+				'A O E U I D H T N S _',
 				'{shift} : Q J K X B M W V Z {shift}',
 				'{accept} {space} {cancel}'
 			]
@@ -1644,7 +1644,7 @@ $.keyboard = function(el, options){
 		keyBinding   : 'mousedown touchstart',
 
 		// combos (emulate dead keys : http://en.wikipedia.org/wiki/Keyboard_layout#US-International)
-		// if user inputs `a the script converts it to à, ^o becomes ô, etc.
+		// if user inputs `a the script converts it to ï¿½, ^o becomes ï¿½, etc.
 		useCombos : true,
 		combos    : {
 			// grave

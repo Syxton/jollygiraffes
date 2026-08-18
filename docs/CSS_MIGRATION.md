@@ -96,19 +96,19 @@ and add the class to its wrapping `<div>`.
 
 - [x] `templates/admin_layout.php` — child class added in this delivery
 - [x] `templates/admin_main_layout.php` — child class added in this delivery
-- [ ] `ajax/ajax.php`
-- [ ] `ajax/childrentab.php`
-- [ ] `ajax/contactstab.php`
-- [ ] `ajax/employeestab.php`
-- [ ] `ajax/programtab.php`
-- [ ] `ajax/reports.php`
-- [ ] `lib/billinglib.php`
-- [ ] `lib/formlib.php`
-- [ ] `templates/alphabet.php`
-- [ ] `templates/checkinout_contact_selector.php`
-- [ ] `templates/employee_signinout_layout.php`
-- [ ] `templates/inoutform1.php`
-- [ ] `templates/inoutform2.php`
+- [x] `ajax/ajax.php`
+- [x] `ajax/childrentab.php`
+- [x] `ajax/contactstab.php`
+- [x] `ajax/employeestab.php`
+- [x] `ajax/programtab.php`
+- [x] `ajax/reports.php`
+- [x] `lib/billinglib.php`
+- [x] `lib/formlib.php`
+- [x] `templates/alphabet.php`
+- [x] `templates/checkinout_contact_selector.php`
+- [x] `templates/employee_signinout_layout.php`
+- [x] `templates/inoutform1.php`
+- [x] `templates/inoutform2.php`
 
 ## The split-panel overlap (account/child selector, ~styles.css:180-260)
 
@@ -126,3 +126,34 @@ the same horizontal pixel because there's no `calc()` involved.
 `css/status.css`, `scripts/status.js`, `status.php`, `lib/status_lib.php`,
 `ajax/status_ajax.php` — per direction, the status area is new and
 should not be touched by this pass.
+
+
+## Completion (this pass)
+
+All checklist files above now carry `.layout-flex` alongside their legacy
+`.fill_*` classes. Parents that need a flex context were updated:
+
+- `templates/admin_layout.php` — wrapped `.admin_menu` + `#admin_display`
+  in `.admin_layout_wrapper.layout-flex-col`
+- `templates/admin_main_layout.php` — wrapped the three containers in
+  `.admin_main_layout.layout-flex-col`
+- `templates/selectable_list_split_item.php` — wrapped left/right panels
+  in `.layout-split-row` (replaces `calc(50vw…)` / `calc(70%…)` fighting)
+
+`css/styles.css` no longer uses `calc(50vw - 70px)` or `calc(70% - 15px)`
+on `.list_links` / `.list_box_item_left` / `.list_box_item_right`; those
+use flex basis instead.
+
+`scripts/script.js`: `fill_height_width()` and `fill_height_width_once()`
+have been removed, along with their `$(window).resize` and `refresh_all`
+call sites. Layout is now entirely CSS-driven via `layout.css`.
+
+Status area (`status.css` / `status.js` / etc.) remains out of scope.
+
+## Admin grid (follow-up)
+
+`templates/admin_main_layout.php` now uses `.layout-grid-admin` (CSS Grid)
+instead of float + flex for the list | actions | info workspace. Rules live
+in `css/layout.css`. Expanded state: add `.is-expanded` on
+`.admin_main_layout` and/or keep legacy `.expanded` on children (`:has()`
+supported in modern browsers).

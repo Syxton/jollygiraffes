@@ -1,5 +1,4 @@
-<div id="alphabet_container"
-    class="fill_width_middle alphabet_filter"
+<div id="alphabet_container" class="alphabet_filter layout-flex"
     style="margin:0px 10px;padding:5px;white-space:nowrap;">
     <div class="label alphabet_label">
         Last Initial:

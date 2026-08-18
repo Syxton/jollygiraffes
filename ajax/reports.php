@@ -30,7 +30,7 @@ if (empty($sort)) {
     $returnme .= '<div id="popup_display" style="width:800px;height550px;position: relative;right: 10px;">';
 }
 $returnme .= '
-    <div style="left: 47%;position: fixed;display: block;top: 0;z-index: 100;">
+    <div style="position: fixed;display: block;top: 25px;left: 50%;transform: translate(-50%, -50%);z-index: 100;">
         <button style="display:inline-flex;align-items:center;font-size: 12px;text-shadow: darkGrey 1px 1px 3px;" onclick="$(\'.printthis\').print();">' . icon('print', "2") . ' Print</button>
         <button style="display:inline-flex;align-items:center;font-size: 12px;text-shadow: darkGrey 1px 1px 3px;" onclick="
             $(\'.copied\').remove();
@@ -44,7 +44,7 @@ $returnme .= '
                     link.click();
                 }
             });
-            ">' . icon('copy', "2") . ' Copy</button></div><div id="printthis" class="printthis fill_height" style="padding-left:10px;width:785px;">';
+            ">' . icon('copy', "2") . ' Copy</button></div><div id="printthis" class="printthis fill_height layout-flex" style="padding-left:10px;width:785px;">';
 
 $fromnum = strtotime($from);
 $tonum = strtotime($to);

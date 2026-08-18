@@ -277,7 +277,7 @@ function get_home_page() {
 }
 
 function get_admin_button() {
-    return get_numpad("", true, "", "#display_level", 'admin_numpad1') . '<div class="top-right"><button class="admin_button topright_button" onclick="if (typeof(autoback) != \'undefined\') { clearTimeout(autoback); } numpad(\'admin_numpad1\');">Admin</button></div>';
+    return get_numpad("", true, "", "#display_level", 'admin_numpad1') . '<div><button class="admin_button topright_button" onclick="if (typeof(autoback) != \'undefined\') { clearTimeout(autoback); } numpad(\'admin_numpad1\');">Admin</button></div>';
 }
 
 function get_employee_button($employeeid, $class = "", $style = "", $action = "") {
@@ -317,13 +317,17 @@ function get_employee_timeclock_button() {
         return "";
     }
 
-    return '<div class="top-left"><button class="employee_button topleft_button" onclick="$.ajax({
+    return '
+    <button
+        class="employee_button topleft_button"
+        onclick="$.ajax({
               type: \'POST\',
               url: \'ajax/ajax.php\',
               timeout: 10000,
               data: { action: \'employee_timesheet\' },
               success: function(data) { $(\'.employee_button\').hide(); $(\'.kiosk_button\').hide(); $(\'#display_level\').html(data); refresh_all(); }
-              });"">Employee</button></div>';
+              });"">Employee
+    </button>';
 }
 
 function get_numpad($aid = "\'\'", $admin = "false", $type = "\'\'", $display = "#display_level", $id = "numpad") {
@@ -574,10 +578,16 @@ function active_icon($active = true) {
     ]]) . '
     </span>';
 }
-function go_home_button($button_text = 'Back') {
-    return '<div class="go_home"><button class="topleft_button" onclick="if (typeof(autoback) != \'undefined\') { clearTimeout(autoback); }
-            location.reload();
-            ">' . $button_text . '</button></div>';
+function go_home_button($button_text = 'Back', $center = '', $rightside = '') {
+    return '
+    <div class="go_home">
+        <button
+            onclick="if (typeof(autoback) != \'undefined\') { clearTimeout(autoback); } location.reload();">
+            ' . $button_text . '
+        </button>
+        ' . $center . '
+        ' . $rightside . '
+    </div>';
 }
 
 function get_name($vars) {

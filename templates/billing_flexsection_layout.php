@@ -14,7 +14,7 @@
     </div>
     <?php
     if (!empty($contents)) { ?>
-        <div class="ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
+        <div class="flexsection_contents ui-corner-all" style="padding: 5px;color: black;background-color:lightgray">
         <?php
     }
     echo $contents;

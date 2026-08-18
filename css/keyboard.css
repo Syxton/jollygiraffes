@@ -1,14 +1,43 @@
 /* keyboard - jQuery UI Widget */
-.ui-keyboard { padding: .3em; position: absolute; left: 0; top: 0; z-index: 16000; }
+.ui-keyboard {
+	padding: .3em;
+	position: absolute;
+	left: 0;
+	top: 0;
+	z-index: 16000;
+	top: 50%!important;
+    left: 50%!important;
+    transform: translate(-50%, -50%)!important;
+    width: 100vw!important;
+}
 .ui-keyboard-has-focus { z-index: 16001; }
-.ui-keyboard div { font-size: 1.1em; }
-.ui-keyboard-button { zoom: 2; height: 2em; width: 2em; margin: .1em; cursor: pointer; overflow: hidden; line-height: 2em; }
+.ui-keyboard div { font-size: 1.1em; zoom: .75;}
+.ui-keyboard-button {
+	zoom: 2;
+	height: 2em;
+	width: 2em;
+	margin: .1em;
+	cursor: pointer;
+	overflow: hidden;
+	line-height: 2em;
+	display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
 .ui-keyboard-button span { padding: 0; margin: 0; white-space:nowrap; }
 .ui-keyboard-button-endrow { clear: left; }
 .ui-keyboard-widekey { width: 4em; }
 .ui-keyboard-space { width: 15em; text-indent: -999em; }
 .ui-keyboard-preview-wrapper { text-align: center; }
-.ui-keyboard-preview { zoom:3; text-align: left; margin: 0 0 3px 0; display: inline; width: 99%;} /* width is calculated in IE, since 99% = 99% full browser width =( */ 
+.ui-keyboard-preview {
+	text-align: left;
+	margin: 0 0 3px 0;
+	display: inline;
+	width: 99%;
+	padding: 10px;
+    font-size: 2em !important;
+    box-sizing: border-box;
+} /* width is calculated in IE, since 99% = 99% full browser width =( */
 .ui-keyboard-keyset { text-align: center; }
 .ui-keyboard-input { text-align: left; }
 .ui-keyboard-input-current { -moz-box-shadow: 1px 1px 10px #00f; -webkit-box-shadow: 1px 1px 10px #00f; box-shadow: 1px 1px 10px #00f; }
@@ -59,10 +88,25 @@
 }
 
 /* 480 x 640 (small tablet) */
-@media all and (min-width: 480px) and (max-width: 767px) {
+@media all and (min-width: 480px) and (max-width: 720px) {
+	.ui-keyboard-button { height: 28px;font-size: .6em; }
+	.ui-keyboard-button:not([name="accept"], [name="space"], [name="shift"], [name="cancel"], [name="bksp"]) { width: 28px; }
 	.ui-keyboard div { font-size: 13px; }
 	.ui-keyboard .ui-keyboard-input { font-size: 14px; }
 	.ui-bar .ui-btn { margin: 0; font-size: 10px; }
 	.ui-bar .ui-keyboard-button { height: 2.5em; }
 	.ui-bar .ui-btn-inner { height: 2.5em; padding: 0.5em 0; }
+}
+
+@media all and (min-width: 680px) and (max-width: 720px) {
+	.ui-keyboard-button { height: 28px;font-size: .6em; }
+	.ui-keyboard-button:not([name="accept"], [name="space"], [name="shift"], [name="cancel"], [name="bksp"]) { width: 28px; }
+}
+@media all and (min-width: 625px) and (max-width: 679px) {
+	.ui-keyboard-button { height: 25px;font-size: .6em; }
+	.ui-keyboard-button:not([name="accept"], [name="space"], [name="shift"], [name="cancel"], [name="bksp"]) { width: 25px; }
+}
+@media all and (min-width: 480px) and (max-width: 624px) {
+	.ui-keyboard-button { height: 18px;font-size: .8em !important;}
+	.ui-keyboard-button:not([name="accept"], [name="space"], [name="shift"], [name="cancel"], [name="bksp"]) { width: 18px; }
 }

@@ -27,8 +27,11 @@ body, html {
 }
 
 .mylogo {
-    margin: 0 30px;
-    height: 25%;
+    height: 30%;
+    max-height: 200px;
+    min-height: 100px;
+    width: 100%;
+    display: block;
     text-align: center;
     background-size: contain;
     background-repeat: no-repeat;
@@ -68,7 +71,7 @@ h3 {
 
 #activepidname {
     z-index: 0;
-    font-size: 2vw;
+    font-size: clamp(7px, 4vmin, 25px);
     font-weight: bold;
     color: white;
     text-shadow: 0px 0px 8px black;
@@ -89,9 +92,9 @@ h3 {
 }
 
 .main_level {
-    height: 100dvh;
-    max-height: 100dvh;
+    display: flex;
     position: relative;
+    height: 100vh;
     background-size: cover;
 }
 
@@ -103,7 +106,7 @@ h3 {
 
 .admin_menu {
     display: flex;
-    height: clamp(90px, 20vmin, 100px);
+    padding: 10px;
     text-align: center;
     flex-wrap: wrap;
     align-content: center;
@@ -117,24 +120,27 @@ h3 {
 }
 
 .footer-text {
+    display: flex;
     text-align: center;
-    padding: 10px;
     color: white;
     font-size: clamp(4px, 4vmin, 2em);
     text-shadow: black 0px 0px 10px;
+    justify-content: space-between;
 }
 
 .display_level {
-    height: 99.5dvh;
-    max-height: 99.dvh;
+    display: flex;
+    flex: 1;
+    gap: 10px;
+    padding: 5px;
     overflow: auto;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .container_main {
-    margin: 0px 10px;
     border: 2px solid silver;
     background: 0 #325;
-    height: 52%;
 }
 
 .list_title {
@@ -177,16 +183,20 @@ h3 {
     font-size: 12px;
     font-weight: normal;
     display: inline-flex;
-    width: calc(50vw - 70px);
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
     white-space: normal;
 }
 
 .list_box {
+    display: flex;
     background: gray;
     white-space: nowrap;
     height: auto;
     margin: 5px;
-    padding-top: 2px;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .list_box.activeaccount:hover, .selectablelist {
@@ -194,20 +204,22 @@ h3 {
 }
 
 .list_box_item_left {
-    display: inline-block;
+    display: block;
     vertical-align: middle;
-    width: calc(70% - 15px);
+    flex: 1 1 60%;
+    min-width: 0;
     white-space: normal;
 }
 
 .list_box_item_right {
-    display: inline-block;
-    width: 30%;
+    display: flex;
+    min-width: 0;
     position: relative;
     text-align: right;
     background: none;
     font-size: clamp(10px, 4vmin, 17px);
     vertical-align: middle;
+    flex-direction: column;
 }
 
 .program_name+.list_box_item_right {
@@ -290,7 +302,7 @@ h3 {
 .container_actions {
     background: lightCyan;
     border: 2px solid silver;
-    padding: 2px 0px 6px;
+    padding: 5px;
     margin-bottom: 5px;
     display: flex;
     align-items: center;
@@ -501,12 +513,9 @@ h3 {
 }
 
 .big_button {
-    height: 80%;
-    width: 30%;
-    padding: 10px;
+    font-size: clamp(30px, 6vmin, 40px) !important;
+    padding: .4em 1em !important;
     margin: 10px;
-    max-width: 350px;
-    max-height: 150px;
     font-weight: bold !important;
 }
 
@@ -592,6 +601,12 @@ button.selected_button:hover {
     color: yellow;
 }
 
+.checkinoutsplit {
+    display:flex;
+    flex: 1;
+    gap: 5px;
+}
+
 .loadingscreen {
     background-image: url('../images/loading.gif');
     background-repeat: no-repeat;
@@ -641,11 +656,10 @@ button.selected_button:hover {
 }
 
 .middle-center {
-    position: absolute;
-    top: 50%;
     width: 100%;
     text-align: center;
     z-index: 1;
+    height: 40%;
 }
 
 .middle-right {
@@ -657,15 +671,10 @@ button.selected_button:hover {
 }
 
 .bottom-left {
-    position: absolute;
-    bottom: 0;
-    left: 0;
     z-index: 100;
 }
 
 .bottom-center {
-    position: fixed;
-    bottom: 0;
     width: 100% !important;
     text-align: center;
     z-index: 1;
@@ -843,7 +852,7 @@ li.ui-widget-content.ui-selectee.ui-selected {
 
 .selectable li {
     margin: 3px;
-    padding: 25px;
+    padding: 15px;
     font-size: 1em;
     font-weight: bold;
     height: 18px;
@@ -1050,23 +1059,14 @@ svg {
 }
 
 .topright_button {
-    position: absolute;
-    top: 5px;
-    right: 20px;
     font-size: clamp(15px, 5vmin, 30px);
 }
 
 .topleft_button {
-    position: absolute;
-    top: 5px;
-    left: 5px;
     font-size: clamp(15px, 5vmin, 30px);
 }
 
 .bottomleft_button {
-    position: absolute;
-    bottom: 5px;
-    left: 5px;
     font-size: clamp(15px, 5vmin, 30px);
 }
 
@@ -1078,12 +1078,14 @@ svg {
     font-size: 20px;
 }
 
-.select_buttons, .submit_buttons {
-    font-size: 1.5vmax;
+.go_home {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.go_home {
-    height: clamp(25px, 15vmin, 60px)
+.go_home button {
+    font-size: clamp(7px, 4vmin, 22px);
 }
 
 .alphabet_filter .keypad_buttons {
@@ -1102,13 +1104,9 @@ svg {
 }
 
 .select_buttons_div {
-    position: absolute;
     display: inline-flex;
     justify-content: center;
     flex-wrap: wrap;
-    top: 0;
-    left: 50%;
-    transform: translate(-50%, 0);
 }
 
 .optional_questions {
@@ -1147,6 +1145,7 @@ svg {
     background: none;
     color: lightGrey;
     white-space: normal;
+    flex: 1;
     text-shadow: black 1px 1px 3px;
 }
 
@@ -1171,7 +1170,6 @@ svg {
 }
 
 .contact_select_at_checkout {
-    float: left;
     width: 60%
 }
 
@@ -1256,10 +1254,18 @@ svg {
     border: 1px solid grey;
 }
 
+.flexsection {
+    flex: 1;
+    width: 100%;
+    box-sizing: border-box;
+}
 .flexsection_open {
     rotate: 90deg;
 }
-
+.flexsection_contents {
+    width: 100%;
+    box-sizing: border-box;
+}
 /* tablet devices (tablets, 850px and down) */
 
 @media only screen and (max-width: 850px) {
@@ -1323,10 +1329,8 @@ svg {
         display: none;
     }
     .big_button {
-        zoom: 1;
         min-width: initial;
         min-height: initial;
-        width: 70%;
     }
     .big_button.signinout {
         margin: 10px !important;
@@ -1335,7 +1339,8 @@ svg {
         padding: 2px;
     }
     .mylogo {
-        height: 20%
+        height: 25%;
+        margin: auto;
     }
     .small_spacer {
         height: 8vmax;
@@ -1355,8 +1360,7 @@ svg {
         width: 30%;
     }
     .child_wrapper .child.noaction {
-        zoom: .3;
-        display: block !important;
+           display: block !important;
     }
     .child_wrapper .child:not(.noaction) {
         zoom: .7;
@@ -1372,9 +1376,6 @@ svg {
     }
     .list_box_item_left.list_title {
         padding: 10px 10px 0px;
-    }
-    .list_box_item_full .list_title {
-        white-space: break-spaces;
     }
     .scroll-pane .list_buttons {
         zoom: 80%;
@@ -1439,6 +1440,11 @@ svg {
     .ui-button {
         padding: 6px;
     }
+    .keypad_button_big {
+        width: 50px;
+        height: auto;
+        aspect-ratio: 1 / 1;
+    }
     .document_list_item .list_box {
         padding: 3px;
     }
@@ -1484,4 +1490,18 @@ svg {
         width: 55px;
         height: 55px;
     }
+}
+
+
+/* ---- CSS migration: neutralize float/height when grid admin is active ---- */
+.admin_main_layout.layout-grid-admin > .container_list {
+    float: none;
+    width: auto;
+    height: auto;
+}
+.admin_main_layout.layout-grid-admin > .container_info {
+    height: auto;
+}
+.admin_main_layout.layout-grid-admin > .container_list.expanded {
+    width: 0 !important;
 }

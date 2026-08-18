@@ -1,6 +1,5 @@
 $(window).resize(function() {
     $(".scroll-pane").sbscroller("refresh");
-    $(".textfill").textfill();
     smart_scrollbars();
 });
 
@@ -93,8 +92,6 @@ function refresh_all() {
         }
     });
 
-    $(".textfill").textfill();
-
     refresh_tags_editor();
 
     // Delete old
@@ -124,7 +121,7 @@ function refresh_all() {
         $(".scroll-pane").sbscroller("refresh");
         smart_scrollbars();
     },
-    100);
+    50);
 }
 
 function refresh_tags_editor() {

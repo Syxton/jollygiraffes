@@ -1,0 +1,138 @@
+/***************************************************************************
+ * layout.css - Flexbox layout primitives
+ * -------------------------------------------------------------------------
+ * Replaces the JS-computed .fill_height / .fill_width / .fill_height_middle
+ * / .fill_width_middle / .fill_height_once / .fill_width_once classes that
+ * script.js previously recalculated in pixels on every `resize` event.
+ *
+ * Why this fixes the overlap bugs:
+ *   - The old approach read offsets/margins with jQuery and set an inline
+ *     height/width in pixels. On mobile, the viewport height changes when
+ *     the browser chrome (URL bar) shows/hides, which fires `resize`
+ *     asynchronously and often *after* other layout-affecting JS (keyboard
+ *     opening, modal opening) has already run — so the cached pixel value
+ *     goes stale and panels overlap or clip until the next resize event.
+ *   - Flexbox / CSS `height: 100%` + `min-height: 0` recalculates on every
+ *     paint, for free, with no JS and no race condition.
+ *   - It also removes a `resize` handler that was doing DOM reads/writes
+ *     for every matching element on the page on every single frame while
+ *     dragging a browser window or rotating a phone — a real perf cost on
+ *     lower-end tablets/phones used at a front desk kiosk.
+ *
+ * MIGRATION: this file is additive. It only styles elements that also
+ * carry the `.layout-flex` marker class (added alongside the legacy
+ * class, e.g. class="fill_height layout-flex"), so it can be rolled
+ * out template-by-template without a big-bang rewrite. See
+ * docs/CSS_MIGRATION.md for the file-by-file checklist. Once every
+ * consumer of .fill_height/.fill_width has `layout-flex` added, the
+ * fill_height_width()/fill_height_width_once() functions in script.js
+ * (and this file's compatibility shims below) can be deleted outright.
+ ***************************************************************************/
+
+/* ---- Base: any container that holds a "fill" child becomes a flex
+   column/row and gives up manual height math entirely. ---- */
+.layout-flex-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* required so children can shrink instead of overflow */
+    height: 100%;
+}
+
+.layout-flex-row {
+    display: flex;
+    flex-direction: row;
+    min-width: 0;
+    width: 100%;
+}
+
+/* ---- Replacement for .fill_height: grow to consume remaining
+   vertical space in a .layout-flex-col parent. ---- */
+.fill_height.layout-flex,
+.fill_height_once.layout-flex {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto; /* let flexbox drive it, not JS */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ---- Replacement for .fill_width: grow to consume remaining
+   horizontal space in a .layout-flex-row parent. ---- */
+.fill_width.layout-flex,
+.fill_width_once.layout-flex {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+}
+
+/* ---- Replacement for .fill_height_middle / .fill_width_middle:
+   same idea, but the parent also has fixed-size .top/.bottom or
+   .side siblings that flex naturally sizes around — no need to
+   read $('.bottom').height() in JS anymore. ---- */
+.fill_height_middle.layout-flex {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.fill_width_middle.layout-flex {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.layout-flex-col > .top,
+.layout-flex-col > .bottom {
+    flex: 0 0 auto; /* fixed-size, don't grow/shrink */
+}
+
+.layout-flex-row > .side {
+    flex: 0 0 auto;
+}
+
+/* ---------------------------------------------------------------------
+ * Mobile-first breakpoints for the panels that used vw/dvh + calc() +
+ * absolute positioning in styles.css (e.g. the split account/child
+ * selector panels around line 180-260 of styles.css, which used
+ * `calc(50vw - 70px)` and `calc(70% - 15px)` side by side). Those two
+ * units fight each other at narrow widths and are the direct cause of
+ * the "strange overlapping" reported on phones/small tablets.
+ *
+ * Below ~700px, stack these panels instead of splitting them
+ * horizontally, and let flex-basis do the sizing instead of calc().
+ * ------------------------------------------------------------------- */
+.layout-split-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.layout-split-row > * {
+    flex: 1 1 320px; /* wrap to full width once below ~320px each */
+    min-width: 0;
+}
+
+@media (max-width: 700px) {
+    .layout-split-row {
+        flex-direction: column;
+    }
+    .layout-split-row > * {
+        flex: 1 1 auto;
+        width: 100%;
+    }
+}
+
+/* Prevent the historical pattern of stacking multiple
+   `position: absolute` panels inside a `position: relative` parent
+   with no defined stacking context boundaries (styles.css lines
+   ~171, 277, 333, 605-778). Any NEW absolutely-positioned overlay
+   should opt in to this instead of ad hoc absolute+!important: */
+.layout-overlay-anchor {
+    position: relative;
+    isolation: isolate; /* creates a clean stacking context */
+}
+
+.layout-overlay {
+    position: absolute;
+    inset: 0;
+}

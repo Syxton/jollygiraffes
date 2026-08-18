@@ -1,47 +1,61 @@
 <?php
 
 /***************************************************************************
-* dblib_mysql.php - Database function library
+* dblib_mysql.php - DEPRECATED legacy database function library
 * -------------------------------------------------------------------------
-* Author: Matthew Davidson
-* Date: 12/21/2012
-* Revision: 1.1.1
+* The ext/mysql extension this file wraps was removed from PHP entirely
+* in PHP 7.0 (December 2015). If $CFG->dbtype is ever anything other
+* than "mysqli", the app cannot run on any supported PHP version.
+*
+* RECOMMENDATION: set $CFG->dbtype = "mysqli" in config.php (this should
+* already be the default) and delete this file, dblib.php's mysql
+* fallback branch, and the dbtype config option entirely. It is kept
+* here only as a clearly-labeled compatibility stub so the app fails
+* with an actionable message instead of a confusing fatal error.
 ***************************************************************************/
 
-function get_mysql_array_type($type = "assoc"){
+if (!function_exists('mysql_connect')) {
+    trigger_error(
+        'config.php has $CFG->dbtype set to "mysql", but the mysql_* ' .
+        'extension was removed in PHP 7.0. Set $CFG->dbtype = "mysqli" instead.',
+        E_USER_ERROR
+    );
+}
+
+function get_mysql_array_type($type = "assoc") {
     switch ($type) {
         case "assoc":
             return MYSQL_ASSOC;
-        break;
         case "num":
             return MYSQL_NUM;
-        break;
         case "both":
             return MYSQL_BOTH;
-        break;
         default:
             return MYSQL_ASSOC;
-        break;
     }
 }
 
-function db_goto_row($result, $rownum = 0){
+function set_db_report_level($level = null) {
+    // No-op: ext/mysql has no equivalent of mysqli_report().
+}
+
+function db_goto_row($result, $rownum = 0) {
     mysql_data_seek($result, $rownum);
 }
 
-function fetch_row($result, $type = false){
+function fetch_row($result, $type = false) {
     $type = get_mysql_array_type($type);
     return mysql_fetch_array($result, $type);
 }
 
-function get_db_count($SQL){
+function get_db_count($SQL) {
     global $CFG;
-    if (strstr($SQL, ".")) { //Complex SQL statements
+    if (strstr($SQL, ".")) {
         if ($result = get_db_result($SQL)) {
             return mysql_num_rows($result);
         }
         return 0;
-    } else { //Simple SQL can be counted quicker this way
+    } else {
         $SQL = "SELECT COUNT(*) as count " . substr($SQL, strpos($SQL, "FROM"));
         if ($row = get_db_row($SQL)) {
             return $row["count"];
@@ -50,15 +64,18 @@ function get_db_count($SQL){
     }
 }
 
-function get_db_result($SQL){
+function get_db_result($SQL, $vars = []) {
     global $CFG, $conn;
     if (!$conn) {
         $conn = reconnect();
     }
+    if (!empty($vars)) {
+        trigger_error('Prepared statements are not supported on the legacy mysql driver.', E_USER_WARNING);
+    }
 
     if ($result = mysql_query($SQL)) {
-        $select = preg_match('/^SELECT/i', $SQL) ? true : false;
-        if ($select && mysql_num_rows($result) == 0) { //SELECT STATEMENTS ONLY, RETURN false on EMPTY selects
+        $select = preg_match('/^\s*SELECT/i', $SQL) ? true : false;
+        if ($select && mysql_num_rows($result) == 0) {
             return false;
         }
         return $result;
@@ -66,12 +83,12 @@ function get_db_result($SQL){
     return false;
 }
 
-function execute_db_sql($SQL){
+function execute_db_sql($SQL, $vars = []) {
     global $CFG, $conn;
-    $update = preg_match('/^UPDATE/i', $SQL) ? true : false;
-    $delete = preg_match('/^DELETE/i', $SQL) ? true : false;
+    $update = preg_match('/^\s*UPDATE/i', $SQL) ? true : false;
+    $delete = preg_match('/^\s*DELETE/i', $SQL) ? true : false;
 
-    if ($result = get_db_result($SQL)) {
+    if ($result = get_db_result($SQL, $vars)) {
         if ($result && $update) {
             $id = mysql_affected_rows($conn);
             if (!$id) {
@@ -93,11 +110,19 @@ function execute_db_sql($SQL){
     return false;
 }
 
-function dbescape($str){
+function get_db_error() {
+    return function_exists('mysql_error') ? mysql_error() : '';
+}
+
+function get_db_errorno() {
+    return function_exists('mysql_errno') ? mysql_errno() : 0;
+}
+
+function dbescape($str) {
     global $conn;
     return mysql_real_escape_string($str, $conn);
 }
 
-function db_free_result($result){
+function db_free_result($result) {
     mysql_free_result($result);
 }

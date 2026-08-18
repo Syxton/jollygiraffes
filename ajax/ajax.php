@@ -319,6 +319,7 @@ function check_in_out($chids, $cid, $type, $time = false) {
     $c           = 1; // Child counter
     $i           = 0; // Note counter
     $content = "";
+    $cid = $cid == "admin" ? 0 : $cid;
     foreach ($chids as $chid) {
         // Signed out
         $child = get_db_row("SELECT * FROM children WHERE chid='" . $chid["value"] . "' AND deleted=0");

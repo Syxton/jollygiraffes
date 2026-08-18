@@ -59,17 +59,6 @@
     flex: 0 0 auto;
 }
 
-/* ---------------------------------------------------------------------
- * Mobile-first breakpoints for the panels that used vw/dvh + calc() +
- * absolute positioning in styles.css (e.g. the split account/child
- * selector panels around line 180-260 of styles.css, which used
- * `calc(50vw - 70px)` and `calc(70% - 15px)` side by side). Those two
- * units fight each other at narrow widths and are the direct cause of
- * the "strange overlapping" reported on phones/small tablets.
- *
- * Below ~700px, stack these panels instead of splitting them
- * horizontally, and let flex-basis do the sizing instead of calc().
- * ------------------------------------------------------------------- */
 .layout-split-row {
     display: flex;
     flex: 1;

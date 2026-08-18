@@ -34,16 +34,16 @@ function fetch_row($result, $type = false) {
     return mysqli_fetch_array($result, $type);
 }
 
-function get_db_count($SQL) {
+function get_db_count($SQL, $vars = []) {
     global $CFG;
     if (strstr($SQL, ".")) { //Complex SQL statements
-        if ($result = get_db_result($SQL)) {
+        if ($result = get_db_result($SQL, $vars)) {
             return mysqli_num_rows($result);
         }
         return 0;
     } else { //Simple SQL can be counted quicker this way
         $SQL = "SELECT COUNT(*) as count " . substr($SQL, strpos($SQL, "FROM"));
-        if ($row = get_db_row($SQL)) {
+        if ($row = get_db_row($SQL, false, $vars)) {
             return $row["count"];
         }
         return 0;

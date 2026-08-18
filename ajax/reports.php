@@ -23,8 +23,23 @@ foreach ($fields as $field) {
     $$field = empty($MYVARS->GET[$field]) ? false : $MYVARS->GET[$field];
 }
 
-$pid = empty($pid) ? get_pid() : $pid;
+// Whitelist dynamic column names used in WHERE $type = ...
+$allowed_types = ["pid", "aid", "chid", "cid", "actid", "employeeid"];
+if ($type !== false && !in_array($type, $allowed_types, true)) {
+    $type = false;
+}
+
+$pid = empty($pid) ? get_pid() : clean_var_opt($pid, "int", get_pid());
+$id = $id !== false ? clean_var_opt($id, "int", 0) : false;
+$aid = $aid !== false ? clean_var_opt($aid, "int", 0) : false;
+$chid = $chid !== false ? clean_var_opt($chid, "int", 0) : false;
+$cid = $cid !== false ? clean_var_opt($cid, "int", 0) : false;
+$actid = $actid !== false ? clean_var_opt($actid, "int", 0) : false;
+$tag = $tag !== false ? clean_var_opt($tag, "string", "") : false;
+$att_tag = $att_tag !== false ? clean_var_opt($att_tag, "string", "") : false;
+
 $returnme = $script = "";
+$sql_vars = []; // bound parameters for the main $SQL query
 
 if (empty($sort)) {
     $returnme .= '<div id="popup_display" style="width:800px;height550px;position: relative;right: 10px;">';
@@ -61,20 +76,22 @@ if (!empty($year)) {
 
 if (!empty($fromnum) && !empty($tonum)) {
     $tonum += 86399; //go through end of day selected 86400 seconds is one day...minus 1 second
-    $timesql = "AND timelog > $fromnum AND timelog < $tonum";
-    $timesql2 = "AND fromdate > $fromnum AND todate < $tonum";
+    $timesql = "AND timelog > ||t_from|| AND timelog < ||t_to||";
+    $timesql2 = "AND fromdate > ||t_from|| AND todate < ||t_to||";
+    $sql_vars["t_from"] = $fromnum;
+    $sql_vars["t_to"] = $tonum;
 } elseif (!empty($month1) && !empty($year1)) {
     if (!empty($month2) && !empty($year2)) {
         $timefrom = mktime(0, 0, 0, $month1, 1, $year1);
         $timeto = mktime(0, 0, 0, $month2, cal_days_in_month(CAL_GREGORIAN, $month2, $year2), $year2);
-        $timesql = "AND timelog > $timefrom AND timelog < $timeto";
-        $timesql2 = "AND fromdate > $timefrom AND todate < $timeto";
     } else {
         $timefrom = mktime(0, 0, 0, $month1, 1, $year1);
         $timeto = $timefrom + (cal_days_in_month(CAL_GREGORIAN, $month1, $year1) * 86400);
-        $timesql = "AND timelog > $timefrom AND timelog < $timeto";
-        $timesql2 = "AND fromdate > $timefrom AND todate < $timeto";
     }
+    $timesql = "AND timelog > ||t_from|| AND timelog < ||t_to||";
+    $timesql2 = "AND fromdate > ||t_from|| AND todate < ||t_to||";
+    $sql_vars["t_from"] = $timefrom;
+    $sql_vars["t_to"] = $timeto;
 } else {
     $timefrom = $timeto = false;
     $timesql = $timesql2 = "";
@@ -91,7 +108,9 @@ if (!empty($fromnum) && !empty($tonum)) {
 }
 
 
-$order_day = "CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'" . get_date('P', time(), $CFG->servertz) . "','" . get_date('P', time(), $CFG->timezone) . "'))) as order_day";
+$servertz = get_date('P', time(), $CFG->servertz);
+$localtz = get_date('P', time(), $CFG->timezone);
+$order_day = "CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'" . $servertz . "','" . $localtz . "'))) as order_day";
 $order_by = ' ORDER BY order_day,timelog';
 $empty = $returnme;
 $name = get_name(["type" => "$type","id" => "$id"]);
@@ -99,89 +118,130 @@ $name = get_name(["type" => "$type","id" => "$id"]);
 switch ($report) {
     case "allnotes":
         if ($tag) {
-            $tag_sql = "tag IN (SELECT tag FROM notes_tags WHERE tag='$tag')";
+            $tag_sql = "tag IN (SELECT tag FROM notes_tags WHERE tag = ||tag||)";
+            $sql_vars["tag"] = $tag;
         } else {
             $tag_sql = "tag IN (SELECT tag FROM notes_tags)";
         }
-        $SQL = "SELECT *,$order_day FROM notes WHERE $type='$id' AND $tag_sql $timesql $order_by";
+        $SQL = "SELECT *,$order_day FROM notes WHERE $type = ||id|| AND $tag_sql $timesql $order_by";
+        $sql_vars["id"] = $id;
         break;
     case "activity":
         if ($att_tag) {
-            $att_tag_sql = "(tag IN (SELECT tag FROM notes_required WHERE tag='$att_tag') || tag IN (SELECT tag FROM events_tags WHERE tag='$att_tag'))";
+            $att_tag_sql = "(tag IN (SELECT tag FROM notes_required WHERE tag = ||att_tag||) OR tag IN (SELECT tag FROM events_tags WHERE tag = ||att_tag||))";
+            $sql_vars["att_tag"] = $att_tag;
         } else {
             $att_tag_sql = "tag NOT IN (SELECT tag FROM notes_required)";
         }
         if (!empty($actid) && $type == "employeeid") {
-            $SQL = "SELECT *,$order_day FROM notes WHERE actid='$actid' AND $type='$id' AND actid !=0 AND $att_tag_sql $timesql $order_by";
+            $SQL = "SELECT *,$order_day FROM notes WHERE actid = ||actid|| AND $type = ||id|| AND actid != 0 AND $att_tag_sql $timesql $order_by";
+            $sql_vars["actid"] = $actid;
+            $sql_vars["id"] = $id;
         } elseif ($type == "employeeid") {
-            $SQL = "SELECT *,$order_day FROM notes WHERE $type='$id' AND actid !=0 AND $att_tag_sql $timesql $order_by";
+            $SQL = "SELECT *,$order_day FROM notes WHERE $type = ||id|| AND actid != 0 AND $att_tag_sql $timesql $order_by";
+            $sql_vars["id"] = $id;
         } elseif (!empty($actid)) {
-            $SQL = "SELECT *,$order_day FROM notes WHERE pid='$pid' AND actid='$actid' AND $att_tag_sql $timesql $order_by";
+            $SQL = "SELECT *,$order_day FROM notes WHERE pid = ||pid|| AND actid = ||actid|| AND $att_tag_sql $timesql $order_by";
+            $sql_vars["pid"] = $pid;
+            $sql_vars["actid"] = $actid;
         } else {
-            $SQL = "SELECT *,$order_day FROM notes WHERE pid='$pid' AND $type='$id' AND actid !=0 AND $att_tag_sql $timesql $order_by";
+            $SQL = "SELECT *,$order_day FROM notes WHERE pid = ||pid|| AND $type = ||id|| AND actid != 0 AND $att_tag_sql $timesql $order_by";
+            $sql_vars["pid"] = $pid;
+            $sql_vars["id"] = $id;
         }
         break;
     case "invoice":
         if (empty($aid)) { //All accounts enrolled in program
-            $SQL = "SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid')) ORDER BY name";
+            $SQL = "SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid = ||pid||)) ORDER BY name";
+            $sql_vars["pid"] = $pid;
         } else { //Only selected account
-            $SQL = "SELECT * FROM accounts WHERE aid='$aid'";
+            $SQL = "SELECT * FROM accounts WHERE aid = ||aid||";
+            $sql_vars["aid"] = $aid;
         }
         break;
     case "invoicetimeline":
         if (empty($aid)) { //All accounts enrolled in program
-            $SQL = "SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid')) ORDER BY name";
+            $SQL = "SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid = ||pid||)) ORDER BY name";
+            $sql_vars["pid"] = $pid;
         } else { //Only selected account
-            $SQL = "SELECT * FROM accounts WHERE aid='$aid'";
+            $SQL = "SELECT * FROM accounts WHERE aid = ||aid||";
+            $sql_vars["aid"] = $aid;
         }
         break;
     case "employee_paid":
-        $SQL = "SELECT * FROM employee WHERE employeeid IN (SELECT employeeid FROM employee_timecard WHERE (hours > 0 || hours_override > 0) AND fromdate >= $fromnum AND todate <= $tonum ) AND employeeid='$id'";
+        $SQL = "SELECT * FROM employee WHERE employeeid IN (SELECT employeeid FROM employee_timecard WHERE (hours > 0 OR hours_override > 0) AND fromdate >= ||t_from|| AND todate <= ||t_to||) AND employeeid = ||id||";
+        $sql_vars["t_from"] = $fromnum;
+        $sql_vars["t_to"] = $tonum;
+        $sql_vars["id"] = $id;
         break;
     case "all_tax_papers":
         if ($type == "aid") {
-            $SQL = "SELECT * FROM accounts WHERE aid IN (SELECT aid FROM billing_payments WHERE payment > 0 $timesql) AND aid='$id' ORDER BY name";
+            $SQL = "SELECT * FROM accounts WHERE aid IN (SELECT aid FROM billing_payments WHERE payment > 0 $timesql) AND aid = ||id|| ORDER BY name";
+            $sql_vars["id"] = $id;
         } else {
             $SQL = "SELECT * FROM accounts WHERE aid IN (SELECT aid FROM billing_payments WHERE payment > 0 $timesql) ORDER BY name";
         }
         break;
     case "payments_between":
-        $SQL = "SELECT * FROM billing_payments WHERE payment > 0 AND $type='$id' $timesql ORDER BY timelog ASC";
+        $SQL = "SELECT * FROM billing_payments WHERE payment > 0 AND $type = ||id|| $timesql ORDER BY timelog ASC";
+        $sql_vars["id"] = $id;
         break;
     case "invoice_between":
         break;
     case "meal_status_count":
-        $SQL = "SELECT $order_day,a.timelog,b.meal_status FROM activity a JOIN children c ON c.chid = a.chid JOIN accounts b ON b.aid = c.aid WHERE tag='in' AND $type='$id' AND a.chid IN (SELECT chid FROM enrollments WHERE $type='$id') $timesql GROUP BY order_day,a.chid ORDER BY order_day";
+        $SQL = "SELECT $order_day,a.timelog,b.meal_status FROM activity a JOIN children c ON c.chid = a.chid JOIN accounts b ON b.aid = c.aid WHERE tag='in' AND $type = ||id|| AND a.chid IN (SELECT chid FROM enrollments WHERE $type = ||id||) $timesql GROUP BY order_day,a.chid ORDER BY order_day";
+        $sql_vars["id"] = $id;
         break;
     case "program_per_child_attendance":
-        $SQL = "SELECT CONCAT(c.chid,'-',CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'" . get_date('P', time(), $CFG->servertz) . "','" . get_date('P', time(), $CFG->timezone) . "')))) as ident,a.timelog,c.chid,c.last,c.first FROM activity a JOIN children c ON c.chid = a.chid WHERE tag='in' AND $type='$id' AND a.chid IN (SELECT chid FROM enrollments WHERE $type='$id') $timesql GROUP BY ident ORDER BY c.last,c.first";
+        $SQL = "SELECT CONCAT(c.chid,'-',CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'" . $servertz . "','" . $localtz . "')))) as ident,a.timelog,c.chid,c.last,c.first FROM activity a JOIN children c ON c.chid = a.chid WHERE tag='in' AND $type = ||id|| AND a.chid IN (SELECT chid FROM enrollments WHERE $type = ||id||) $timesql GROUP BY ident ORDER BY c.last,c.first";
+        $sql_vars["id"] = $id;
         break;
     case "program_per_account_attendance":
-        $SQL = "SELECT CONCAT(c.chid,'-',CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'" . get_date('P', time(), $CFG->servertz) . "','" . get_date('P', time(), $CFG->timezone) . "')))) as ident,c.chid,c.aid FROM activity a JOIN children c ON c.chid = a.chid JOIN accounts d ON c.aid = d.aid WHERE tag='in' AND $type='$id' AND a.chid IN (SELECT chid FROM enrollments WHERE $type='$id') $timesql GROUP BY ident ORDER BY d.name";
+        $SQL = "SELECT CONCAT(c.chid,'-',CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'" . $servertz . "','" . $localtz . "')))) as ident,c.chid,c.aid FROM activity a JOIN children c ON c.chid = a.chid JOIN accounts d ON c.aid = d.aid WHERE tag='in' AND $type = ||id|| AND a.chid IN (SELECT chid FROM enrollments WHERE $type = ||id||) $timesql GROUP BY ident ORDER BY d.name";
+        $sql_vars["id"] = $id;
         break;
     case "child_list":
-        $SQL = "SELECT * FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE $type='$id') AND deleted=0 ORDER BY last";
+        $SQL = "SELECT * FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE $type = ||id||) AND deleted=0 ORDER BY last";
+        $sql_vars["id"] = $id;
         break;
     case "weekly_expected_attendance":
-        $SQL = "SELECT * FROM enrollments WHERE $type='$id' AND deleted=0";
+        $SQL = "SELECT * FROM enrollments WHERE $type = ||id|| AND deleted=0";
+        $sql_vars["id"] = $id;
         break;
     case "program_per_account_bill":
-        $SQL = "SELECT a.aid FROM accounts a JOIN children c ON c.aid = a.aid WHERE c.chid IN (SELECT chid FROM enrollments WHERE $type='$id') GROUP BY a.aid ORDER BY a.name";
+        $SQL = "SELECT a.aid FROM accounts a JOIN children c ON c.aid = a.aid WHERE c.chid IN (SELECT chid FROM enrollments WHERE $type = ||id||) GROUP BY a.aid ORDER BY a.name";
+        $sql_vars["id"] = $id;
         break;
     case "program_per_program_cash_flow":
-        $extrasql = $type == "aid" ? "pid='" . get_pid() . "' AND " : "";
-        $SQL = "SELECT SUM(owed) as bill,pid,fromdate,todate FROM billing WHERE $extrasql $type='$id' GROUP BY fromdate ORDER BY fromdate";
+        if ($type == "aid") {
+            $SQL = "SELECT SUM(owed) as bill,pid,fromdate,todate FROM billing WHERE pid = ||active_pid|| AND $type = ||id|| GROUP BY fromdate ORDER BY fromdate";
+            $sql_vars["active_pid"] = get_pid();
+        } else {
+            $SQL = "SELECT SUM(owed) as bill,pid,fromdate,todate FROM billing WHERE $type = ||id|| GROUP BY fromdate ORDER BY fromdate";
+        }
+        $sql_vars["id"] = $id;
         break;
     case "activity_tag":
-        $att_tag_sql = "(tag IN (SELECT tag FROM notes_required WHERE tag='$att_tag') || tag IN (SELECT tag FROM events_tags WHERE tag='$att_tag'))";
-        $chid_sql = $type == "chid" ? "AND chid='$id'" : "";
-        $cid_sql = $type == "cid" ? "AND cid='$id'" : "";
-        $aid_sql = $type == "aid" ? "AND aid='$id'" : "";
+        $att_tag_sql = "(tag IN (SELECT tag FROM notes_required WHERE tag = ||att_tag||) OR tag IN (SELECT tag FROM events_tags WHERE tag = ||att_tag||))";
+        $sql_vars["att_tag"] = $att_tag;
+        $sql_vars["pid"] = $pid;
+        $extra = "";
+        if ($type == "chid") {
+            $extra = "AND chid = ||id||";
+            $sql_vars["id"] = $id;
+        } elseif ($type == "cid") {
+            $extra = "AND cid = ||id||";
+            $sql_vars["id"] = $id;
+        } elseif ($type == "aid") {
+            $extra = "AND aid = ||id||";
+            $sql_vars["id"] = $id;
+        }
 
         if (!empty($actid)) {
-            $SQL = "SELECT SUM(data) as data,$type,timelog,tag,$order_day FROM notes WHERE pid='$pid' $chid_sql $cid_sql $aid_sql AND actid='$actid' AND $att_tag_sql $timesql GROUP BY order_day ORDER BY order_day,timelog,data DESC";
+            $SQL = "SELECT SUM(data) as data,$type,timelog,tag,$order_day FROM notes WHERE pid = ||pid|| $extra AND actid = ||actid|| AND $att_tag_sql $timesql GROUP BY order_day ORDER BY order_day,timelog,data DESC";
+            $sql_vars["actid"] = $actid;
         } else {
-            $SQL = "SELECT SUM(data) as data,timelog,tag,$order_day FROM notes WHERE pid='$pid' $chid_sql $cid_sql $aid_sql AND actid!='0' AND $att_tag_sql $timesql GROUP BY order_day,$type ORDER BY order_day,timelog,data DESC";
+            $SQL = "SELECT SUM(data) as data,timelog,tag,$order_day FROM notes WHERE pid = ||pid|| $extra AND actid!='0' AND $att_tag_sql $timesql GROUP BY order_day,$type ORDER BY order_day,timelog,data DESC";
         }
         break;
 }
@@ -189,7 +249,7 @@ switch ($report) {
 switch ($report) {
     case "allnotes":
     case "activity":
-        if ($notes = get_db_result($SQL)) {
+        if ($notes = get_db_result($SQL, $sql_vars)) {
             $returnme .= '<div style="font-size:150%;text-align:center;"><strong>' . $name . '</strong></div>';
             $actids = [];
             while ($note = fetch_row($notes)) {
@@ -246,7 +306,7 @@ switch ($report) {
 //        if(empty($MYVARS->GET["sort"])){ $returnme .= '</div>'; }
         break;
     case "invoice":
-        if ($accounts = get_db_result($SQL)) {
+        if ($accounts = get_db_result($SQL, $sql_vars)) {
             while ($account = fetch_row($accounts)) {
                 $totalpaid = $total_owed = $totalfee = 0;
                 $returnme .= '
@@ -254,16 +314,17 @@ switch ($report) {
                         <div style="font-size:20px;text-align:center;">
                             <strong>Account: ' . $account["name"] . '</strong>
                         </div>';
+                $bv = ["pid" => $pid, "aid" => $account["aid"], "from" => $fromnum, "to" => $tonum];
                 $SQL = "SELECT *
                         FROM billing_payments
-                        WHERE pid='$pid'
-                        AND aid='" . $account["aid"] . "'
+                        WHERE pid = ||pid||
+                        AND aid = ||aid||
                         AND payment < 0
-                        AND timelog >= '" . $fromnum . "'
-                        AND timelog <= '" . $tonum . "'
+                        AND timelog >= ||from||
+                        AND timelog <= ||to||
                         ORDER BY timelog,payid";
-                if ($payments = get_db_result($SQL)) {
-                    $totalfee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 AND timelog >= '" . $fromnum . "' AND timelog <= '" . $tonum . "'"));
+                if ($payments = get_db_result($SQL, $bv)) {
+                    $totalfee = abs(get_db_field("SUM(payment)", "billing_payments", "pid = ||pid|| AND aid = ||aid|| AND payment < 0 AND timelog >= ||from|| AND timelog <= ||to||", $bv));
                     $totalfee = empty($totalfee) ? "0.00" : $totalfee;
 
                     $feelist = "";
@@ -288,16 +349,17 @@ switch ($report) {
                         </div>';
                 }
 
+                $bv = ["pid" => $pid, "aid" => $account["aid"], "from" => $fromnum, "to" => $tonum];
                 $SQL = "SELECT *
                         FROM billing_payments
-                        WHERE pid='$pid'
-                        AND aid='" . $account["aid"] . "'
+                        WHERE pid = ||pid||
+                        AND aid = ||aid||
                         AND payment >= 0
-                        AND timelog >= '" . $fromnum . "'
-                        AND timelog <= '" . $tonum . "'
+                        AND timelog >= ||from||
+                        AND timelog <= ||to||
                         ORDER BY timelog,payid";
-                if ($payments = get_db_result($SQL)) {
-                    $totalpaid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 AND timelog >= '" . $fromnum . "' AND timelog <= '" . $tonum . "'");
+                if ($payments = get_db_result($SQL, $bv)) {
+                    $totalpaid = get_db_field("SUM(payment)", "billing_payments", "pid = ||pid|| AND aid = ||aid|| AND payment >= 0 AND timelog >= ||from|| AND timelog <= ||to||", $bv);
                     $totalpaid = empty($totalpaid) ? "0.00" : $totalpaid;
 
                     $paymentlist = "";
@@ -321,8 +383,9 @@ switch ($report) {
                             ' . $paymentlist . '
                         </div>';
                 }
-                $SQL = "SELECT * FROM billing WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND fromdate >= '" . $fromnum . "' AND fromdate <= '" . $tonum . "' ORDER BY fromdate";
-                if ($invoices = get_db_result($SQL)) {
+                $bv = ["pid" => $pid, "aid" => $account["aid"], "from" => $fromnum, "to" => $tonum];
+                $SQL = "SELECT * FROM billing WHERE pid = ||pid|| AND aid = ||aid|| AND fromdate >= ||from|| AND fromdate <= ||to|| ORDER BY fromdate";
+                if ($invoices = get_db_result($SQL, $bv)) {
                     $returnme .= '<div style="font-size:16px;"><strong>Activity</strong></div>';
                     while ($invoice = fetch_row($invoices)) {
                         $returnme .= '
@@ -335,7 +398,7 @@ switch ($report) {
                                 </div>
                             </div>';
                     }
-                    $total_owed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "' AND fromdate >= '" . $fromnum . "' AND fromdate <= '" . $tonum . "'");
+                    $total_owed = get_db_field("SUM(owed)", "billing", "pid = ||pid|| AND aid = ||aid|| AND fromdate >= ||from|| AND fromdate <= ||to||", $bv);
                     $total_owed += $totalfee;
                     $total_owed = empty($total_owed) ? "0.00" : $total_owed;
                     $balance   = $total_owed - $totalpaid;
@@ -360,7 +423,7 @@ switch ($report) {
         }
         break;
     case "invoicetimeline":
-        if ($accounts = get_db_result($SQL)) {
+        if ($accounts = get_db_result($SQL, $sql_vars)) {
             while ($account = fetch_row($accounts)) {
                 $totalpaid = $total_owed = $totalfee = $lasttodate = 0;
                 $firstrun = true;
@@ -370,29 +433,31 @@ switch ($report) {
                             <strong>Account: ' . $account["name"] . '</strong>
                         </div>';
 
+                $bv = ["pid" => $pid, "aid" => $account["aid"], "from" => $fromnum, "to" => $tonum];
                 $SQL = "SELECT *
                         FROM billing
-                        WHERE pid='$pid'
-                        AND aid='" . $account["aid"] . "'
-                        AND fromdate >= '" . $fromnum . "'
-                        AND fromdate <= '" . $tonum . "'
+                        WHERE pid = ||pid||
+                        AND aid = ||aid||
+                        AND fromdate >= ||from||
+                        AND fromdate <= ||to||
                         ORDER BY fromdate";
-                if ($invoices = get_db_result($SQL)) {
+                if ($invoices = get_db_result($SQL, $bv)) {
                     $returnme .= '
                         <div style="font-size:16px;">
                             <strong>Activity</strong>
                         </div>';
                     while ($invoice = fetch_row($invoices)) {
                         if ($firstrun) { // check for payment or Fee prior to an invoice
+                            $pv = ["pid" => $pid, "aid" => $account["aid"], "before" => $invoice["fromdate"], "from" => $fromnum, "to" => $tonum];
                             $SQL = "SELECT *
                                     FROM billing_payments
-                                    WHERE pid = '$pid'
-                                    AND aid = '" . $account["aid"] . "'
-                                    AND timelog < '" . $invoice["fromdate"] . "'
-                                    AND timelog >= '" . $fromnum . "'
-                                    AND timelog <= '" . $tonum . "'
+                                    WHERE pid = ||pid||
+                                    AND aid = ||aid||
+                                    AND timelog < ||before||
+                                    AND timelog >= ||from||
+                                    AND timelog <= ||to||
                                     ORDER BY timelog,payid";
-                            if ($transactions = get_db_result($SQL)) {
+                            if ($transactions = get_db_result($SQL, $pv)) {
                                 $transactionlist = "";
                                 while ($transaction = fetch_row($transactions)) {
                                     if ($transaction["payment"] < 0) {
@@ -421,9 +486,10 @@ switch ($report) {
                         }
 
                         // check for payment or Fee
-                        $SQL = "SELECT * FROM billing_payments WHERE pid = '$pid' AND aid = '" . $account["aid"] . "' AND (timelog >= '" . $invoice["fromdate"] . "' AND timelog < '" . $invoice["todate"] . "') ORDER BY timelog,payid";
+                        $pv = ["pid" => $pid, "aid" => $account["aid"], "from" => $invoice["fromdate"], "to" => $invoice["todate"]];
+                        $SQL = "SELECT * FROM billing_payments WHERE pid = ||pid|| AND aid = ||aid|| AND (timelog >= ||from|| AND timelog < ||to||) ORDER BY timelog,payid";
                         $paymentlist = "";
-                        if ($transactions = get_db_result($SQL)) {
+                        if ($transactions = get_db_result($SQL, $pv)) {
                             while ($transaction = fetch_row($transactions)) {
                                 if ($transaction["payment"] < 0) {
                                     $paymentlist .= '
@@ -453,14 +519,15 @@ switch ($report) {
                     }
 
                     // check for payment or Fee after last invoice
+                    $pv = ["pid" => $pid, "aid" => $account["aid"], "from" => $lasttodate, "to" => $tonum];
                     $SQL = "SELECT *
                             FROM billing_payments
-                            WHERE pid = '$pid'
-                            AND aid = '" . $account["aid"] . "'
-                            AND timelog >= '$lasttodate'
-                            AND timelog <= '" . $tonum . "'
+                            WHERE pid = ||pid||
+                            AND aid = ||aid||
+                            AND timelog >= ||from||
+                            AND timelog <= ||to||
                             ORDER BY timelog,payid";
-                    if ($transactions = get_db_result($SQL)) {
+                    if ($transactions = get_db_result($SQL, $pv)) {
                         $transactionlist = "";
                         while ($transaction = fetch_row($transactions)) {
                             if ($transaction["payment"] < 0) {
@@ -486,11 +553,11 @@ switch ($report) {
                             </div>';
                     }
 
-                    $totalpaid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 AND timelog >= '" . $fromnum . "' AND timelog <= '" . $tonum . "'");
+                    $totalpaid = get_db_field("SUM(payment)", "billing_payments", "pid = ||pid|| AND aid = ||aid|| AND payment >= 0 AND timelog >= ||from|| AND timelog <= ||to||", $bv);
                     $totalpaid = empty($totalpaid) ? "0.00" : $totalpaid;
-                    $totalfee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 AND timelog >= '" . $fromnum . "' AND timelog <= '" . $tonum . "'"));
+                    $totalfee = abs(get_db_field("SUM(payment)", "billing_payments", "pid = ||pid|| AND aid = ||aid|| AND payment < 0 AND timelog >= ||from|| AND timelog <= ||to||", $bv));
                     $totalfee = empty($totalfee) ? "0.00" : $totalfee;
-                    $total_owed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "' AND fromdate >= '" . $fromnum . "' AND fromdate <= '" . $tonum . "'");
+                    $total_owed = get_db_field("SUM(owed)", "billing", "pid = ||pid|| AND aid = ||aid|| AND fromdate >= ||from|| AND fromdate <= ||to||", $bv);
                     $total_owed += $totalfee;
                     $total_owed = empty($total_owed) ? "0.00" : $total_owed;
                     $balance   = $total_owed - $totalpaid;
@@ -514,12 +581,12 @@ switch ($report) {
         }
         break;
     case "employee_paid":
-        if ($employees = get_db_result($SQL)) {
+        if ($employees = get_db_result($SQL, $sql_vars)) {
             while ($employee = fetch_row($employees)) {
                 $name = get_name(["type" => "employeeid","id" => $employee["employeeid"]]);
                 $SQL = "SELECT * FROM employee_timecard WHERE (hours > 0 || hours_override > 0) AND employeeid='" . $employee["employeeid"] . "' AND fromdate >= $fromnum AND todate <= $tonum ORDER BY fromdate ASC";
                 $sum = 0;
-                if ($payments = get_db_result($SQL)) {
+                if ($payments = get_db_result($SQL, $sql_vars)) {
                     $returnme .= '
                     <div style="float:left;">
                         <div style="font-size:120%;"><strong>Employee: ' . $name . '</strong></div>
@@ -556,13 +623,14 @@ switch ($report) {
             });
         ";
         echo '<div align="center">Year Selector: ' . make_select_from_array("yearselector", $years, false, false, $selected, $onchange) . '</div>';
-        if ($accounts = get_db_result($SQL)) {
-            $program = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
+        if ($accounts = get_db_result($SQL, $sql_vars)) {
+            $program = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ["pid" => $pid]);
             while ($account = fetch_row($accounts)) {
                 $name = get_name(["type" => "aid","id" => $account["aid"]]);
-                $SQL = "SELECT * FROM billing_payments WHERE payment > 0 AND aid='" . $account["aid"] . "' $timesql ORDER BY timelog ASC";
+                $bv = array_merge(["aid" => $account["aid"]], $sql_vars);
+                $SQL = "SELECT * FROM billing_payments WHERE payment > 0 AND aid = ||aid|| $timesql ORDER BY timelog ASC";
                 $sum = 0;
-                if ($payments = get_db_result($SQL)) {
+                if ($payments = get_db_result($SQL, $bv)) {
                     $returnme .= '
                     <div style="float:right;">
                         <div style="font-size:120%;">
@@ -596,8 +664,8 @@ switch ($report) {
         break;
     case "payments_between":
         $sum = 0;
-        if ($payments = get_db_result($SQL)) {
-            $program = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
+        if ($payments = get_db_result($SQL, $sql_vars)) {
+            $program = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ["pid" => $pid]);
             $returnme .= '
             <div style="float:right;">
                 <div style="font-size:120%;">
@@ -629,8 +697,10 @@ switch ($report) {
         $aid = $id;
         $totalpaid = $totalowed = 0;
         $returnme .= '<div><div style="font-size:20px;text-align:center;"><strong>Account: ' . get_name(["type" => "aid","id" => $aid]) . '</strong><br />' . $fromtostring . '</div>';
-        $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='$aid' $timesql ORDER BY timelog,payid";
-        if ($payments = get_db_result($SQL)) {
+        $sql_vars["pid"] = $pid;
+        $sql_vars["aid"] = $aid;
+        $SQL = "SELECT * FROM billing_payments WHERE pid = ||pid|| AND aid = ||aid|| $timesql ORDER BY timelog,payid";
+        if ($payments = get_db_result($SQL, $sql_vars)) {
             $totalpaid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='$aid' $timesql");
             $totalpaid = empty($totalpaid) ? "0.00" : $totalpaid;
             $returnme .= '<div style="font-size:16px;"><strong>Payments</strong></div>
@@ -648,8 +718,10 @@ switch ($report) {
             }
             $returnme .= '</div>';
         }
-        $SQL = "SELECT * FROM billing WHERE pid='$pid' AND aid='$aid' $timesql2 ORDER BY fromdate";
-        if ($invoices = get_db_result($SQL)) {
+        $sql_vars["pid"] = $pid;
+        $sql_vars["aid"] = $aid;
+        $SQL = "SELECT * FROM billing WHERE pid = ||pid|| AND aid = ||aid|| $timesql2 ORDER BY fromdate";
+        if ($invoices = get_db_result($SQL, $sql_vars)) {
             $returnme .= '<div style="font-size:16px;"><strong>Activity</strong></div>';
             while ($invoice = fetch_row($invoices)) {
                 $returnme .= '
@@ -681,7 +753,7 @@ switch ($report) {
         $returnme .= "</div></div>";
         break;
     case "program_per_child_attendance":
-        if ($children = get_db_result($SQL)) {
+        if ($children = get_db_result($SQL, $sql_vars)) {
             $currentdate = false;
             $returnme .= '<div style="font-size:150%;text-align:center;"><strong>' . $name . '</strong><br />' . $fromtostring . '</div>';
             $chids = [];
@@ -703,7 +775,7 @@ switch ($report) {
         }
         break;
     case "meal_status_count":
-        if ($days = get_db_result($SQL)) {
+        if ($days = get_db_result($SQL, $sql_vars)) {
             $returnme .= '<div style="font-size:150%;text-align:center;"><strong>' . $name . ' Meal Status</strong></div>';
             $activity = [];
             $paid = $reduced = $free = 0;
@@ -733,18 +805,19 @@ switch ($report) {
         $dividedbymin = empty($MYVARS->GET["extra"]) ? 30 : $MYVARS->GET["extra"]; //divide this report into segments (in minutes)
 
         //GETS all 1st checkin times for all kids in program between dates
-        $SQL = "SELECT $order_day,CONCAT(CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'" . get_date('P', time(), $CFG->servertz) . "','" . get_date('P', time(), $CFG->servertz) . "'))),a.chid) as sortby,a.timelog,a.chid FROM activity a JOIN children c ON c.chid = a.chid JOIN accounts b ON b.aid = c.aid WHERE tag='in' AND $type='$id' AND a.chid IN (SELECT chid FROM enrollments WHERE $type='$id') $timesql GROUP BY sortby ORDER BY timelog";
+        $sql_vars["id"] = $id;
+        $SQL = "SELECT $order_day,CONCAT(CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'" . $servertz . "','" . $localtz . "'))),a.chid) as sortby,a.timelog,a.chid FROM activity a JOIN children c ON c.chid = a.chid JOIN accounts b ON b.aid = c.aid WHERE tag='in' AND $type = ||id|| AND a.chid IN (SELECT chid FROM enrollments WHERE $type = ||id||) $timesql GROUP BY sortby ORDER BY timelog";
         $dividedbyseconds = $dividedbymin * 60;
         $segments = 86400 / $dividedbyseconds;
 
-        if ($result = get_db_result($SQL)) {
+        if ($result = get_db_result($SQL, $sql_vars)) {
             $returnme .= '<div style="font-size:150%;text-align:center;"><strong>Daily Attendance Breakdown</div>';
             $order_day = false;
             $savedata = [];
             $datearray = [];
 
             //example (timeclosed set to 5:30pm, figure seconds from midnight - timezone offset)
-            $endofwork = seconds_from_midnight(get_db_field("timeclosed", "programs", "pid='$pid'")) - get_offset($CFG->timezone);
+            $endofwork = seconds_from_midnight(get_db_field("timeclosed", "programs", "pid = ||pid||", ["pid" => $pid])) - get_offset($CFG->timezone);
 
             while ($row = fetch_row($result)) {
                 //get beginning of day and end of day timestamps
@@ -756,8 +829,8 @@ switch ($report) {
                 }
 
                 //what time did they sign out
-                $SQL2 = "SELECT MAX(a.timelog) as signedout FROM activity a JOIN children c ON c.chid = a.chid JOIN accounts b ON b.aid = c.aid WHERE a.chid='" . $row["chid"] . "' AND tag='out' AND a.timelog > $daybegins AND a.timelog < $dayends AND $type='$id' AND a.chid IN (SELECT chid FROM enrollments WHERE $type='$id')";
-                $signedout = get_db_row($SQL2);
+                $SQL2 = "SELECT MAX(a.timelog) as signedout FROM activity a JOIN children c ON c.chid = a.chid JOIN accounts b ON b.aid = c.aid WHERE a.chid = ||chid|| AND tag = 'out' AND a.timelog > ||daybegins|| AND a.timelog < ||dayends|| AND $type = ||id|| AND a.chid IN (SELECT chid FROM enrollments WHERE $type = ||id||)";
+                $signedout = get_db_row($SQL2, false, ["chid" => $row["chid"], "daybegins" => $daybegins, "dayends" => $dayends, "id" => $id]);
                 if (!empty($signedout["signedout"])) {
                     $signouttime = $signedout["signedout"];
                 }
@@ -828,7 +901,7 @@ switch ($report) {
 
         break;
     case "program_per_account_attendance":
-        if ($accounts = get_db_result($SQL)) {
+        if ($accounts = get_db_result($SQL, $sql_vars)) {
             $currentdate = false;
             $returnme .= '<div style="font-size:150%;text-align:center;"><strong>' . $name . '</strong><br />' . $fromtostring . '</div>';
             $aids = [];
@@ -852,7 +925,7 @@ switch ($report) {
     case "weekly_expected_attendance":
         $M = $T = $W = $Th = $F = 0;
         $returnme .= '<div style="font-size:150%;text-align:center;"><strong>Expected Attendance</strong></div>';
-        if ($enrollments = get_db_result($SQL)) {
+        if ($enrollments = get_db_result($SQL, $sql_vars)) {
             while ($e = fetch_row($enrollments)) {
                 $days = explode(",", $e["days_attending"]);
                 foreach ($days as $day) {
@@ -871,35 +944,36 @@ switch ($report) {
             $timestamp = strtotime("last $weekday");
             while ($i < 4) {  //Do an average of the last 4 weeks
                 $endofday = strtotime("+1 day", $timestamp);
-                $SQL = "SELECT a.* FROM activity a WHERE $type='$id' AND (timelog >= '$timestamp' AND timelog < '$endofday') AND tag='in' GROUP BY chid";
+                $av = ["id" => $id, "start" => $timestamp, "end" => $endofday];
+                $SQL = "SELECT a.* FROM activity a WHERE $type = ||id|| AND (timelog >= ||start|| AND timelog < ||end||) AND tag = 'in' GROUP BY chid";
 
                 switch ($weekday) {
                     case "Monday":
-                        if ($addM = get_db_count($SQL)) {
+                        if ($addM = get_db_count($SQL, $av)) {
                             $avgM += $addM;
                             $divM++;
                         }
                         break;
                     case "Tuesday":
-                        if ($addT = get_db_count($SQL)) {
+                        if ($addT = get_db_count($SQL, $av)) {
                             $avgT += $addT;
                             $divT++;
                         }
                         break;
                     case "Wednesday":
-                        if ($addW = get_db_count($SQL)) {
+                        if ($addW = get_db_count($SQL, $av)) {
                             $avgW += $addW;
                             $divW++;
                         }
                         break;
                     case "Thursday":
-                        if ($addTh = get_db_count($SQL)) {
+                        if ($addTh = get_db_count($SQL, $av)) {
                             $avgTh += $addTh;
                             $divTh++;
                         }
                         break;
                     case "Friday":
-                        if ($addF = get_db_count($SQL)) {
+                        if ($addF = get_db_count($SQL, $av)) {
                             $avgF += $addF;
                             $divF++;
                         }
@@ -942,7 +1016,7 @@ switch ($report) {
         break;
     case "child_list":
         $count = get_db_count($SQL);
-        if ($children = get_db_result($SQL)) {
+        if ($children = get_db_result($SQL, $sql_vars)) {
             $returnme .= '<div style="font-size:150%;text-align:center;"><strong>' . $name . '</strong></div>';
             $returnme .= '<div style="font-size:100%;text-align:center;"><strong>Total: ' . $count . '</strong></div>';
             $names = [];
@@ -955,7 +1029,7 @@ switch ($report) {
         }
         break;
     case "program_per_account_bill":
-        if ($accounts = get_db_result($SQL)) {
+        if ($accounts = get_db_result($SQL, $sql_vars)) {
             $returnme .= '<div style="font-size:150%;text-align:center;"><strong>' . $name . '</strong></div>';
             $balance = [];
             while ($account = fetch_row($accounts)) {
@@ -967,7 +1041,7 @@ switch ($report) {
         }
         break;
     case "program_per_program_cash_flow":
-        if ($weeks = get_db_result($SQL)) {
+        if ($weeks = get_db_result($SQL, $sql_vars)) {
             $returnme .= '<div style="font-size:150%;text-align:center;"><strong>' . $name . '</strong></div>';
 
             $balance = [];
@@ -1002,7 +1076,7 @@ switch ($report) {
         }
         break;
     case "activity_tag":
-        if ($notes = get_db_result($SQL)) {
+        if ($notes = get_db_result($SQL, $sql_vars)) {
             $returnme .= '<div style="font-size:150%;text-align:center;"><strong>' . $name . '</strong></div>';
             $activity = [];
             $total = 0;
@@ -1039,7 +1113,7 @@ function week_breakdown(){
     //employee timecards
     $totalwages = 0;
     $full_totalhours = 0;
-    if ($employees = get_db_result("SELECT * FROM employee WHERE employeeid IN (SELECT employeeid FROM employee_activity WHERE timelog >= $startofweek AND timelog <= $endofweek)")) {
+    if ($employees = get_db_result("SELECT * FROM employee WHERE employeeid IN (SELECT employeeid FROM employee_activity WHERE timelog >= ||start|| AND timelog <= ||end||)", ["start" => $startofweek, "end" => $endofweek])) {
         while ($employee = fetch_row($employees)) {
             $timecard = [];
             $totalhours = 0;
@@ -1051,8 +1125,9 @@ function week_breakdown(){
                 $totalhours += $hoursworked;
 
                 //Get first in and last out time
-                $in = get_db_row("SELECT * FROM employee_activity WHERE employeeid='" . $employee["employeeid"] . "' AND tag='in' AND timelog >= $startofday AND timelog <= $endofday ORDER BY timelog LIMIT 1");
-                $out = get_db_row("SELECT * FROM employee_activity WHERE employeeid='" . $employee["employeeid"] . "' AND tag='out' AND timelog >= $startofday AND timelog <= $endofday ORDER BY timelog DESC LIMIT 1");
+                $ev = ["employeeid" => $employee["employeeid"], "start" => $startofday, "end" => $endofday];
+                $in = get_db_row("SELECT * FROM employee_activity WHERE employeeid = ||employeeid|| AND tag = 'in' AND timelog >= ||start|| AND timelog <= ||end|| ORDER BY timelog LIMIT 1", false, $ev);
+                $out = get_db_row("SELECT * FROM employee_activity WHERE employeeid = ||employeeid|| AND tag = 'out' AND timelog >= ||start|| AND timelog <= ||end|| ORDER BY timelog DESC LIMIT 1", false, $ev);
                 $timecard[] = ["in" => $in["timelog"],"out" => $out["timelog"], "hours" => $hoursworked];
             }
             $wage = get_wage($employee["employeeid"], $startofweek);
@@ -1085,7 +1160,7 @@ function week_breakdown(){
 
     //income
     $totalpayment = 0;
-    if ($income = get_db_result("SELECT * FROM billing_payments WHERE pid='$pid' AND aid > 0 AND payment > 0 AND timelog >= $startofweek AND timelog <= $endofweek")) {
+    if ($income = get_db_result("SELECT * FROM billing_payments WHERE pid = ||pid|| AND aid > 0 AND payment > 0 AND timelog >= ||start|| AND timelog <= ||end||", ["pid" => $pid, "start" => $startofweek, "end" => $endofweek])) {
         $payment_report = '<br /><strong>Income</strong><br /><table style="font-size:10px;width:100%"><tr style="font-weight: bold;"><td style="width:125px">Date</td><td style="width:125px">Amount</td><td style="width:125px">Account</td><td>Note</td></tr>';
         while ($payment = fetch_row($income)) {
             $totalpayment += $payment["payment"];
@@ -1101,7 +1176,7 @@ function week_breakdown(){
 
     //expenses
     $totalexpense = 0;
-    if ($expenses = get_db_result("SELECT * FROM billing_payments WHERE pid='$pid' AND aid = 0 AND payment < 0 AND timelog >= $startofweek AND timelog <= $endofweek")) {
+    if ($expenses = get_db_result("SELECT * FROM billing_payments WHERE pid = ||pid|| AND aid = 0 AND payment < 0 AND timelog >= ||start|| AND timelog <= ||end||", ["pid" => $pid, "start" => $startofweek, "end" => $endofweek])) {
         $expense_report = '<br /><strong>Week Expenses</strong><br /><table style="font-size:10px;width:100%"><tr style="font-weight: bold;"><td style="width:125px">Date</td><td style="width:125px">Amount</td><td>Note</td></tr>';
         while ($expense = fetch_row($expenses)) {
             $totalexpense += $expense["payment"];
@@ -1116,7 +1191,7 @@ function week_breakdown(){
 
     //donation
     $totaldonations = 0;
-    if ($donations = get_db_result("SELECT * FROM billing_payments WHERE pid='$pid' AND aid = 0 AND payment > 0 AND timelog >= $startofweek AND timelog <= $endofweek")) {
+    if ($donations = get_db_result("SELECT * FROM billing_payments WHERE pid = ||pid|| AND aid = 0 AND payment > 0 AND timelog >= ||start|| AND timelog <= ||end||", ["pid" => $pid, "start" => $startofweek, "end" => $endofweek])) {
         $donation_report = '<br /><strong>Week Donations</strong><br /><table style="font-size:10px;width:100%"><tr style="font-weight: bold;"><td style="width:125px">Date</td><td style="width:125px">Amount</td><td>Note</td></tr>';
         while ($donation = fetch_row($donations)) {
             $totaldonations += $donation["payment"];
@@ -1225,27 +1300,27 @@ function note_entry($note){
 
     if (!empty($note["actid"]) && empty($note["rnid"])) {
         $type = "events";
-        $setting = get_db_field("title", "events_tags", "tag='" . $note["tag"] . "'");
+        $setting = get_db_field("title", "events_tags", "tag = ||tag||", ["tag" => $note["tag"]]);
         $i++;
         $return_array += ["field$i" . "name" => "Event", "field$i" . "value" => $setting];
-        $SQL = "SELECT * FROM notes_required r JOIN (SELECT * FROM events_required_notes WHERE evid IN (SELECT evid FROM activity WHERE actid='" . $note["actid"] . "')) e ON r.rnid = e.rnid WHERE e.rnid IN (SELECT rnid FROM notes WHERE actid='" . $note["actid"] . "') ORDER BY e.sort";
-        if ($requires = get_db_result($SQL)) {
+        $SQL = "SELECT * FROM notes_required r JOIN (SELECT * FROM events_required_notes WHERE evid IN (SELECT evid FROM activity WHERE actid = ||actid||)) e ON r.rnid = e.rnid WHERE e.rnid IN (SELECT rnid FROM notes WHERE actid = ||actid||) ORDER BY e.sort";
+        if ($requires = get_db_result($SQL, ["actid" => $note["actid"]])) {
             while ($req = fetch_row($requires)) {
-                $setting = get_db_field("data", "notes", "actid='" . $note["actid"] . "' AND rnid='" . $req["rnid"] . "'");
+                $setting = get_db_field("data", "notes", "actid = ||actid|| AND rnid = ||rnid||", ["actid" => $note["actid"], "rnid" => $req["rnid"]]);
                 $setting = empty($setting) ? "No" : "Yes";
                 $i++;
                 $return_array += ["field$i" . "name" => $req["title"], "field$i" . "value" => $setting];
             }
         }
     } elseif (!empty($note["rnid"])) {
-        $setting = get_db_row("SELECT * FROM notes_required WHERE tag='" . $note["tag"] . "'");
+        $setting = get_db_row("SELECT * FROM notes_required WHERE tag = ||tag||", false, ["tag" => $note["tag"]]);
         $value = empty($note["data"]) ? "No" : "Yes";
         $i++;
         $return_array += ["field$i" . "name" => $setting["title"], "field$i" . "value" => $value];
     } else {
-        if ($setting = get_db_row("SELECT * FROM notes_required WHERE tag='" . $note["tag"] . "'")) {
-        } elseif ($setting = get_db_row("SELECT * FROM events_tags WHERE tag='" . $note["tag"] . "'")) {
-        } elseif ($setting = get_db_row("SELECT * FROM notes_tags WHERE tag='" . $note["tag"] . "'")) {
+        if ($setting = get_db_row("SELECT * FROM notes_required WHERE tag = ||tag||", false, ["tag" => $note["tag"]])) {
+        } elseif ($setting = get_db_row("SELECT * FROM events_tags WHERE tag = ||tag||", false, ["tag" => $note["tag"]])) {
+        } elseif ($setting = get_db_row("SELECT * FROM notes_tags WHERE tag = ||tag||", false, ["tag" => $note["tag"]])) {
             $note["data"] = $note["note"];
         } else {
             return $return_array;

@@ -136,11 +136,13 @@ changed blind.
   rules not tied to `.fill_*` (there are more of these than the ones
   driven by JS — they're a separate but related cleanup).
 
-### Phase 4 — SQL-injection retrofit
-- `ajax/ajax.php` and `ajax/reports.php` first (most user-influenced
-  input), then `lib/billinglib.php` (also wrap money-moving queries in
-  the new `start_db_transaction()`/`commit_db_transaction()`), then the
-  rest of `ajax/*.php`.
+### Phase 4 — SQL-injection retrofit (in progress)
+- Started on highest-risk paths: check-in/out flow, payment + account
+  savers in `ajax/ajax.php`; balance helpers + transactional invoice
+  writes in `lib/billinglib.php`. See `docs/DB_MIGRATION.md` for the
+  completed list and remaining work.
+- Next: remaining form savers in `ajax/ajax.php`, then `ajax/reports.php`,
+  then the rest of billinglib and other ajax tab files.
 
 ### Phase 5 — optional: split `ajax/ajax.php` and adopt structured templating
 - Split the 4,089-line single-file router along the lines it already

@@ -55,37 +55,53 @@ function employee_timesheet($thisweekpay = false) {
 
 function check_in_out_employee() {
     global $CFG, $MYVARS;
-    $employeeid   = $MYVARS->GET["employeeid"];
-    $employee     = get_db_row("SELECT * FROM employee WHERE employeeid='$employeeid'");
+    $employeeid   = clean_param_req($MYVARS->GET, "employeeid", "int");
+    $employee     = get_db_row("SELECT * FROM employee WHERE employeeid = ||employeeid||", false, ["employeeid" => $employeeid]);
     $time         = get_timestamp();
     $readabletime = get_date("l, F j, Y \a\\t g:i a", display_time($time));
     $thisweekpay = false;
 
     if (is_working($employeeid)) { // check out
-        $event = get_db_row("SELECT * FROM events WHERE tag='out'");
+        $event = get_db_row("SELECT * FROM events WHERE tag = ||tag||", false, ["tag" => "out"]);
         $SQL = "INSERT INTO employee_activity (employeeid, evid, tag, timelog)
-                VALUES ('$employeeid', '" . $event["evid"] . "', '" . $event["tag"] . "', $time)";
-        $actid = execute_db_sql($SQL);
+                VALUES (||employeeid||, ||evid||, ||tag||, ||timelog||)";
+        $actid = execute_db_sql($SQL, [
+            "employeeid" => $employeeid,
+            "evid" => $event["evid"],
+            "tag" => $event["tag"],
+            "timelog" => $time,
+        ]);
         $note  = $employee["first"] . " " . $employee["last"] . ": Signed out at $readabletime";
         $thisweekpay = get_wages_for_this_week($employeeid);
     } else { // check in
-        $event = get_db_row("SELECT * FROM events WHERE tag='in'");
+        $event = get_db_row("SELECT * FROM events WHERE tag = ||tag||", false, ["tag" => "in"]);
         $SQL = "INSERT INTO employee_activity (employeeid, evid, tag, timelog)
-                VALUES ('$employeeid', '" . $event["evid"] . "', '" . $event["tag"] . "', $time)";
-        $actid = execute_db_sql($SQL);
+                VALUES (||employeeid||, ||evid||, ||tag||, ||timelog||)";
+        $actid = execute_db_sql($SQL, [
+            "employeeid" => $employeeid,
+            "evid" => $event["evid"],
+            "tag" => $event["tag"],
+            "timelog" => $time,
+        ]);
         $note  = $employee["first"] . " " . $employee["last"] . ": Signed in at: $readabletime";
     }
 
     $SQL = "INSERT INTO notes (actid, employeeid, tag, note, data, timelog)
-            VALUES ('$actid', '$employeeid', '" . $event["tag"] . "', '$note', 1, $time)";
-    execute_db_sql($SQL);
+            VALUES (||actid||, ||employeeid||, ||tag||, ||note||, 1, ||timelog||)";
+    execute_db_sql($SQL, [
+        "actid" => $actid,
+        "employeeid" => $employeeid,
+        "tag" => $event["tag"],
+        "note" => $note,
+        "timelog" => $time,
+    ]);
 
     echo employee_timesheet($thisweekpay);
 }
 
 function get_check_in_out_form() {
     global $CFG, $MYVARS;
-    $type        = $MYVARS->GET["type"];
+    $type        = clean_param_opt($MYVARS->GET, "type", "string", "in");
     $lastinitial = false;
     $pid         = get_pid();
 
@@ -99,11 +115,11 @@ function get_check_in_out_form() {
                 SELECT chid
                 FROM enrollments
                 WHERE deleted = 0
-                AND pid = '$pid'
+                AND pid = ||pid||
             )
             ORDER BY last, first";
 
-    if ($result = get_db_result($SQL)) {
+    if ($result = get_db_result($SQL, ["pid" => $pid])) {
         while ($row = fetch_row($result)) {
             $aid = $row["aid"];
             $chid = $row["chid"];
@@ -150,10 +166,11 @@ function get_check_in_out_form() {
 
 function check_in_out_form() {
     global $CFG, $MYVARS;
-    $type     = $MYVARS->GET["type"];
+    $type     = clean_param_opt($MYVARS->GET, "type", "string", "in");
     $admin    = !empty($MYVARS->GET["admin"]) && $MYVARS->GET["admin"] != "false" ? true : false;
     $chids    = $MYVARS->GET["chid"];
-    $aid      = $admin ? 0 : get_db_field("aid", "children", "chid='" . $chids[0]["value"] . "' AND deleted=0");
+    $first_chid = is_array($chids) && !empty($chids[0]["value"]) ? $chids[0]["value"] : 0;
+    $aid      = $admin ? 0 : get_db_field("aid", "children", "chid = ||chid|| AND deleted = 0", ["chid" => $first_chid]);
     $returnme = $notes = $numpads = $questions_open = $questions_closed = "";
 
     $children = "";
@@ -172,6 +189,7 @@ function check_in_out_form() {
     $contacts = get_contacts_selector($chids, $admin);
 
     // questions validator
+    $pid = get_pid();
     $SQL = "SELECT *
             FROM notes_required n
             JOIN (
@@ -180,16 +198,16 @@ function check_in_out_form() {
                 WHERE evid IN (
                     SELECT evid
                     FROM events
-                    WHERE tag = '$type'
+                    WHERE tag = ||type||
                     AND (
-                        pid = '" . get_pid() . "'
+                        pid = ||pid||
                         OR pid = '0'
                     )
                 )
             ) r ON r.rnid = n.rnid
             WHERE n.deleted = 0
             ORDER BY r.sort";
-    $qnum = get_db_count($SQL);
+    $qnum = get_db_count($SQL, ["type" => $type, "pid" => $pid]);
 
     if ($qnum) {
         $questions_open = '
@@ -231,14 +249,14 @@ function check_in_out($chids, $cid, $type, $time = false) {
 
     $pid = get_pid();
 
-    $lastinvoice = get_db_field("MAX(todate)", "billing_perchild", "pid='$pid'");
+    $lastinvoice = get_db_field("MAX(todate)", "billing_perchild", "pid = ||pid||", ["pid" => $pid]);
 
     if ($lastinvoice < strtotime("previous Saturday")) {
         // no invoices made lately, build them all now
         create_invoices(true, $pid, false);
     }
 
-    $event = get_db_row("SELECT * FROM events WHERE pid='$pid' OR pid='0' AND tag='$type'");
+    $event = get_db_row("SELECT * FROM events WHERE (pid = ||pid|| OR pid = '0') AND tag = ||type||", false, ["pid" => $pid, "type" => $type]);
     $time = empty($time) ? get_timestamp() : $time;
     $readabletime = get_date("l, F j, Y \a\\t g:i a", display_time($time));
     $contact = get_contact_name($cid);
@@ -246,12 +264,13 @@ function check_in_out($chids, $cid, $type, $time = false) {
     $returnme .= go_home_button();
     $remaining_balance = "";
     if ($type == "out" && $cid != "admin") {
-        $aid           = get_db_field("aid", "children", "chid='" . $chids[0]["value"] . "'");
+        $first_chid    = is_array($chids) && !empty($chids[0]["value"]) ? $chids[0]["value"] : 0;
+        $aid           = get_db_field("aid", "children", "chid = ||chid||", ["chid" => $first_chid]);
         $balance       = account_balance($pid, $aid); // Previous weeks combined total - paid
         $current_week  = week_balance($pid, $aid); // Current weeks total
         $method        = get_enrollment_method($pid, $aid);
-        $exempt        = get_db_field("exempt", "enrollments", "chid='" . $chids[0]["value"] . "' AND pid='$pid'");
-        $payahead      = get_db_field("payahead", "programs", "pid='$pid'");
+        $exempt        = get_db_field("exempt", "enrollments", "chid = ||chid|| AND pid = ||pid||", ["chid" => $first_chid, "pid" => $pid]);
+        $payahead      = get_db_field("payahead", "programs", "pid = ||pid||", ["pid" => $pid]);
         $float_balance = (float) $balance;
         $float_current = (float) $current_week;
         $combined_balance = $float_balance + $float_current;
@@ -326,7 +345,8 @@ function check_in_out($chids, $cid, $type, $time = false) {
     $cid = $cid == "admin" ? 0 : $cid;
     foreach ($chids as $chid) {
         // Signed out
-        $child = get_db_row("SELECT * FROM children WHERE chid='" . $chid["value"] . "' AND deleted=0");
+        $chid_val = $chid["value"];
+        $child = get_db_row("SELECT * FROM children WHERE chid = ||chid|| AND deleted = 0", false, ["chid" => $chid_val]);
         $note  = $child["first"] . " " . $child["last"] . ": Checked $type by $contact: $readabletime";
 
         // birthday flag
@@ -337,9 +357,33 @@ function check_in_out($chids, $cid, $type, $time = false) {
         }
 
         // prevents duplicate entries -- not sure why it is happening
-        if (!get_db_row("SELECT timelog FROM activity WHERE timelog='$time' AND chid='" . $chid["value"] . "'") && $actid = execute_db_sql("INSERT INTO activity (pid, aid, chid, cid, evid, tag, timelog) VALUES('$pid', '" . $child["aid"] . "', '" . $chid["value"] . "', '$cid', '" . $event["evid"] . "', '" . $event["tag"] . "', $time) ")) {
+        if (!get_db_row("SELECT timelog FROM activity WHERE timelog = ||timelog|| AND chid = ||chid||", false, ["timelog" => $time, "chid" => $chid_val])
+            && $actid = execute_db_sql(
+                "INSERT INTO activity (pid, aid, chid, cid, evid, tag, timelog) VALUES (||pid||, ||aid||, ||chid||, ||cid||, ||evid||, ||tag||, ||timelog||)",
+                [
+                    "pid" => $pid,
+                    "aid" => $child["aid"],
+                    "chid" => $chid_val,
+                    "cid" => $cid,
+                    "evid" => $event["evid"],
+                    "tag" => $event["tag"],
+                    "timelog" => $time,
+                ]
+            )) {
             // Record a note with who checked them in
-            execute_db_sql("INSERT INTO notes (pid, aid, chid, actid, cid, tag, note, data, timelog) VALUES('" . $pid . "', '" . $child["aid"] . "', '" . $chid["value"] . "', '$actid', '$cid', '" . $event["tag"] . "', '$note', 1, $time) ");
+            execute_db_sql(
+                "INSERT INTO notes (pid, aid, chid, actid, cid, tag, note, data, timelog) VALUES (||pid||, ||aid||, ||chid||, ||actid||, ||cid||, ||tag||, ||note||, 1, ||timelog||)",
+                [
+                    "pid" => $pid,
+                    "aid" => $child["aid"],
+                    "chid" => $chid_val,
+                    "actid" => $actid,
+                    "cid" => $cid,
+                    "tag" => $event["tag"],
+                    "note" => $note,
+                    "timelog" => $time,
+                ]
+            );
             $req_notes_text = "";
             // If there are notes, record them now
             if (!empty($notes_count)) {
@@ -347,10 +391,24 @@ function check_in_out($chids, $cid, $type, $time = false) {
                 while ($i < ($notes_count * $c)) {
                     $rnid          = $rnids[$i]["value"];
                     $setting       = $values[$i]["value"];
-                    $req_note      = get_db_row("SELECT * FROM notes_required WHERE rnid='$rnid'");
+                    $req_note      = get_db_row("SELECT * FROM notes_required WHERE rnid = ||rnid||", false, ["rnid" => $rnid]);
                     $req_note_text = get_note_text($req_note, $setting);
                     $req_notes_text .= $req_note_text . "<br />";
-                    execute_db_sql("INSERT INTO notes (pid, aid, chid, actid, cid, rnid, tag, note, data, timelog) VALUES('" . $pid . "', '" . $child["aid"] . "', '" . $chid["value"] . "', '$actid', '$cid', '$rnid', '" . $req_note["tag"] . "', '$req_note_text', '$setting', $time) ");
+                    execute_db_sql(
+                        "INSERT INTO notes (pid, aid, chid, actid, cid, rnid, tag, note, data, timelog) VALUES (||pid||, ||aid||, ||chid||, ||actid||, ||cid||, ||rnid||, ||tag||, ||note||, ||data||, ||timelog||)",
+                        [
+                            "pid" => $pid,
+                            "aid" => $child["aid"],
+                            "chid" => $chid_val,
+                            "actid" => $actid,
+                            "cid" => $cid,
+                            "rnid" => $rnid,
+                            "tag" => $req_note["tag"],
+                            "note" => $req_note_text,
+                            "data" => $setting,
+                            "timelog" => $time,
+                        ]
+                    );
                     $i++;
                 }
                 $req_notes_text .= "</span>";
@@ -411,14 +469,22 @@ function get_notifications($pid, $chid = false, $aid = false, $separate = false,
     global $CFG;
     $notify = "";
     if (empty($aid)) { // Get aid from chid
-        $aid = get_db_field("aid", "children", "chid='$chid'");
+        $aid = get_db_field("aid", "children", "chid = ||chid||", ["chid" => $chid]);
     }
+
+    $daykey = date("Ynj", get_timestamp($CFG->timezone));
+    $offset = get_offset($CFG->servertz);
+    $vars = ["pid" => $pid, "chid" => $chid, "aid" => $aid, "daykey" => $daykey, "offset" => $offset];
 
     if (empty($separate)) { // any combine notifications?
         if ($chid) { // child and bulletin material
-            $SQL = "SELECT * FROM notes WHERE ((chid='$chid' AND pid='$pid') || (tag='bulletin' AND (aid='$aid' OR pid='$pid'))) AND ((notify=1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(FROM_UNIXTIME(timelog+" . get_offset($CFG->servertz) . ")))='" . date("Ynj", get_timestamp($CFG->timezone)) . "') OR (notify=2)) ORDER BY timelog";
+            $SQL = "SELECT * FROM notes WHERE ((chid = ||chid|| AND pid = ||pid||) OR (tag = 'bulletin' AND (aid = ||aid|| OR pid = ||pid||))) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(FROM_UNIXTIME(timelog + ||offset||))) = ||daykey||) OR (notify = 2)) ORDER BY timelog";
         } else { // bulletin only
-            $SQL = "SELECT * FROM notes WHERE (tag='bulletin' AND (aid='$aid' OR pid='$pid')) AND ((notify=1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'" . get_date('P', time(), $CFG->servertz) . "','" . get_date('P', time(), $CFG->timezone) . "')))='" . date("Ynj", get_timestamp($CFG->timezone)) . "') OR (notify=2)) ORDER BY timelog";
+            $servertz = get_date('P', time(), $CFG->servertz);
+            $localtz = get_date('P', time(), $CFG->timezone);
+            $vars["servertz"] = $servertz;
+            $vars["localtz"] = $localtz;
+            $SQL = "SELECT * FROM notes WHERE (tag = 'bulletin' AND (aid = ||aid|| OR pid = ||pid||)) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(CONVERT_TZ(FROM_UNIXTIME(timelog), ||servertz||, ||localtz||))) = ||daykey||) OR (notify = 2)) ORDER BY timelog";
         }
     } else { // specific context notifications, usually for display purposes
         if (!empty($chid)) { // child notes
@@ -426,23 +492,23 @@ function get_notifications($pid, $chid = false, $aid = false, $separate = false,
                 "type" => "chid",
                 "id"   => $chid
             ]);
-            $SQL  = "SELECT * FROM notes WHERE (chid='$chid' AND pid='$pid') AND ((notify=1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(FROM_UNIXTIME(timelog+" . get_offset($CFG->servertz) . ")))='" . date("Ynj", get_timestamp($CFG->timezone)) . "') OR (notify=2)) ORDER BY timelog";
+            $SQL  = "SELECT * FROM notes WHERE (chid = ||chid|| AND pid = ||pid||) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(FROM_UNIXTIME(timelog + ||offset||))) = ||daykey||) OR (notify = 2)) ORDER BY timelog";
         } elseif (!empty($aid)) { // account bulletins
             $name = get_name([
                 "type" => "aid",
                 "id"   => $aid
             ]);
-            $SQL  = "SELECT * FROM notes WHERE (tag='bulletin' AND aid='$aid') AND ((notify=1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(FROM_UNIXTIME(timelog+" . get_offset($CFG->servertz) . ")))='" . date("Ynj", get_timestamp($CFG->timezone)) . "') OR (notify=2)) ORDER BY timelog";
+            $SQL  = "SELECT * FROM notes WHERE (tag = 'bulletin' AND aid = ||aid||) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(FROM_UNIXTIME(timelog + ||offset||))) = ||daykey||) OR (notify = 2)) ORDER BY timelog";
         } else { // program bulletins
             $name = get_name([
                 "type" => "pid",
                 "id"   => $pid
             ]);
-            $SQL  = "SELECT * FROM notes WHERE (tag='bulletin' AND pid='$pid') AND ((notify=1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(FROM_UNIXTIME(timelog+" . get_offset($CFG->servertz) . ")))='" . date("Ynj", get_timestamp($CFG->timezone)) . "') OR (notify=2)) ORDER BY timelog";
+            $SQL  = "SELECT * FROM notes WHERE (tag = 'bulletin' AND pid = ||pid||) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(FROM_UNIXTIME(timelog + ||offset||))) = ||daykey||) OR (notify = 2)) ORDER BY timelog";
         }
     }
 
-    if ($notifications = get_db_result($SQL)) {
+    if ($notifications = get_db_result($SQL, $vars)) {
         while ($notification = fetch_row($notifications)) {
             $tag = get_tag([
                 "type" => "notes",
@@ -493,11 +559,11 @@ function get_notifications($pid, $chid = false, $aid = false, $separate = false,
 
 function get_contact_name($cid) {
     if ($cid == "admin") {
-        $contact = get_db_field("name", "accounts", "admin='1'");
+        $contact = get_db_field("name", "accounts", "admin = '1'");
     } elseif ($cid == "other") {
         $contact = "Alternate Pickup";
     } else {
-        $contact = get_db_row("SELECT * FROM contacts WHERE cid='$cid'");
+        $contact = get_db_row("SELECT * FROM contacts WHERE cid = ||cid||", false, ["cid" => $cid]);
         $contact = $contact["first"] . " " . $contact["last"];
     }
     return $contact;
@@ -505,17 +571,22 @@ function get_contact_name($cid) {
 
 function validate() {
     global $MYVARS;
-    $aid        = empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"];
-    $employeeid = empty($MYVARS->GET["employeeid"]) ? false : $MYVARS->GET["employeeid"];
+    $aid        = clean_param_opt($MYVARS->GET, "aid", "int", 0);
+    $employeeid = clean_param_opt($MYVARS->GET, "employeeid", "int", 0);
     $chids      = empty($MYVARS->GET["chid"]) ? false : $MYVARS->GET["chid"];
     $cid        = empty($MYVARS->GET["cid"][0]["value"]) ? false : $MYVARS->GET["cid"][0]["value"];
-    $type       = empty($MYVARS->GET["type"]) ? false : $MYVARS->GET["type"];
+    $type       = clean_param_opt($MYVARS->GET, "type", "string", "");
     $admin      = !empty($MYVARS->GET["admin"]) && $MYVARS->GET["admin"] != "false" ? true : false;
-    $password   = empty($MYVARS->GET["password"]) ? false : $MYVARS->GET["password"];
+    $password   = clean_param_opt($MYVARS->GET, "password", "string", "");
 
-    if (empty($type) && $admin && get_db_row("SELECT aid FROM accounts WHERE admin=1 AND password='$password'")) { // admin login
+    if (empty($type) && $admin && get_db_row("SELECT aid FROM accounts WHERE admin = 1 AND password = ||password||", false, ["password" => $password])) { // admin login
         $returnme = get_admin_page();
-    } elseif (((!$admin && $type != "employee") || ($admin && empty($aid)) || ($admin && !empty($aid) && strstr($MYVARS->GET["cid"][0]["name"], "_other"))) && get_db_row("SELECT aid FROM accounts WHERE (aid='$aid' AND deleted=0 AND password='$password') OR (admin=1 AND password='$password')")) { // student check in / out
+    } elseif (((!$admin && $type != "employee") || ($admin && empty($aid)) || ($admin && !empty($aid) && strstr($MYVARS->GET["cid"][0]["name"], "_other")))
+        && get_db_row(
+            "SELECT aid FROM accounts WHERE (aid = ||aid|| AND deleted = 0 AND password = ||password||) OR (admin = 1 AND password = ||password||)",
+            false,
+            ["aid" => $aid, "password" => $password]
+        )) { // student check in / out
         if (strstr($MYVARS->GET["cid"][0]["name"], "_other")) { // Make "other" contact
             if (strstr($cid, " ")) { // has space so assume first and last name
                 $name  = explode(" ", $cid);
@@ -526,16 +597,24 @@ function validate() {
                 $last  = "";
             }
 
-            if (!$cid = get_db_field("cid", "contacts", "aid='$aid' AND first='$first' AND last='$last'")) {
-                $SQL = "INSERT INTO contacts (aid, first, last, relation, home_address, phone1, phone2, phone3, phone4, employer, employer_address, hours, emergency) VALUES('$aid', '$first', '$last', '', '', '', '', '', '', '', '', '', 0)";
-                if (!$cid = execute_db_sql($SQL)) { // Fails
+            if (!$cid = get_db_field("cid", "contacts", "aid = ||aid|| AND first = ||first|| AND last = ||last||", [
+                "aid" => $aid,
+                "first" => $first,
+                "last" => $last,
+            ])) {
+                $SQL = "INSERT INTO contacts (aid, first, last, relation, home_address, phone1, phone2, phone3, phone4, employer, employer_address, hours, emergency) VALUES (||aid||, ||first||, ||last||, '', '', '', '', '', '', '', '', '', 0)";
+                if (!$cid = execute_db_sql($SQL, ["aid" => $aid, "first" => $first, "last" => $last])) { // Fails
                     echo "false";
                     exit();
                 }
             }
         }
         $returnme = check_in_out($chids, $cid, $type);
-    } elseif (!$admin && $type == "employee" && get_db_row("SELECT employeeid FROM employee WHERE (employeeid='$employeeid' AND deleted=0 AND password='$password') OR 1 = (SELECT admin FROM accounts WHERE admin=1 AND password='$password')")) { // employee sign in / out
+    } elseif (!$admin && $type == "employee" && get_db_row(
+        "SELECT employeeid FROM employee WHERE (employeeid = ||employeeid|| AND deleted = 0 AND password = ||password||) OR 1 = (SELECT admin FROM accounts WHERE admin = 1 AND password = ||password||)",
+        false,
+        ["employeeid" => $employeeid, "password" => $password]
+    )) { // employee sign in / out
         $returnme = check_in_out_employee($employeeid);
     } else { // failed validation
         echo "false";
@@ -554,15 +633,15 @@ function get_admin_page($type = false, $id = false) {
     closeout_thisweek();
 
     // run book keeping if needed
-    $lastinvoice = get_db_field("MAX(todate)", "billing_perchild", "pid='$activepid'");
+    $lastinvoice = get_db_field("MAX(todate)", "billing_perchild", "pid = ||pid||", ["pid" => $activepid]);
     if ($lastinvoice < strtotime("previous Saturday")) {
         // no invoices made lately, build them all now
         create_invoices(true, $activepid, false);
     }
 
-    $programname = get_db_field("name", "programs", "pid='$activepid'");
+    $programname = get_db_field("name", "programs", "pid = ||pid||", ["pid" => $activepid]);
     $programname = empty($programname) ? "No Active Program" : $programname;
-    $account     = get_db_row("SELECT * FROM accounts WHERE admin='1'");
+    $account     = get_db_row("SELECT * FROM accounts WHERE admin = '1'");
 
     $enrollment_selected = $account_selected = $contacts_selected = $tag_selected = $employees_selected = $billing_selected = $children_selected = "";
     if (!empty($type)) {
@@ -616,10 +695,11 @@ function get_admin_page($type = false, $id = false) {
 function add_edit_program() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
+    $pid = $name = $fein = $timeopen = $timeclosed = $consider_full = $bill_by = $payahead = $callback = null;
+    $perday = $fulltime = $minimumactive = $minimuminactive = $multiple_discount = $vacation = $discount_rule = null;
 
     foreach ($fields as $field) {
         switch ($field["name"]) {
-            case "pid":
             case "name":
             case "fein":
             case "timeopen":
@@ -628,7 +708,10 @@ function add_edit_program() {
             case "bill_by":
             case "payahead":
             case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = $field["value"];
+                break;
+            case "pid":
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
             case "perday":
             case "fulltime":
@@ -637,7 +720,7 @@ function add_edit_program() {
             case "multiple_discount":
             case "vacation":
             case "discount_rule":
-                ${$field["name"]} = str_replace("$", "", dbescape($field["value"]));
+                ${$field["name"]} = clean_var_opt(str_replace("$", "", $field["value"]), "float", 0);
                 break;
         }
     }
@@ -646,13 +729,30 @@ function add_edit_program() {
     $pid      = empty($pid) ? false : $pid;
 
     if (!empty($name) && !empty($timeopen) && !empty($timeclosed) && is_numeric($perday) && is_numeric($fulltime)) {
+        $vars = [
+            "name" => $name,
+            "fein" => $fein,
+            "timeopen" => $timeopen,
+            "timeclosed" => $timeclosed,
+            "perday" => $perday,
+            "fulltime" => $fulltime,
+            "minimumactive" => $minimumactive,
+            "minimuminactive" => $minimuminactive,
+            "vacation" => $vacation,
+            "multiple_discount" => $multiple_discount,
+            "consider_full" => $consider_full,
+            "bill_by" => $bill_by,
+            "discount_rule" => $discount_rule,
+            "payahead" => $payahead,
+        ];
         if ($pid) {
-            $SQL = "UPDATE programs SET name='$name',fein='$fein',timeopen='$timeopen',timeclosed='$timeclosed',perday='$perday',fulltime='$fulltime',minimumactive='$minimumactive',minimuminactive='$minimuminactive',vacation='$vacation',multiple_discount='$multiple_discount',consider_full='$consider_full',bill_by='$bill_by',discount_rule='$discount_rule',payahead='$payahead' WHERE pid='$pid'";
+            $SQL = "UPDATE programs SET name = ||name||, fein = ||fein||, timeopen = ||timeopen||, timeclosed = ||timeclosed||, perday = ||perday||, fulltime = ||fulltime||, minimumactive = ||minimumactive||, minimuminactive = ||minimuminactive||, vacation = ||vacation||, multiple_discount = ||multiple_discount||, consider_full = ||consider_full||, bill_by = ||bill_by||, discount_rule = ||discount_rule||, payahead = ||payahead|| WHERE pid = ||pid||";
+            $vars["pid"] = $pid;
         } else {
-            $SQL = "INSERT INTO programs (name, fein, timeopen, timeclosed, perday, fulltime, minimumactive, minimuminactive, vacation, multiple_discount, consider_full, bill_by, discount_rule, payahead) VALUES('$name', '$fein', '$timeopen', '$timeclosed', '$perday', '$fulltime', '$minimumactive', '$minimuminactive', '$vacation', '$multiple_discount', '$consider_full', '$bill_by', '$discount_rule', '$payahead')";
+            $SQL = "INSERT INTO programs (name, fein, timeopen, timeclosed, perday, fulltime, minimumactive, minimuminactive, vacation, multiple_discount, consider_full, bill_by, discount_rule, payahead) VALUES (||name||, ||fein||, ||timeopen||, ||timeclosed||, ||perday||, ||fulltime||, ||minimumactive||, ||minimuminactive||, ||vacation||, ||multiple_discount||, ||consider_full||, ||bill_by||, ||discount_rule||, ||payahead||)";
         }
 
-        if (execute_db_sql($SQL)) { // Saved successfully
+        if (execute_db_sql($SQL, $vars)) { // Saved successfully
             switch ($callback) {
                 case "programs":
                 default:
@@ -670,19 +770,22 @@ function add_edit_program() {
 function add_edit_expense() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
+    $amount = $timelog = $note = $pid = $callback = null;
 
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "amount":
-                ${$field["name"]} = str_replace("$", "", dbescape($field["value"]));
+                ${$field["name"]} = clean_var_opt(str_replace("$", "", $field["value"]), "float", 0);
                 break;
             case "timelog":
                 ${$field["name"]} = make_timestamp_from_date($field["value"], $CFG->timezone);
                 break;
             case "note":
-            case "pid":
             case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = $field["value"];
+                break;
+            case "pid":
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
         }
     }
@@ -691,9 +794,14 @@ function add_edit_expense() {
     $pid      = empty($pid) ? false : $pid;
 
     if (!empty($pid) && !empty($timelog) && is_numeric($timelog) && !empty($amount) && is_numeric($amount)) {
-        $SQL = "INSERT INTO billing_payments (pid, aid, payment, timelog, note) VALUES('$pid', '0', '$amount', '$timelog', '$note')";
+        $SQL = "INSERT INTO billing_payments (pid, aid, payment, timelog, note) VALUES (||pid||, '0', ||amount||, ||timelog||, ||note||)";
 
-        if (execute_db_sql($SQL)) { // Saved successfully
+        if (execute_db_sql($SQL, [
+            "pid" => $pid,
+            "amount" => $amount,
+            "timelog" => $timelog,
+            "note" => $note,
+        ])) { // Saved successfully
             switch ($callback) {
                 case "programs":
                     get_admin_enrollment_form(false, $pid);
@@ -714,6 +822,10 @@ function billing_overrides() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
     $overridemade = false;
+    $perday = $fulltime = $minimumactive = $minimuminactive = $multiple_discount = $vacation = $discount_rule = null;
+    $consider_full = $bill_by = $payahead = null;
+    $pid = $aid = $oid = $callback = $callbackinfo = null;
+
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "perday":
@@ -723,29 +835,31 @@ function billing_overrides() {
             case "multiple_discount":
             case "vacation":
             case "discount_rule":
-                if ($field["value"] == "") {
-                    ${$field["name"]} = "NULL";
+                if ($field["value"] === "" || $field["value"] === null) {
+                    ${$field["name"]} = null;
                 } else {
-                    ${$field["name"]} = "'" . str_replace("$", "", dbescape($field["value"])) . "'";
+                    ${$field["name"]} = clean_var_opt(str_replace("$", "", $field["value"]), "float", null);
                     $overridemade = true;
                 }
                 break;
             case "consider_full":
             case "bill_by":
             case "payahead":
-                if ($field["value"] == "none") {
-                    ${$field["name"]} = "NULL";
+                if ($field["value"] == "none" || $field["value"] === "") {
+                    ${$field["name"]} = null;
                 } else {
-                    ${$field["name"]} = "'" . dbescape($field["value"]) . "'";
+                    ${$field["name"]} = $field["value"];
                     $overridemade = true;
                 }
                 break;
             case "pid":
             case "aid":
             case "oid":
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
+                break;
             case "callback":
             case "callbackinfo":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = $field["value"];
                 break;
         }
     }
@@ -756,17 +870,49 @@ function billing_overrides() {
     $aid          = empty($aid) ? false : $aid;
     $oid          = empty($oid) ? false : $oid;
 
+    $ok = false;
     if ($oid) {
         if (!$overridemade) {
-            $SQL = "DELETE FROM billing_override WHERE oid='$oid'";
+            $ok = execute_db_sql("DELETE FROM billing_override WHERE oid = ||oid||", ["oid" => $oid]);
         } else {
-            $SQL = "UPDATE billing_override SET perday=$perday,fulltime=$fulltime,minimumactive=$minimumactive,minimuminactive=$minimuminactive,vacation=$vacation,multiple_discount=$multiple_discount,consider_full=$consider_full,bill_by=$bill_by,discount_rule=$discount_rule,payahead=$payahead WHERE oid='$oid'";
+            $ok = execute_db_sql(
+                "UPDATE billing_override SET perday = ||perday||, fulltime = ||fulltime||, minimumactive = ||minimumactive||, minimuminactive = ||minimuminactive||, vacation = ||vacation||, multiple_discount = ||multiple_discount||, consider_full = ||consider_full||, bill_by = ||bill_by||, discount_rule = ||discount_rule||, payahead = ||payahead|| WHERE oid = ||oid||",
+                [
+                    "perday" => $perday,
+                    "fulltime" => $fulltime,
+                    "minimumactive" => $minimumactive,
+                    "minimuminactive" => $minimuminactive,
+                    "vacation" => $vacation,
+                    "multiple_discount" => $multiple_discount,
+                    "consider_full" => $consider_full,
+                    "bill_by" => $bill_by,
+                    "discount_rule" => $discount_rule,
+                    "payahead" => $payahead,
+                    "oid" => $oid,
+                ]
+            );
         }
     } elseif ($overridemade) {
-        $SQL = "INSERT INTO billing_override (pid, aid, perday, fulltime, minimumactive, minimuminactive, vacation, multiple_discount, consider_full, bill_by, discount_rule, payahead) VALUES($pid, $aid, $perday, $fulltime, $minimumactive, $minimuminactive, $vacation, $multiple_discount, $consider_full, $bill_by, $discount_rule, $payahead)";
+        $ok = execute_db_sql(
+            "INSERT INTO billing_override (pid, aid, perday, fulltime, minimumactive, minimuminactive, vacation, multiple_discount, consider_full, bill_by, discount_rule, payahead) VALUES (||pid||, ||aid||, ||perday||, ||fulltime||, ||minimumactive||, ||minimuminactive||, ||vacation||, ||multiple_discount||, ||consider_full||, ||bill_by||, ||discount_rule||, ||payahead||)",
+            [
+                "pid" => $pid,
+                "aid" => $aid,
+                "perday" => $perday,
+                "fulltime" => $fulltime,
+                "minimumactive" => $minimumactive,
+                "minimuminactive" => $minimuminactive,
+                "vacation" => $vacation,
+                "multiple_discount" => $multiple_discount,
+                "consider_full" => $consider_full,
+                "bill_by" => $bill_by,
+                "discount_rule" => $discount_rule,
+                "payahead" => $payahead,
+            ]
+        );
     }
 
-    if (execute_db_sql($SQL)) { // Saved successfully
+    if ($ok) { // Saved successfully
         switch ($callback) {
             case "billing":
             default:
@@ -781,6 +927,7 @@ function billing_overrides() {
 function add_edit_tag() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
+    $tagtype = $update = $tag = $title = $color = $textcolor = $callback = null;
 
     foreach ($fields as $field) {
         switch ($field["name"]) {
@@ -791,12 +938,17 @@ function add_edit_tag() {
             case "color":
             case "textcolor":
             case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = $field["value"];
                 break;
         }
     }
 
     $callback = empty($callback) ? false : $callback;
+    $allowed  = ["notes", "activity", "employee"];
+    if (empty($tagtype) || !in_array($tagtype, $allowed, true)) {
+        echo "false";
+        return;
+    }
 
     $tag = empty($tag) ? (isset($update) ? $update : false) : $tag;
     if (!empty($tag)) {
@@ -804,17 +956,31 @@ function add_edit_tag() {
         $title     = empty($title) ? ucwords(str_replace('_', ' ', $tag)) : ucwords($title);
         $color     = empty($color) ? "silver" : $color;
         $textcolor = empty($textcolor) ? "black" : $textcolor;
+        $table     = $tagtype . "_tags";
         if (!empty($update)) {
-            $SQL = "UPDATE $tagtype" . "_tags SET tag='$tag',title='$title',color='$color',textcolor='$textcolor' WHERE tag='$update'";
+            $SQL = "UPDATE $table SET tag = ||tag||, title = ||title||, color = ||color||, textcolor = ||textcolor|| WHERE tag = ||update||";
+            $ok = execute_db_sql($SQL, [
+                "tag" => $tag,
+                "title" => $title,
+                "color" => $color,
+                "textcolor" => $textcolor,
+                "update" => $update,
+            ]);
         } else {
-            if (get_db_row("SELECT * FROM $tagtype" . "_tags WHERE tag='$tag'")) {
+            if (get_db_row("SELECT * FROM $table WHERE tag = ||tag||", false, ["tag" => $tag])) {
                 echo "false";
                 exit;
             }
-            $SQL = "INSERT INTO $tagtype" . "_tags (title, tag, color, textcolor) VALUES('$title', '$tag', '$color', '$textcolor')";
+            $SQL = "INSERT INTO $table (title, tag, color, textcolor) VALUES (||title||, ||tag||, ||color||, ||textcolor||)";
+            $ok = execute_db_sql($SQL, [
+                "title" => $title,
+                "tag" => $tag,
+                "color" => $color,
+                "textcolor" => $textcolor,
+            ]);
         }
 
-        if (execute_db_sql($SQL)) { // Saved successfully
+        if ($ok) { // Saved successfully
             switch ($callback) {
                 case "tags":
                     get_admin_tags_form(false, $tagtype);
@@ -834,19 +1000,22 @@ function add_edit_tag() {
 function add_edit_payment() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
+    $note = $aid = $payid = $pid = $callback = $callbackinfo = $payment = $timelog = null;
 
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "note":
+            case "callback":
+            case "callbackinfo":
+                ${$field["name"]} = $field["value"];
+                break;
             case "aid":
             case "payid":
             case "pid":
-            case "callback":
-            case "callbackinfo":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
             case "payment":
-                ${$field["name"]} = str_replace("$", "", dbescape($field["value"]));
+                ${$field["name"]} = clean_var_opt(str_replace("$", "", $field["value"]), "float", 0);
                 break;
             case "timelog":
                 ${$field["name"]} = make_timestamp_from_date($field["value"], $CFG->timezone);
@@ -860,12 +1029,27 @@ function add_edit_payment() {
 
     if (!empty($aid) && !empty($pid) && is_numeric($payment) && !empty($timelog)) {
         if ($payid) {
-            $SQL = "UPDATE billing_payments SET pid='$pid',aid='$aid',payment='$payment',timelog='$timelog',note='$note' WHERE payid='$payid'";
+            $SQL = "UPDATE billing_payments SET pid = ||pid||, aid = ||aid||, payment = ||payment||, timelog = ||timelog||, note = ||note|| WHERE payid = ||payid||";
+            $ok = execute_db_sql($SQL, [
+                "pid" => $pid,
+                "aid" => $aid,
+                "payment" => $payment,
+                "timelog" => $timelog,
+                "note" => $note,
+                "payid" => $payid,
+            ]);
         } else {
-            $SQL = "INSERT INTO billing_payments (pid, aid, payment, timelog, note) VALUES('$pid', '$aid', '$payment', '$timelog', '$note')";
+            $SQL = "INSERT INTO billing_payments (pid, aid, payment, timelog, note) VALUES (||pid||, ||aid||, ||payment||, ||timelog||, ||note||)";
+            $ok = execute_db_sql($SQL, [
+                "pid" => $pid,
+                "aid" => $aid,
+                "payment" => $payment,
+                "timelog" => $timelog,
+                "note" => $note,
+            ]);
         }
 
-        if (execute_db_sql($SQL)) { // Saved successfully
+        if ($ok) { // Saved successfully
             switch ($callback) {
                 case "accounts":
                     get_admin_accounts_form(false, $callbackinfo);
@@ -888,16 +1072,21 @@ function add_edit_payment() {
 function add_edit_account() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
+    $password = $name = $aid = $meal_status = $recover = $callback = null;
 
     foreach ($fields as $field) {
         switch ($field["name"]) {
-            case "password":
             case "name":
-            case "aid":
             case "meal_status":
             case "recover":
             case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = $field["value"];
+                break;
+            case "password":
+                ${$field["name"]} = clean_var_opt($field["value"], "string", "");
+                break;
+            case "aid":
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
         }
     }
@@ -908,12 +1097,23 @@ function add_edit_account() {
 
     if (!empty($name) && is_numeric($password) && strlen($password) == 4) {
         if ($aid) {
-            $SQL = "UPDATE accounts SET name='$name',password='$password',meal_status='$meal_status' WHERE aid='$aid'";
+            $SQL = "UPDATE accounts SET name = ||name||, password = ||password||, meal_status = ||meal_status|| WHERE aid = ||aid||";
+            $ok = execute_db_sql($SQL, [
+                "name" => $name,
+                "password" => $password,
+                "meal_status" => $meal_status,
+                "aid" => $aid,
+            ]);
         } else {
-            $SQL = "INSERT INTO accounts (name, password, meal_status, admin) VALUES('$name', '$password', '$meal_status', '0')";
+            $SQL = "INSERT INTO accounts (name, password, meal_status, admin) VALUES (||name||, ||password||, ||meal_status||, '0')";
+            $ok = execute_db_sql($SQL, [
+                "name" => $name,
+                "password" => $password,
+                "meal_status" => $meal_status,
+            ]);
         }
 
-        if (execute_db_sql($SQL)) { // Saved successfully
+        if ($ok) { // Saved successfully
             switch ($callback) {
                 case "accounts":
                     get_admin_accounts_form(false, $aid, $recover);
@@ -933,20 +1133,24 @@ function add_edit_account() {
 function add_edit_employee() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
+    $password = $first = $last = $employeeid = $recover = $callback = $wage = null;
 
     foreach ($fields as $field) {
         switch ($field["name"]) {
-            case "password":
             case "first":
             case "last":
-            case "employeeid":
             case "recover":
             case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = $field["value"];
+                break;
+            case "password":
+                ${$field["name"]} = clean_var_opt($field["value"], "string", "");
+                break;
+            case "employeeid":
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
             case "wage":
-                ${$field["name"]} = dbescape($field["value"]);
-                ${$field["name"]} = str_replace("$", "", $wage);
+                ${$field["name"]} = clean_var_opt(str_replace("$", "", $field["value"]), "float", 0);
                 break;
         }
     }
@@ -957,25 +1161,51 @@ function add_edit_employee() {
     $time       = strtotime(date("m/d/Y", time()));
     if (!empty($first) && !empty($last) && is_numeric($wage) && $wage > 0 && is_numeric($password) && strlen($password) == 4) {
         if ($employeeid) {
-            if ($oldwage = get_db_row("SELECT * FROM employee_wage WHERE employeeid='$employeeid' ORDER BY dategiven DESC LIMIT 1")) { // wage existed
+            if ($oldwage = get_db_row("SELECT * FROM employee_wage WHERE employeeid = ||employeeid|| ORDER BY dategiven DESC LIMIT 1", false, ["employeeid" => $employeeid])) { // wage existed
                 if ($oldwage["wage"] != $wage) {
                     if ($oldwage["dategiven"] == $time) {
-                        execute_db_sql("UPDATE employee_wage SET wage='$wage' WHERE id='" . $oldwage["id"] . "'");
+                        execute_db_sql("UPDATE employee_wage SET wage = ||wage|| WHERE id = ||id||", [
+                            "wage" => $wage,
+                            "id" => $oldwage["id"],
+                        ]);
                     } else {
-                        execute_db_sql("INSERT INTO employee_wage (employeeid, wage, dategiven) VALUES('$employeeid', '$wage', '$time')");
+                        execute_db_sql("INSERT INTO employee_wage (employeeid, wage, dategiven) VALUES (||employeeid||, ||wage||, ||dategiven||)", [
+                            "employeeid" => $employeeid,
+                            "wage" => $wage,
+                            "dategiven" => $time,
+                        ]);
                     }
                 }
             } else { // no wage entered
-                execute_db_sql("INSERT INTO employee_wage (employeeid, wage, dategiven) VALUES('$employeeid', '$wage', '$time')");
+                execute_db_sql("INSERT INTO employee_wage (employeeid, wage, dategiven) VALUES (||employeeid||, ||wage||, ||dategiven||)", [
+                    "employeeid" => $employeeid,
+                    "wage" => $wage,
+                    "dategiven" => $time,
+                ]);
             }
-            $SQL = "UPDATE employee SET first='$first',last='$last',password='$password' WHERE employeeid='$employeeid'";
+            $SQL = "UPDATE employee SET first = ||first||, last = ||last||, password = ||password|| WHERE employeeid = ||employeeid||";
+            $id = execute_db_sql($SQL, [
+                "first" => $first,
+                "last" => $last,
+                "password" => $password,
+                "employeeid" => $employeeid,
+            ]);
         } else {
-            $SQL = "INSERT INTO employee (first, last, password, deleted) VALUES('$first', '$last', '$password', '0')";
+            $SQL = "INSERT INTO employee (first, last, password, deleted) VALUES (||first||, ||last||, ||password||, '0')";
+            $id = execute_db_sql($SQL, [
+                "first" => $first,
+                "last" => $last,
+                "password" => $password,
+            ]);
         }
 
-        if ($id = execute_db_sql($SQL)) { // Saved successfully
+        if ($id) { // Saved successfully
             if (empty($employeeid)) {
-                execute_db_sql("INSERT INTO employee_wage (employeeid, wage, dategiven) VALUES('$id', '$wage', '$time')");
+                execute_db_sql("INSERT INTO employee_wage (employeeid, wage, dategiven) VALUES (||employeeid||, ||wage||, ||dategiven||)", [
+                    "employeeid" => $id,
+                    "wage" => $wage,
+                    "dategiven" => $time,
+                ]);
             }
 
             switch ($callback) {
@@ -998,18 +1228,20 @@ function add_edit_child() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
 
-    $first = $last = $sex = $grade = $birthdate = "";
+    $first = $last = $sex = $grade = $birthdate = $chid = $aid = $pid = $callback = null;
     foreach ($fields as $field) {
         switch ($field["name"]) {
-            case "chid":
-            case "aid":
-            case "pid":
             case "first":
             case "last":
             case "sex":
             case "grade":
             case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = $field["value"];
+                break;
+            case "chid":
+            case "aid":
+            case "pid":
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
             case "birthdate":
                 ${$field["name"]} = make_timestamp_from_date($field["value"], $CFG->timezone);
@@ -1027,15 +1259,29 @@ function add_edit_child() {
     } else {
         if ($chid) {
             $pid = empty($pid) ? $activepid : $pid;
-            $SQL = "UPDATE children SET first='$first',last='$last',sex='$sex',birthdate='$birthdate',grade='$grade' WHERE chid='$chid'";
-            execute_db_sql($SQL);
+            $SQL = "UPDATE children SET first = ||first||, last = ||last||, sex = ||sex||, birthdate = ||birthdate||, grade = ||grade|| WHERE chid = ||chid||";
+            execute_db_sql($SQL, [
+                "first" => $first,
+                "last" => $last,
+                "sex" => $sex,
+                "birthdate" => $birthdate,
+                "grade" => $grade,
+                "chid" => $chid,
+            ]);
         } else {
-            $SQL = "INSERT INTO children (aid, first, last, sex, birthdate, grade) VALUES('$aid', '$first', '$last', '$sex', '$birthdate', '$grade')";
-            if ($chid = execute_db_sql($SQL)) { // Added successfully
+            $SQL = "INSERT INTO children (aid, first, last, sex, birthdate, grade) VALUES (||aid||, ||first||, ||last||, ||sex||, ||birthdate||, ||grade||)";
+            if ($chid = execute_db_sql($SQL, [
+                "aid" => $aid,
+                "first" => $first,
+                "last" => $last,
+                "sex" => $sex,
+                "birthdate" => $birthdate,
+                "grade" => $grade,
+            ])) { // Added successfully
                 // Enroll them in the active program
                 if ($activepid) {
-                    $SQL = "INSERT INTO enrollments (pid, chid, days_attending, exempt) VALUES('$activepid', '$chid', 'M, T, W, Th, F', 0)";
-                    execute_db_sql($SQL); // Enrolled successfully
+                    $SQL = "INSERT INTO enrollments (pid, chid, days_attending, exempt) VALUES (||pid||, ||chid||, 'M, T, W, Th, F', 0)";
+                    execute_db_sql($SQL, ["pid" => $activepid, "chid" => $chid]); // Enrolled successfully
                 }
             }
         }
@@ -1060,11 +1306,9 @@ function add_edit_child() {
 function add_edit_contact() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
-    $first  = $last = $relation = $home_address = $phone1 = $phone2 = $phone3 = $employer = $employer_address = $phone4 = $hours = $emergency = "";
+    $first = $last = $relation = $primary_address = $home_address = $phone1 = $phone2 = $phone3 = $phone4 = $employer = $employer_address = $hours = $emergency = $cid = $aid = $callback = $chid = null;
     foreach ($fields as $field) {
         switch ($field["name"]) {
-            case "cid":
-            case "aid":
             case "first":
             case "last":
             case "relation":
@@ -1079,7 +1323,11 @@ function add_edit_contact() {
             case "hours":
             case "emergency":
             case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = $field["value"];
+                break;
+            case "cid":
+            case "aid":
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
         }
     }
@@ -1089,11 +1337,41 @@ function add_edit_contact() {
         echo "false";
     } else {
         if (!empty($cid)) {
-            $SQL = "UPDATE contacts SET first='$first',last='$last',relation='$relation',primary_address='$primary_address',home_address='$home_address',phone1='$phone1',phone2='$phone2',phone3='$phone3',phone4='$phone4',employer='$employer',employer_address='$employer_address',hours='$hours',emergency='$emergency' WHERE cid='$cid'";
-            execute_db_sql($SQL);
+            $SQL = "UPDATE contacts SET first = ||first||, last = ||last||, relation = ||relation||, primary_address = ||primary_address||, home_address = ||home_address||, phone1 = ||phone1||, phone2 = ||phone2||, phone3 = ||phone3||, phone4 = ||phone4||, employer = ||employer||, employer_address = ||employer_address||, hours = ||hours||, emergency = ||emergency|| WHERE cid = ||cid||";
+            execute_db_sql($SQL, [
+                "first" => $first,
+                "last" => $last,
+                "relation" => $relation,
+                "primary_address" => $primary_address,
+                "home_address" => $home_address,
+                "phone1" => $phone1,
+                "phone2" => $phone2,
+                "phone3" => $phone3,
+                "phone4" => $phone4,
+                "employer" => $employer,
+                "employer_address" => $employer_address,
+                "hours" => $hours,
+                "emergency" => $emergency,
+                "cid" => $cid,
+            ]);
         } elseif (!empty($aid)) {
-            $SQL = "INSERT INTO contacts (aid, first, last, relation, primary_address, home_address, phone1, phone2, phone3, phone4, employer, employer_address, hours, emergency) VALUES('$aid', '$first', '$last', '$relation', '$primary_address', '$home_address', '$phone1', '$phone2', '$phone3', '$phone4', '$employer', '$employer_address', '$hours', '$emergency')";
-            if (!$cid = execute_db_sql($SQL)) { // Fails
+            $SQL = "INSERT INTO contacts (aid, first, last, relation, primary_address, home_address, phone1, phone2, phone3, phone4, employer, employer_address, hours, emergency) VALUES (||aid||, ||first||, ||last||, ||relation||, ||primary_address||, ||home_address||, ||phone1||, ||phone2||, ||phone3||, ||phone4||, ||employer||, ||employer_address||, ||hours||, ||emergency||)";
+            if (!$cid = execute_db_sql($SQL, [
+                "aid" => $aid,
+                "first" => $first,
+                "last" => $last,
+                "relation" => $relation,
+                "primary_address" => $primary_address,
+                "home_address" => $home_address,
+                "phone1" => $phone1,
+                "phone2" => $phone2,
+                "phone3" => $phone3,
+                "phone4" => $phone4,
+                "employer" => $employer,
+                "employer_address" => $employer_address,
+                "hours" => $hours,
+                "emergency" => $emergency,
+            ])) { // Fails
                 echo "false";
             }
         }
@@ -1119,23 +1397,25 @@ function add_edit_note() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
     $time   = get_timestamp();
+    $note = $notify = $persistent = $nid = $chid = $cid = $aid = $actid = $callback = $tag = null;
 
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "note":
             case "notify":
             case "persistent":
+            case "callback":
+                ${$field["name"]} = $field["value"];
+                break;
             case "nid":
             case "chid":
             case "cid":
             case "aid":
             case "actid":
-            case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
             case "tag":
-                ${$field["name"]} = dbescape($field["value"]);
-                ${$field["name"]} = make_or_get_tag($tag, "notes");
+                $tag = make_or_get_tag($field["value"], "notes");
                 break;
         }
     }
@@ -1154,24 +1434,40 @@ function add_edit_note() {
     }
 
     $pid = get_pid();
+    $ok = false;
     if (!empty($note) || !empty($tag)) {
         if (!empty($nid)) {
-            $SQL = "UPDATE notes SET note='$note',tag='$tag',notify='$notify' WHERE nid='$nid'";
+            $ok = execute_db_sql(
+                "UPDATE notes SET note = ||note||, tag = ||tag||, notify = ||notify|| WHERE nid = ||nid||",
+                ["note" => $note, "tag" => $tag, "notify" => $notify, "nid" => $nid]
+            );
         } else {
             if ($chid) {
-                $aid = get_db_field("aid", "children", "chid='$chid'");
-                $SQL = "INSERT INTO notes (pid, aid, chid, tag, note, timelog, notify) VALUES('$pid', '$aid', '$chid', '$tag', '$note', '$time', '$notify')";
+                $aid = get_db_field("aid", "children", "chid = ||chid||", ["chid" => $chid]);
+                $ok = execute_db_sql(
+                    "INSERT INTO notes (pid, aid, chid, tag, note, timelog, notify) VALUES (||pid||, ||aid||, ||chid||, ||tag||, ||note||, ||timelog||, ||notify||)",
+                    ["pid" => $pid, "aid" => $aid, "chid" => $chid, "tag" => $tag, "note" => $note, "timelog" => $time, "notify" => $notify]
+                );
             } elseif ($aid) {
-                $SQL = "INSERT INTO notes (pid, aid, tag, note, timelog, notify) VALUES('$pid', '$aid', '$tag', '$note', '$time', '$notify')";
+                $ok = execute_db_sql(
+                    "INSERT INTO notes (pid, aid, tag, note, timelog, notify) VALUES (||pid||, ||aid||, ||tag||, ||note||, ||timelog||, ||notify||)",
+                    ["pid" => $pid, "aid" => $aid, "tag" => $tag, "note" => $note, "timelog" => $time, "notify" => $notify]
+                );
             } elseif ($cid) {
-                $aid = get_db_field("aid", "contacts", "cid='$cid'");
-                $SQL = "INSERT INTO notes (pid, aid, cid, tag, note, timelog, notify) VALUES('$pid', '$aid', '$cid', '$tag', '$note', '$time', '$notify')";
+                $aid = get_db_field("aid", "contacts", "cid = ||cid||", ["cid" => $cid]);
+                $ok = execute_db_sql(
+                    "INSERT INTO notes (pid, aid, cid, tag, note, timelog, notify) VALUES (||pid||, ||aid||, ||cid||, ||tag||, ||note||, ||timelog||, ||notify||)",
+                    ["pid" => $pid, "aid" => $aid, "cid" => $cid, "tag" => $tag, "note" => $note, "timelog" => $time, "notify" => $notify]
+                );
             } elseif ($actid) {
-                $SQL = "INSERT INTO notes (pid, actid, tag, note, timelog, notify) VALUES('$pid', '$actid', '$tag', '$note', '$time', '$notify')";
+                $ok = execute_db_sql(
+                    "INSERT INTO notes (pid, actid, tag, note, timelog, notify) VALUES (||pid||, ||actid||, ||tag||, ||note||, ||timelog||, ||notify||)",
+                    ["pid" => $pid, "actid" => $actid, "tag" => $tag, "note" => $note, "timelog" => $time, "notify" => $notify]
+                );
             }
         }
 
-        if (execute_db_sql($SQL)) { // Saved successfully
+        if ($ok) { // Saved successfully
             switch ($callback) {
                 case "accounts":
                     get_admin_accounts_form(false, $aid);
@@ -1198,15 +1494,18 @@ function add_edit_bulletin() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
     $time   = get_timestamp();
+    $note = $notify = $aid = $pid = $callback = null;
 
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "note":
             case "notify":
+            case "callback":
+                ${$field["name"]} = $field["value"];
+                break;
             case "aid":
             case "pid":
-            case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
         }
     }
@@ -1217,22 +1516,32 @@ function add_edit_bulletin() {
     $notify   = empty($notify) ? "0" : "2"; // 2 means it is persistant
 
     if (!empty($aid)) {
-        $nid = get_db_row("SELECT * FROM notes WHERE tag='bulletin' AND pid='0' AND aid='$aid'");
+        $nid = get_db_row("SELECT * FROM notes WHERE tag = 'bulletin' AND pid = '0' AND aid = ||aid||", false, ["aid" => $aid]);
     } else {
-        $nid = get_db_row("SELECT * FROM notes WHERE tag='bulletin' AND pid='$pid' AND aid='0'");
+        $nid = get_db_row("SELECT * FROM notes WHERE tag = 'bulletin' AND pid = ||pid|| AND aid = '0'", false, ["pid" => $pid]);
     }
 
+    $ok = false;
     if (!empty($nid)) {
-        $SQL = "UPDATE notes SET note='$note',notify='$notify' WHERE nid='" . $nid["nid"] . "'";
+        $ok = execute_db_sql(
+            "UPDATE notes SET note = ||note||, notify = ||notify|| WHERE nid = ||nid||",
+            ["note" => $note, "notify" => $notify, "nid" => $nid["nid"]]
+        );
     } else {
         if ($aid) {
-            $SQL = "INSERT INTO notes (pid, aid, tag, note, timelog, notify) VALUES('0', '$aid', 'bulletin', '$note', '$time', '$notify')";
+            $ok = execute_db_sql(
+                "INSERT INTO notes (pid, aid, tag, note, timelog, notify) VALUES ('0', ||aid||, 'bulletin', ||note||, ||timelog||, ||notify||)",
+                ["aid" => $aid, "note" => $note, "timelog" => $time, "notify" => $notify]
+            );
         } else {
-            $SQL = "INSERT INTO notes (pid, aid, tag, note, timelog, notify) VALUES('$pid', '0', 'bulletin', '$note', '$time', '$notify')";
+            $ok = execute_db_sql(
+                "INSERT INTO notes (pid, aid, tag, note, timelog, notify) VALUES (||pid||, '0', 'bulletin', ||note||, ||timelog||, ||notify||)",
+                ["pid" => $pid, "note" => $note, "timelog" => $time, "notify" => $notify]
+            );
         }
     }
 
-    if (execute_db_sql($SQL)) { // Saved successfully
+    if ($ok) { // Saved successfully
         switch ($callback) {
             case "accounts":
                 get_admin_accounts_form(false, $aid);
@@ -1250,14 +1559,17 @@ function add_activity() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
     $time   = get_timestamp();
+    $chid = $aid = $tag = $callback = $timelog = null;
 
     foreach ($fields as $field) {
         switch ($field["name"]) {
-            case "chid":
-            case "aid":
             case "tag":
             case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = $field["value"];
+                break;
+            case "chid":
+            case "aid":
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
             case "timelog":
                 ${$field["name"]} = make_timestamp_from_date($field["value"], $CFG->timezone);
@@ -1269,7 +1581,7 @@ function add_activity() {
     $aid      = empty($aid) ? false : $aid;
     $callback = empty($callback) ? false : $callback;
     $pid      = get_pid();
-    $evid     = get_db_field("evid", "events", "tag='$tag'");
+    $evid     = get_db_field("evid", "events", "tag = ||tag||", ["tag" => $tag]);
     if (!empty($evid) && !empty($chid)) {
         $cid        = 0;
         $chids      = [["value" => $chid]];
@@ -1293,21 +1605,23 @@ function add_edit_notes() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
     $time   = get_timestamp();
+    $note = $nid = $chid = $cid = $aid = $actid = $callback = $tag = null;
 
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "note":
+            case "callback":
+                ${$field["name"]} = $field["value"];
+                break;
             case "nid":
             case "chid":
             case "cid":
             case "aid":
             case "actid":
-            case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
             case "tag":
-                ${$field["name"]} = dbescape($field["value"]);
-                ${$field["name"]} = make_or_get_tag($tag, "events");
+                $tag = make_or_get_tag($field["value"], "events");
                 break;
         }
     }
@@ -1319,24 +1633,41 @@ function add_edit_notes() {
     $nid      = empty($nid) ? false : $nid;
     $callback = empty($callback) ? false : $callback;
     $pid      = get_pid();
+    $ok = false;
     if (!empty($note) || !empty($tag)) {
         if (!empty($nid)) {
-            $SQL = "UPDATE notes SET note='$note',tag='$tag' WHERE nid='$nid'";
+            $ok = execute_db_sql(
+                "UPDATE notes SET note = ||note||, tag = ||tag|| WHERE nid = ||nid||",
+                ["note" => $note, "tag" => $tag, "nid" => $nid]
+            );
         } else {
             if ($chid) {
-                $aid = get_db_field("aid", "children", "chid='$chid'");
-                $SQL = "INSERT INTO notes (pid, aid, chid, tag, note, timelog) VALUES('$pid', '$aid', '$chid', '$tag', '$note', '$time')";
+                $aid = get_db_field("aid", "children", "chid = ||chid||", ["chid" => $chid]);
+                $ok = execute_db_sql(
+                    "INSERT INTO notes (pid, aid, chid, tag, note, timelog) VALUES (||pid||, ||aid||, ||chid||, ||tag||, ||note||, ||timelog||)",
+                    ["pid" => $pid, "aid" => $aid, "chid" => $chid, "tag" => $tag, "note" => $note, "timelog" => $time]
+                );
             } elseif ($aid) {
-                $SQL = "INSERT INTO notes (pid, aid, tag, note, timelog) VALUES('$pid', '$aid', '$aid', '$tag', '$note', '$time')";
+                // Fixed: original had an extra $aid in VALUES (column mismatch)
+                $ok = execute_db_sql(
+                    "INSERT INTO notes (pid, aid, tag, note, timelog) VALUES (||pid||, ||aid||, ||tag||, ||note||, ||timelog||)",
+                    ["pid" => $pid, "aid" => $aid, "tag" => $tag, "note" => $note, "timelog" => $time]
+                );
             } elseif ($cid) {
-                $aid = get_db_field("aid", "contacts", "cid='$cid'");
-                $SQL = "INSERT INTO notes (pid, aid, cid, tag, note, timelog) VALUES('$pid', '$aid', '$cid', '$tag', '$note', '$time')";
+                $aid = get_db_field("aid", "contacts", "cid = ||cid||", ["cid" => $cid]);
+                $ok = execute_db_sql(
+                    "INSERT INTO notes (pid, aid, cid, tag, note, timelog) VALUES (||pid||, ||aid||, ||cid||, ||tag||, ||note||, ||timelog||)",
+                    ["pid" => $pid, "aid" => $aid, "cid" => $cid, "tag" => $tag, "note" => $note, "timelog" => $time]
+                );
             } elseif ($actid) {
-                $SQL = "INSERT INTO notes (pid, actid, tag, note, timelog) VALUES('$pid', '$actid', '$tag', '$note', '$time')";
+                $ok = execute_db_sql(
+                    "INSERT INTO notes (pid, actid, tag, note, timelog) VALUES (||pid||, ||actid||, ||tag||, ||note||, ||timelog||)",
+                    ["pid" => $pid, "actid" => $actid, "tag" => $tag, "note" => $note, "timelog" => $time]
+                );
             }
         }
 
-        if (execute_db_sql($SQL)) { // Saved successfully
+        if ($ok) { // Saved successfully
             switch ($callback) {
                 case "accounts":
                     get_admin_accounts_form(false, $aid);
@@ -1362,18 +1693,21 @@ function add_edit_notes() {
 function add_edit_employee_activity() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
+    $date = $nid = $newtime = $employeeid = $tab = $tag = $actid = $callback = null;
 
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "date":
-            case "nid":
             case "newtime":
-            case "employeeid":
             case "tab":
             case "tag":
-            case "actid":
             case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = $field["value"];
+                break;
+            case "nid":
+            case "employeeid":
+            case "actid":
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
         }
     }
@@ -1391,47 +1725,62 @@ function add_edit_employee_activity() {
         return "false";
     }
 
-    $activity = get_db_row("SELECT * FROM employee_activity WHERE actid='" . $vars["actid"] . "'");
+    $activity = get_db_row("SELECT * FROM employee_activity WHERE actid = ||actid||", false, ["actid" => $actid]);
     $startofday = strtotime(date("j F Y", $newdatetime));
     $endofday = strtotime("+1 day", strtotime(date("j F Y", $newdatetime)));
-    $todaysql = "timelog < '" . $endofday . "' AND timelog > '" . $startofday . "'";
     if ($tag == "in") {
-        if ($signout = get_db_field("timelog", "employee_activity", "tag='out' AND employeeid='" . $employeeid . "' AND timelog <= '" . $newdatetime . "' AND $todaysql")) {
+        if ($signout = get_db_field(
+            "timelog",
+            "employee_activity",
+            "tag = 'out' AND employeeid = ||employeeid|| AND timelog <= ||newdatetime|| AND timelog < ||endofday|| AND timelog > ||startofday||",
+            ["employeeid" => $employeeid, "newdatetime" => $newdatetime, "endofday" => $endofday, "startofday" => $startofday]
+        )) {
             echo "false";
             die;
         }
     } else { // out.
-        if ($signin = get_db_field("timelog", "employee_activity", "tag='in' AND employeeid='" . $employeeid . "' AND timelog >= '" . $newdatetime . "' AND $todaysql")) {
+        if ($signin = get_db_field(
+            "timelog",
+            "employee_activity",
+            "tag = 'in' AND employeeid = ||employeeid|| AND timelog >= ||newdatetime|| AND timelog < ||endofday|| AND timelog > ||startofday||",
+            ["employeeid" => $employeeid, "newdatetime" => $newdatetime, "endofday" => $endofday, "startofday" => $startofday]
+        )) {
             echo "false";
             die;
         }
     }
 
     if (!empty($employeeid) && !empty($actid) && !empty($nid)) { // EDIT
-        $employee   = get_db_row("SELECT * FROM employee WHERE employeeid='$employeeid'");
-        $note       = get_db_row("SELECT * FROM notes WHERE nid='$nid'");
-        $note       = $employee["first"] . " " . $employee["last"] . ": Signed " . $note["tag"] . " at $readabletime";
+        $employee   = get_db_row("SELECT * FROM employee WHERE employeeid = ||employeeid||", false, ["employeeid" => $employeeid]);
+        $note_row   = get_db_row("SELECT * FROM notes WHERE nid = ||nid||", false, ["nid" => $nid]);
+        $note       = $employee["first"] . " " . $employee["last"] . ": Signed " . $note_row["tag"] . " at $readabletime";
 
-        $SQL1 = "UPDATE notes SET note='$note' WHERE nid='$nid'";
-        $SQL2 = "UPDATE employee_activity SET timelog='$newdatetime' WHERE actid='$actid'";
+        $ok1 = execute_db_sql("UPDATE notes SET note = ||note|| WHERE nid = ||nid||", ["note" => $note, "nid" => $nid]);
+        $ok2 = execute_db_sql("UPDATE employee_activity SET timelog = ||timelog|| WHERE actid = ||actid||", [
+            "timelog" => $newdatetime,
+            "actid" => $actid,
+        ]);
 
-        if (execute_db_sql($SQL1) && execute_db_sql($SQL2)) { // Saved successfully
+        if ($ok1 && $ok2) { // Saved successfully
             get_admin_employees_form(false, $employeeid);
         } else {
             echo "false";
         }
     } elseif (!empty($employeeid)) { // ADD
-        $employee   = get_db_row("SELECT * FROM employee WHERE employeeid='$employeeid'");
-        $note       = get_db_row("SELECT * FROM notes WHERE tag='$tag' AND pid='$pid'");
+        $employee   = get_db_row("SELECT * FROM employee WHERE employeeid = ||employeeid||", false, ["employeeid" => $employeeid]);
         $note       = $employee["first"] . " " . $employee["last"] . ": Signed " . $tag . " at $readabletime";
 
-        $event      = get_db_row("SELECT * FROM events WHERE tag='$tag'");
-        $SQL1       = "INSERT INTO employee_activity (employeeid, evid, tag, timelog) VALUES('$employeeid', '" . $event["evid"] . "', '" . $event["tag"] . "', $newdatetime)";
-        $actid      = execute_db_sql($SQL1);
-        $SQL2       = "INSERT INTO notes (actid, employeeid, tag, note, data, timelog) VALUES('$actid', '$employeeid', '" . $event["tag"] . "', '$note', 1, $newdatetime)";
-        $note       = execute_db_sql($SQL2);
+        $event      = get_db_row("SELECT * FROM events WHERE tag = ||tag||", false, ["tag" => $tag]);
+        $actid      = execute_db_sql(
+            "INSERT INTO employee_activity (employeeid, evid, tag, timelog) VALUES (||employeeid||, ||evid||, ||tag||, ||timelog||)",
+            ["employeeid" => $employeeid, "evid" => $event["evid"], "tag" => $event["tag"], "timelog" => $newdatetime]
+        );
+        $note_id    = execute_db_sql(
+            "INSERT INTO notes (actid, employeeid, tag, note, data, timelog) VALUES (||actid||, ||employeeid||, ||tag||, ||note||, 1, ||timelog||)",
+            ["actid" => $actid, "employeeid" => $employeeid, "tag" => $event["tag"], "note" => $note, "timelog" => $newdatetime]
+        );
 
-        if ($actid && $note) { // Saved successfully
+        if ($actid && $note_id) { // Saved successfully
             get_admin_employees_form(false, $employeeid);
         } else {
             echo "false";
@@ -1456,7 +1805,7 @@ function refresh_hours() {
         }
 
         if (!empty($id) && !empty($employeeid) && !empty($hours) && is_numeric($hours)) {
-            $timecard = get_db_row("SELECT * FROM employee_timecard WHERE id='$id'");
+            $timecard = get_db_row("SELECT * FROM employee_timecard WHERE id = ||id||", false, ["id" => $id]);
             $endofweek = strtotime("next Sunday", $startofweek);
             $wage = get_wage($employeeid, get_timestamp());
             $hours = hours_worked($employeeid, $timecard["fromdate"], $timecard["todate"]);
@@ -1473,26 +1822,29 @@ function save_employee_timecard() {
     global $CFG, $MYVARS;
     $fields  = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
     $updated = [];
+    $employeeid = $id = $hours = $callback = null;
     foreach ($fields as $field) {
         switch ($field["name"]) {
+            case "callback":
+                ${$field["name"]} = $field["value"];
+                break;
             case "employeeid":
             case "id":
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
+                break;
             case "hours":
-            case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = clean_var_opt($field["value"], "float", 0);
                 break;
         }
 
         if (!empty($id) && !empty($employeeid) && !empty($hours) && is_numeric($hours)) {
-            if (get_db_row("SELECT * FROM employee_timecard WHERE id='$id' AND hours='$hours'")) {
-                $SQL = "UPDATE employee_timecard SET hours_override='0' WHERE id='$id'";
-                if ($updated[] = execute_db_sql($SQL)) { // Saved successfully
+            if (get_db_row("SELECT * FROM employee_timecard WHERE id = ||id|| AND hours = ||hours||", false, ["id" => $id, "hours" => $hours])) {
+                if ($updated[] = execute_db_sql("UPDATE employee_timecard SET hours_override = '0' WHERE id = ||id||", ["id" => $id])) { // Saved successfully
                     unset($id);
                     unset($hours);
                 }
             } else {
-                $SQL = "UPDATE employee_timecard SET hours_override='$hours' WHERE id='$id'";
-                if ($updated[] = execute_db_sql($SQL)) { // Saved successfully
+                if ($updated[] = execute_db_sql("UPDATE employee_timecard SET hours_override = ||hours|| WHERE id = ||id||", ["hours" => $hours, "id" => $id])) { // Saved successfully
                     unset($id);
                     unset($hours);
                 }
@@ -1570,7 +1922,7 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
 
     if ($pid) { // Program actions
         $identifier = "pid_$pid";
-        $program    = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
+        $program    = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ["pid" => $pid]);
         $display .= from_template("view_program_button.php", ["pid" => $pid]);
         $display .= from_template("view_reports_button.php", ["pid" => $pid]);
 
@@ -1597,7 +1949,7 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
             "title" => "Edit Events",
         ]);
 
-        $activebulletin = get_db_row("SELECT * FROM notes WHERE tag='bulletin' AND pid='$pid' AND aid='0' AND notify='2'") ? 'background:orange' : '';
+        $activebulletin = get_db_row("SELECT * FROM notes WHERE tag = 'bulletin' AND pid = ||pid|| AND aid = '0' AND notify = '2'", false, ["pid" => $pid]) ? 'background:orange' : '';
         $forms .= get_form("bulletin", [
             "pid"      => $pid,
             "callback" => "programs"
@@ -1684,11 +2036,11 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
             "aid"      => $aid,
             "callback" => "accounts"
         ], $identifier);
-        $activebulletin = get_db_row("SELECT * FROM notes WHERE tag='bulletin' AND pid='0' AND aid='$aid' AND notify='2'") ? 'background:orange' : '';
+        $activebulletin = get_db_row("SELECT * FROM notes WHERE tag = 'bulletin' AND pid = '0' AND aid = ||aid|| AND notify = '2'", false, ["aid" => $aid]) ? 'background:orange' : '';
         $display .= '<button title="Bulletin" style="' . $activebulletin . '" class="image_button" type="button" onclick="CreateDialog(\'bulletin_' . $identifier . '\', 360, 400)">' . icon("map-pin", "2") . '</button>';
 
         // Edit Account
-        $account = get_db_row("SELECT * FROM accounts WHERE aid='$aid' AND deleted='$deleted'");
+        $account = get_db_row("SELECT * FROM accounts WHERE aid = ||aid|| AND deleted = ||deleted||", false, ["aid" => $aid, "deleted" => $deleted]);
         $forms .= get_form("add_edit_account", [
             "account"       => $account,
             "recover_param" => $recover_param
@@ -1710,8 +2062,8 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
         // later
     } elseif ($chid) { // Children actions
         $identifier = time() . "child_$chid";
-        $child      = get_db_row("SELECT * FROM children WHERE chid='$chid'");
-        $did        = get_db_field("did", "documents", "tag='avatar' AND chid='$chid'");
+        $child      = get_db_row("SELECT * FROM children WHERE chid = ||chid||", false, ["chid" => $chid]);
+        $did        = get_db_field("did", "documents", "tag = 'avatar' AND chid = ||chid||", ["chid" => $chid]);
 
         // View Account Button
         $display .= from_template("get_account_button.php", ["aid" => $child["aid"]]);
@@ -1775,7 +2127,7 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
         ]);
 
         $forms .= get_form("add_edit_enrollment", [
-            "eid"      => get_db_field("eid", "enrollments", "chid='" . $child["chid"] . "' AND pid='$activepid'"),
+            "eid"      => get_db_field("eid", "enrollments", "chid = ||chid|| AND pid = ||pid||", ["chid" => $child["chid"], "pid" => $activepid]),
             "refresh"  => true,
             "callback" => "children",
             "aid"      => $child["aid"],
@@ -1833,7 +2185,7 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
         ]);
     } elseif ($cid) { // Contact Buttons
         $identifier = time() . "contact_$cid";
-        $contact    = get_db_row("SELECT * FROM contacts WHERE cid='$cid'");
+        $contact    = get_db_row("SELECT * FROM contacts WHERE cid = ||cid||", false, ["cid" => $cid]);
 
         // View Account Button
         $display .= from_template("get_account_button.php", ["aid" => $contact["aid"]]);
@@ -1869,7 +2221,7 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
     } elseif ($employeeid) {
         $identifier = time() . "_employeeid_" . $employeeid;
 
-        $employee = get_db_row("SELECT * FROM employee WHERE employeeid='$employeeid'");
+        $employee = get_db_row("SELECT * FROM employee WHERE employeeid = ||employeeid||", false, ["employeeid" => $employeeid]);
 
         // Wage History
         $forms .= get_form("edit_employee_wage_history", [
@@ -1947,8 +2299,8 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
 
 function delete_wage_history() {
     global $CFG, $MYVARS;
-    $id = empty($MYVARS->GET["id"]) ? false : $MYVARS->GET["id"];
-    if (execute_db_sql("DELETE FROM employee_wage WHERE id='$id'")) {
+    $id = clean_param_opt($MYVARS->GET, "id", "int", 0);
+    if ($id && execute_db_sql("DELETE FROM employee_wage WHERE id = ||id||", ["id" => $id])) {
         return "true";
     }
     return "false";
@@ -1956,8 +2308,8 @@ function delete_wage_history() {
 
 function delete_expense() {
     global $CFG, $MYVARS;
-    $payid = empty($MYVARS->GET["payid"]) ? false : $MYVARS->GET["payid"];
-    if (execute_db_sql("DELETE FROM billing_payments WHERE payid='$payid'")) {
+    $payid = clean_param_opt($MYVARS->GET, "payid", "int", 0);
+    if ($payid && execute_db_sql("DELETE FROM billing_payments WHERE payid = ||payid||", ["payid" => $payid])) {
         return "true";
     }
     return "false";
@@ -2091,9 +2443,9 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
                 </button>
             </form>';
 
-        $override = get_db_row("SELECT * FROM billing_override WHERE pid='$pid' AND aid='$aid'");
+        $override = get_db_row("SELECT * FROM billing_override WHERE pid = ||pid|| AND aid = ||aid||", false, ["pid" => $pid, "aid" => $aid]);
         $returnme .= get_form("billing_overrides", [
-            "oid"      => get_db_field("oid", "billing_override", "pid='$pid' AND aid='$aid'"),
+            "oid"      => get_db_field("oid", "billing_override", "pid = ||pid|| AND aid = ||aid||", ["pid" => $pid, "aid" => $aid]),
             "pid"      => $pid,
             "aid"      => $aid,
             "callback" => "billing",
@@ -2153,13 +2505,15 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
     $year        = $year !== null ? $year : (empty($MYVARS->GET["year"]) ? date("Y") : $MYVARS->GET["year"]);
 
     $yearsql = $yearsql2 = "";
+    $year_vars = [];
     $beginning_balance = 0;
     if ($year !== "all") {
         $beginningofyear = make_timestamp_from_date('01/01/' . $year . 'T00:00:00Z');
         $endofyear = make_timestamp_from_date('12/31/' . $year . 'T00:00:00Z');
         $beginning_balance = account_balance($pid, $aid, false, $year);
-        $yearsql = "AND fromdate >= '$beginningofyear' AND fromdate <= '$endofyear'";
-        $yearsql2 = "AND timelog >= '$beginningofyear' AND timelog <= '$endofyear'";
+        $yearsql = "AND fromdate >= ||beginningofyear|| AND fromdate <= ||endofyear||";
+        $yearsql2 = "AND timelog >= ||beginningofyear|| AND timelog <= ||endofyear||";
+        $year_vars = ["beginningofyear" => $beginningofyear, "endofyear" => $endofyear];
     }
 
     $years[] = "all";
@@ -2181,24 +2535,27 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
     );
 
     if (empty($aid)) { // All accounts enrolled in program
-        $SQL = "SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid')) ORDER BY name";
+        $SQL = "SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid = ||pid||)) ORDER BY name";
+        $accounts = get_db_result($SQL, ["pid" => $pid]);
     } else { // Only selected account
-        $SQL = "SELECT * FROM accounts WHERE aid='$aid'";
+        $SQL = "SELECT * FROM accounts WHERE aid = ||aid||";
+        $accounts = get_db_result($SQL, ["aid" => $aid]);
     }
 
     $total_paid = 0;
     $returnme = "<div>No Accounts</div>"; // Default message if no accounts found
     $account_invoices = "";
-    if ($accounts = get_db_result($SQL)) {
+    if ($accounts) {
         while ($account = fetch_row($accounts)) {
             $total_paid     = $total_billed = $total_fee = 0;
 
             $transactions = "";
             if (empty($orderbytime)) {  // Group all transactions aka Stacked View
                 // Fees
-                $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2 ORDER BY timelog,payid";
-                if ($payments = get_db_result($SQL)) {
-                    $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2"));
+                $bv = array_merge(["pid" => $pid, "aid" => $account["aid"]], $year_vars);
+                $SQL = "SELECT * FROM billing_payments WHERE pid = ||pid|| AND aid = ||aid|| AND payment < 0 $yearsql2 ORDER BY timelog,payid";
+                if ($payments = get_db_result($SQL, $bv)) {
+                    $total_fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid = ||pid|| AND aid = ||aid|| AND payment < 0 $yearsql2", $bv));
                     $total_fee = empty($total_fee) ? "0.00" : $total_fee;
                     $receipts = "";
                     while ($payment = fetch_row($payments)) {
@@ -2239,9 +2596,10 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                     ]);
                 }
 
-                $SQL = "SELECT * FROM billing_payments WHERE pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2 ORDER BY timelog,payid";
-                if ($payments = get_db_result($SQL)) {
-                    $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2");
+                $bv = array_merge(["pid" => $pid, "aid" => $account["aid"]], $year_vars);
+                $SQL = "SELECT * FROM billing_payments WHERE pid = ||pid|| AND aid = ||aid|| AND payment >= 0 $yearsql2 ORDER BY timelog,payid";
+                if ($payments = get_db_result($SQL, $bv)) {
+                    $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid = ||pid|| AND aid = ||aid|| AND payment >= 0 $yearsql2", $bv);
                     $total_paid = empty($total_paid) ? "0.00" : $total_paid;
 
                     $receipts = "";
@@ -2284,12 +2642,14 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                     ]);
                 }
 
-                $SQL = "SELECT * FROM billing WHERE pid='$pid' AND aid='" . $account["aid"] . "' $yearsql ORDER BY fromdate";
-                if ($invoices = get_db_result($SQL)) {
+                $bv = array_merge(["pid" => $pid, "aid" => $account["aid"]], $year_vars);
+                $SQL = "SELECT * FROM billing WHERE pid = ||pid|| AND aid = ||aid|| $yearsql ORDER BY fromdate";
+                if ($invoices = get_db_result($SQL, $bv)) {
                     while ($invoice = fetch_row($invoices)) {
-                        $SQL = "SELECT * FROM billing_perchild WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND fromdate = '" . $invoice["fromdate"] . "' ORDER BY id";
+                        $pcv = ["aid" => $account["aid"], "pid" => $pid, "fromdate" => $invoice["fromdate"]];
+                        $SQL = "SELECT * FROM billing_perchild WHERE chid IN (SELECT chid FROM children WHERE aid = ||aid||) AND pid = ||pid|| AND fromdate = ||fromdate|| ORDER BY id";
                         $receipts = "";
-                        if ($perchild_invoices = get_db_result($SQL)) {
+                        if ($perchild_invoices = get_db_result($SQL, $pcv)) {
                             while ($perchild_invoice = fetch_row($perchild_invoices)) {
                                 $exempt_button = "";
                                 if (!strstr($perchild_invoice["receipt"], "[Exempt]")) { // If not already exempted
@@ -2319,18 +2679,19 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                         ]);
                     }
                 }
-                $total_billed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "' $yearsql");
+                $total_billed = get_db_field("SUM(owed)", "billing", "pid = ||pid|| AND aid = ||aid|| $yearsql", array_merge(["pid" => $pid, "aid" => $account["aid"]], $year_vars));
                 $total_billed += $total_fee;
                 $total_billed = empty($total_billed) ? "0.00" : $total_billed;
             } else { // Order all transactions by date
-                if ($total_fee = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment < 0 $yearsql2")) {
+                if ($total_fee = get_db_field("SUM(payment)", "billing_payments", "pid = ||pid|| AND aid = ||aid|| AND payment < 0 $yearsql2", array_merge(["pid" => $pid, "aid" => $account["aid"]], $year_vars))) {
                     $total_fee = abs($total_fee);
                 }
                 $total_fee = empty($total_fee) ? "0.00" : $total_fee;
 
-                $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='" . $account["aid"] . "' AND payment >= 0 $yearsql2");
+                $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid = ||pid|| AND aid = ||aid|| AND payment >= 0 $yearsql2", array_merge(["pid" => $pid, "aid" => $account["aid"]], $year_vars));
                 $total_paid = empty($total_paid) ? "0.00" : $total_paid;
 
+                $bv = array_merge(["pid" => $pid, "aid" => $account["aid"]], $year_vars);
                 $SQL = "SELECT id, pid, aid, amount, note, fromdate, bill
                         FROM (
                             SELECT id, pid, aid, owed as amount, receipt as note, fromdate, 1 AS bill
@@ -2339,12 +2700,12 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                             SELECT payid as id, pid, aid, payment as amount, note, timelog as fromtime, 0 as bill
                             FROM billing_payments
                         ) c
-                        WHERE pid='$pid'
-                        AND aid='" . $account["aid"] . "'
+                        WHERE pid=||pid||
+                        AND aid=||aid||
                         $yearsql
                         ORDER BY fromdate";
 
-                if ($results = get_db_result($SQL)) {
+                if ($results = get_db_result($SQL, $bv)) {
                     while ($result = fetch_row($results)) {
                         if (!$result["bill"]) { // Payment or Fee
                             if ($result["amount"] < 0) { // Fee
@@ -2466,7 +2827,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                             ]);
                         }
                     }
-                    $total_billed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='" . $account["aid"] . "' $yearsql");
+                    $total_billed = get_db_field("SUM(owed)", "billing", "pid = ||pid|| AND aid = ||aid|| $yearsql", array_merge(["pid" => $pid, "aid" => $account["aid"]], $year_vars));
                     $total_billed += $total_fee;
                     $total_billed = empty($total_billed) ? "0.00" : $total_billed;
                 }
@@ -2505,7 +2866,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 </div>';
 
             // Expected next week if prepaid.
-            if (get_db_field("payahead", "programs", "pid='$pid'")) { // if prepaid
+            if (get_db_field("payahead", "programs", "pid = ||pid||", ["pid" => $pid])) { // if prepaid
                 $transactions .= from_template("billing_flexsection_layout.php", [
                     "class" => "invoice_week",
                     "style" => "padding: 5px;color: white; background: green;",
@@ -2603,75 +2964,79 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
 
 function delete_tag() {
     global $CFG, $MYVARS;
-    $tagtype = empty($MYVARS->GET["tagtype"]) ? false : $MYVARS->GET["tagtype"];
-    $tag     = empty($MYVARS->GET["tag"]) ? false : $MYVARS->GET["tag"];
+    $tagtype = clean_param_opt($MYVARS->GET, "tagtype", "string", "");
+    $tag     = clean_param_opt($MYVARS->GET, "tag", "string", "");
 
-    if (!empty($tagtype) && !empty($tag)) {
-        execute_db_sql("DELETE FROM $tagtype" . "_tags WHERE tag='$tag'");
-        execute_db_sql("DELETE FROM $tagtype WHERE tag='$tag'");
+    // Table name cannot be parameterized; whitelist allowed prefixes.
+    $allowed = ["notes", "activity", "employee"];
+    if (!empty($tagtype) && !empty($tag) && in_array($tagtype, $allowed, true)) {
+        execute_db_sql("DELETE FROM " . $tagtype . "_tags WHERE tag = ||tag||", ["tag" => $tag]);
+        execute_db_sql("DELETE FROM " . $tagtype . " WHERE tag = ||tag||", ["tag" => $tag]);
     }
 }
 
 function delete_payment() {
     global $CFG, $MYVARS;
-    $payid = empty($MYVARS->GET["payid"]) ? false : $MYVARS->GET["payid"];
+    $payid = clean_param_opt($MYVARS->GET, "payid", "int", 0);
 
     if (!empty($payid)) {
-        execute_db_sql("DELETE FROM billing_payments WHERE payid='$payid'");
+        execute_db_sql("DELETE FROM billing_payments WHERE payid = ||payid||", ["payid" => $payid]);
     }
 }
 
 function delete_note() {
     global $CFG, $MYVARS;
-    $aid   = empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"];
-    $chid  = empty($MYVARS->GET["chid"]) ? false : $MYVARS->GET["chid"];
-    $cid   = empty($MYVARS->GET["cid"]) ? false : $MYVARS->GET["cid"];
-    $actid = empty($MYVARS->GET["actid"]) ? false : $MYVARS->GET["actid"];
-    $nid   = empty($MYVARS->GET["nid"]) ? false : $MYVARS->GET["nid"];
+    $aid   = clean_param_opt($MYVARS->GET, "aid", "int", 0);
+    $chid  = clean_param_opt($MYVARS->GET, "chid", "int", 0);
+    $cid   = clean_param_opt($MYVARS->GET, "cid", "int", 0);
+    $actid = clean_param_opt($MYVARS->GET, "actid", "int", 0);
+    $nid   = clean_param_opt($MYVARS->GET, "nid", "int", 0);
 
     if (!empty($nid)) {
-        execute_db_sql("DELETE FROM notes WHERE nid='$nid'");
+        execute_db_sql("DELETE FROM notes WHERE nid = ||nid||", ["nid" => $nid]);
         get_notes_list(false, $aid, $chid, $cid, $actid);
     }
 }
 
 function delete_activity() {
     global $CFG, $MYVARS;
-    $aid   = empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"];
-    $chid  = empty($MYVARS->GET["chid"]) ? false : $MYVARS->GET["chid"];
-    $cid   = empty($MYVARS->GET["cid"]) ? false : $MYVARS->GET["cid"];
-    $actid = empty($MYVARS->GET["actid"]) ? false : $MYVARS->GET["actid"];
-    $nid   = empty($MYVARS->GET["nid"]) ? false : $MYVARS->GET["nid"];
+    $aid   = clean_param_opt($MYVARS->GET, "aid", "int", 0);
+    $chid  = clean_param_opt($MYVARS->GET, "chid", "int", 0);
+    $cid   = clean_param_opt($MYVARS->GET, "cid", "int", 0);
+    $actid = clean_param_opt($MYVARS->GET, "actid", "int", 0);
 
     if (!empty($actid)) {
-        execute_db_sql("DELETE FROM notes WHERE actid='$actid'");
-        execute_db_sql("DELETE FROM activity WHERE actid='$actid'");
+        execute_db_sql("DELETE FROM notes WHERE actid = ||actid||", ["actid" => $actid]);
+        execute_db_sql("DELETE FROM activity WHERE actid = ||actid||", ["actid" => $actid]);
         get_admin_children_form(false, $chid);
     }
 }
 
 function deactivate_employee_activity() {
     global $CFG, $MYVARS;
-    $employeeid = empty($MYVARS->GET["employeeid"]) ? false : $MYVARS->GET["employeeid"];
-    $actid      = empty($MYVARS->GET["actid"]) ? false : $MYVARS->GET["actid"];
+    $employeeid = clean_param_opt($MYVARS->GET, "employeeid", "int", 0);
+    $actid      = clean_param_opt($MYVARS->GET, "actid", "int", 0);
 
     if (!empty($actid)) {
-        execute_db_sql("DELETE FROM notes WHERE employeeid='$employeeid' AND actid='$actid'");
-        execute_db_sql("DELETE FROM employee_activity WHERE actid='$actid'");
+        execute_db_sql("DELETE FROM notes WHERE employeeid = ||employeeid|| AND actid = ||actid||", [
+            "employeeid" => $employeeid,
+            "actid" => $actid,
+        ]);
+        execute_db_sql("DELETE FROM employee_activity WHERE actid = ||actid||", ["actid" => $actid]);
         get_admin_employees_form(false, $employeeid);
     }
 }
 
 function delete_document() {
     global $CFG, $MYVARS;
-    $aid   = empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"];
-    $chid  = empty($MYVARS->GET["chid"]) ? false : $MYVARS->GET["chid"];
-    $cid   = empty($MYVARS->GET["cid"]) ? false : $MYVARS->GET["cid"];
-    $actid = empty($MYVARS->GET["actid"]) ? false : $MYVARS->GET["actid"];
-    $did   = empty($MYVARS->GET["did"]) ? false : $MYVARS->GET["did"];
+    $aid   = clean_param_opt($MYVARS->GET, "aid", "int", 0);
+    $chid  = clean_param_opt($MYVARS->GET, "chid", "int", 0);
+    $cid   = clean_param_opt($MYVARS->GET, "cid", "int", 0);
+    $actid = clean_param_opt($MYVARS->GET, "actid", "int", 0);
+    $did   = clean_param_opt($MYVARS->GET, "did", "int", 0);
 
     if (!empty($did)) {
-        $existing = get_db_row("SELECT * FROM documents WHERE did='$did'");
+        $existing = get_db_row("SELECT * FROM documents WHERE did = ||did||", false, ["did" => $did]);
         if (!empty($existing["aid"])) {
             $folder = "accounts/" . $existing["aid"];
         } elseif (!empty($existing["chid"])) {
@@ -2683,7 +3048,7 @@ function delete_document() {
         }
 
         delete_file($CFG->userfilespath . "/$folder/" . $existing["filename"]);
-        execute_db_sql("DELETE FROM documents WHERE did='$did'");
+        execute_db_sql("DELETE FROM documents WHERE did = ||did||", ["did" => $did]);
 
         get_documents_list(false, $aid, $chid, $cid, $actid);
     }
@@ -2902,7 +3267,7 @@ function get_reports_list($return = false, $pid = null, $aid = null, $chid = nul
     $pid = !empty($pid) ? $pid : $activepid; // if pid isn't set, set it to active pid
 
     $tags_form     = make_select("tag", get_db_result("SELECT tag, title FROM notes_tags n ORDER BY tag"), "tag", "title", "", false, "", true);
-    $att_tags_form = make_select("att_tag", get_db_result("SELECT tag, title, 2 as sorttype FROM notes_required r WHERE pid='$pid' UNION SELECT tag, title, 1 as sorttype FROM events_tags e ORDER BY sorttype, tag"), "tag", "title", "", false, "", true);
+    $att_tags_form = make_select("att_tag", get_db_result("SELECT tag, title, 2 as sorttype FROM notes_required r WHERE pid = ||pid|| UNION SELECT tag, title, 1 as sorttype FROM events_tags e ORDER BY sorttype, tag", ["pid" => $pid]), "tag", "title", "", false, "", true);
     $reports       = "";
     switch ($type) {
         case "pid":
@@ -3176,7 +3541,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
     $aid      = $aid ? $aid : (empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"]);
 
     $account_list = "";
-    if ($accounts = get_db_result("SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid='$pid')) ORDER BY name")) {
+    if ($accounts = get_db_result("SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid = ||pid||)) ORDER BY name", ["pid" => $pid])) {
         $i = 0;
         while ($account = fetch_row($accounts)) {
             $kid_count       = get_db_count("SELECT * FROM children WHERE aid='" . $account["aid"] . "' AND deleted='0'");
@@ -3211,7 +3576,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
         }
     }
 
-    $program  = get_db_row("SELECT * FROM programs WHERE pid='$pid'");
+    $program  = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ["pid" => $pid]);
 
     $header = from_template("selectable_list_item_view_invoices.php", [
         "tab1id" => "pid",
@@ -3602,16 +3967,16 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
 
     $deleted = $recover ? "1" : "0";
     if ($deleted) {
-        $SQL = "SELECT * FROM accounts WHERE admin=0 AND (aid IN (SELECT aid FROM children WHERE deleted='$deleted') OR aid IN (SELECT aid FROM contacts WHERE deleted='$deleted') OR deleted=1) ORDER BY name";
+        $SQL = "SELECT * FROM accounts WHERE admin = 0 AND (aid IN (SELECT aid FROM children WHERE deleted = ||deleted||) OR aid IN (SELECT aid FROM contacts WHERE deleted = ||deleted||) OR deleted = 1) ORDER BY name";
     } else {
-        $SQL = "SELECT * FROM accounts WHERE admin=0 AND deleted = '$deleted' ORDER BY name";
+        $SQL = "SELECT * FROM accounts WHERE admin = 0 AND deleted = ||deleted|| ORDER BY name";
     }
 
     $accounts_list = '';
-    if ($accounts = get_db_result($SQL)) {
+    if ($accounts = get_db_result($SQL, ["deleted" => $deleted])) {
         while ($account = fetch_row($accounts)) {
-            $kid_count = get_db_count("SELECT * FROM children WHERE aid='" . $account["aid"] . "' AND deleted='$deleted'");
-            $active    = get_db_count("SELECT * FROM enrollments WHERE chid IN (SELECT chid FROM children WHERE aid='" . $account["aid"] . "') AND pid='$pid' AND deleted='$deleted'") ? "activeaccount" : "inactiveaccount";
+            $kid_count = get_db_count("SELECT * FROM children WHERE aid = ||aid|| AND deleted = ||deleted||", ["aid" => $account["aid"], "deleted" => $deleted]);
+            $active    = get_db_count("SELECT * FROM enrollments WHERE chid IN (SELECT chid FROM children WHERE aid = ||aid||) AND pid = ||pid|| AND deleted = ||deleted||", ["aid" => $account["aid"], "pid" => $pid, "deleted" => $deleted]) ? "activeaccount" : "inactiveaccount";
 
             $selected_class = '';
             if (!empty($aid) && $active == 'activeaccount') {
@@ -3688,7 +4053,7 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
                                 Show Enrolled <input type="checkbox" checked onclick="if ($(this).prop(\'checked\')) { $(\'.inactiveaccount\').hide(); } else { $(\'.inactiveaccount\').show(); } $(\'.scroll-pane\').sbscroller(\'refresh\'); smart_scrollbars();" />
                             </div>
                             <div class="enrolled_count">Enrolled:
-                                ' . get_db_count("SELECT * FROM enrollments WHERE pid='$pid' AND deleted='0' AND chid IN (SELECT chid FROM children WHERE deleted='0')") . '
+                                ' . get_db_count("SELECT * FROM enrollments WHERE pid = ||pid|| AND deleted = '0' AND chid IN (SELECT chid FROM children WHERE deleted = '0')", ["pid" => $pid]) . '
                             </div>
                         </div>';
     } else {
@@ -3744,21 +4109,21 @@ function get_contacts_selector($chids, $admin = false) {
 
 function copy_program() {
     global $CFG, $MYVARS;
-    $pid = empty($MYVARS->GET["pid"]) ? false : $MYVARS->GET["pid"];
+    $pid = clean_param_opt($MYVARS->GET, "pid", "int", 0);
     if ($pid) {
         // create new program
-        $program = get_db_row("SELECT name, timeopen, timeclosed, deleted, active, perday, fulltime, minimumactive, minimuminactive, vacation, multiple_discount, consider_full, bill_by, discount_rule FROM programs WHERE pid='$pid'");
+        $program = get_db_row("SELECT name, timeopen, timeclosed, deleted, active, perday, fulltime, minimumactive, minimuminactive, vacation, multiple_discount, consider_full, bill_by, discount_rule FROM programs WHERE pid = ||pid||", false, ["pid" => $pid]);
         $newpid  = copy_db_row($program, "programs", 'name=' . $program["name"] . ' COPY');
 
         // copy enrollments
-        if ($enrollments = get_db_result("SELECT pid, chid, days_attending, exempt, deleted FROM enrollments WHERE pid='$pid' AND deleted=0")) {
+        if ($enrollments = get_db_result("SELECT pid, chid, days_attending, exempt, deleted FROM enrollments WHERE pid = ||pid|| AND deleted = 0", ["pid" => $pid])) {
             while ($enrollment = fetch_row($enrollments)) {
                 copy_db_row($enrollment, "enrollments", 'pid=' . $newpid . '');
             }
         }
 
-        execute_db_sql("UPDATE programs SET active=0"); // deactivate all programs
-        execute_db_sql("UPDATE programs SET active=1 WHERE pid='$newpid'"); // activate new program
+        execute_db_sql("UPDATE programs SET active = 0"); // deactivate all programs
+        execute_db_sql("UPDATE programs SET active = 1 WHERE pid = ||pid||", ["pid" => $newpid]); // activate new program
         // get_admin_enrollment_form(false, $newpid);
         echo get_admin_page("pid", $newpid);
     }
@@ -3766,10 +4131,10 @@ function copy_program() {
 
 function activate_program() {
     global $CFG, $MYVARS;
-    $pid = empty($MYVARS->GET["pid"]) ? false : $MYVARS->GET["pid"];
+    $pid = clean_param_opt($MYVARS->GET, "pid", "int", 0);
     if ($pid) {
-        execute_db_sql("UPDATE programs SET active=0");
-        execute_db_sql("UPDATE programs SET active=1 WHERE pid='$pid'");
+        execute_db_sql("UPDATE programs SET active = 0");
+        execute_db_sql("UPDATE programs SET active = 1 WHERE pid = ||pid||", ["pid" => $pid]);
         echo get_admin_page("pid", $pid);
         // get_admin_enrollment_form(false, $pid);
     }
@@ -3777,9 +4142,9 @@ function activate_program() {
 
 function deactivate_program() {
     global $CFG, $MYVARS;
-    $pid = empty($MYVARS->GET["pid"]) ? false : $MYVARS->GET["pid"];
+    $pid = clean_param_opt($MYVARS->GET, "pid", "int", 0);
     if ($pid) {
-        execute_db_sql("UPDATE programs SET active=0");
+        execute_db_sql("UPDATE programs SET active = 0");
         echo get_admin_page("pid", $pid);
         // get_admin_enrollment_form(false, $pid);
     }
@@ -3787,18 +4152,26 @@ function deactivate_program() {
 
 function delete_program() {
     global $CFG, $MYVARS;
-    $pid = empty($MYVARS->GET["pid"]) ? false : $MYVARS->GET["pid"];
+    $pid = clean_param_opt($MYVARS->GET, "pid", "int", 0);
     if ($pid) {
-        execute_db_sql("DELETE FROM programs WHERE pid='$pid'");
-        execute_db_sql("DELETE FROM enrollments WHERE pid='$pid'");
-        execute_db_sql("DELETE FROM activity WHERE pid='$pid'");
-        execute_db_sql("DELETE FROM billing WHERE pid='$pid'");
-        execute_db_sql("DELETE FROM billing_payments WHERE pid='$pid'");
-        execute_db_sql("DELETE FROM billing_perchild WHERE pid='$pid'");
-        execute_db_sql("DELETE FROM events_required_notes WHERE evid IN (SELECT evid FROM events WHERE pid='$pid')");
-        execute_db_sql("DELETE FROM events WHERE pid='$pid'");
-        execute_db_sql("DELETE FROM notes WHERE pid='$pid'");
-        execute_db_sql("DELETE FROM notes_required WHERE pid='$pid'");
+        $vars = ["pid" => $pid];
+        start_db_transaction();
+        try {
+            execute_db_sql("DELETE FROM programs WHERE pid = ||pid||", $vars);
+            execute_db_sql("DELETE FROM enrollments WHERE pid = ||pid||", $vars);
+            execute_db_sql("DELETE FROM activity WHERE pid = ||pid||", $vars);
+            execute_db_sql("DELETE FROM billing WHERE pid = ||pid||", $vars);
+            execute_db_sql("DELETE FROM billing_payments WHERE pid = ||pid||", $vars);
+            execute_db_sql("DELETE FROM billing_perchild WHERE pid = ||pid||", $vars);
+            execute_db_sql("DELETE FROM events_required_notes WHERE evid IN (SELECT evid FROM events WHERE pid = ||pid||)", $vars);
+            execute_db_sql("DELETE FROM events WHERE pid = ||pid||", $vars);
+            execute_db_sql("DELETE FROM notes WHERE pid = ||pid||", $vars);
+            execute_db_sql("DELETE FROM notes_required WHERE pid = ||pid||", $vars);
+            commit_db_transaction();
+        } catch (\Throwable $e) {
+            rollback_db_transaction();
+            throw $e;
+        }
         echo get_admin_page("pid");
         // get_admin_enrollment_form(false, $pid);
     }
@@ -3806,42 +4179,44 @@ function delete_program() {
 
 function activate_account() {
     global $CFG, $MYVARS;
-    $aid = empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"];
+    $aid = clean_param_opt($MYVARS->GET, "aid", "int", 0);
     if ($aid) {
-        execute_db_sql("UPDATE accounts SET deleted=0 WHERE aid='$aid'");
-        execute_db_sql("UPDATE enrollments SET deleted=0 WHERE chid IN (SELECT chid FROM children WHERE aid='$aid')");
-        execute_db_sql("UPDATE children SET deleted=0 WHERE aid='$aid'");
-        execute_db_sql("UPDATE contacts SET deleted=0 WHERE aid='$aid'");
+        $vars = ["aid" => $aid];
+        execute_db_sql("UPDATE accounts SET deleted = 0 WHERE aid = ||aid||", $vars);
+        execute_db_sql("UPDATE enrollments SET deleted = 0 WHERE chid IN (SELECT chid FROM children WHERE aid = ||aid||)", $vars);
+        execute_db_sql("UPDATE children SET deleted = 0 WHERE aid = ||aid||", $vars);
+        execute_db_sql("UPDATE contacts SET deleted = 0 WHERE aid = ||aid||", $vars);
         get_admin_accounts_form(false, $aid);
     }
 }
 
 function activate_employee() {
     global $CFG, $MYVARS;
-    $employeeid = empty($MYVARS->GET["employeeid"]) ? false : $MYVARS->GET["employeeid"];
+    $employeeid = clean_param_opt($MYVARS->GET, "employeeid", "int", 0);
     if ($employeeid) {
-        execute_db_sql("UPDATE employee SET deleted=0 WHERE employeeid='$employeeid'");
+        execute_db_sql("UPDATE employee SET deleted = 0 WHERE employeeid = ||employeeid||", ["employeeid" => $employeeid]);
         get_admin_employees_form(false, $employeeid, false);
     }
 }
 
 function deactivate_employee() {
     global $CFG, $MYVARS;
-    $employeeid = empty($MYVARS->GET["employeeid"]) ? false : $MYVARS->GET["employeeid"];
+    $employeeid = clean_param_opt($MYVARS->GET, "employeeid", "int", 0);
     if ($employeeid) {
-        execute_db_sql("UPDATE employee SET deleted=1 WHERE employeeid='$employeeid'");
+        execute_db_sql("UPDATE employee SET deleted = 1 WHERE employeeid = ||employeeid||", ["employeeid" => $employeeid]);
         get_admin_employees_form(false, $employeeid, true);
     }
 }
 
 function deactivate_account() {
     global $CFG, $MYVARS;
-    $aid = empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"];
+    $aid = clean_param_opt($MYVARS->GET, "aid", "int", 0);
     if ($aid) {
-        execute_db_sql("UPDATE accounts SET deleted=1 WHERE aid='$aid'");
-        execute_db_sql("UPDATE enrollments SET deleted=1 WHERE chid IN (SELECT chid FROM children WHERE aid='$aid')");
-        execute_db_sql("UPDATE children SET deleted=1 WHERE aid='$aid'");
-        execute_db_sql("UPDATE contacts SET deleted=1 WHERE aid='$aid'");
+        $vars = ["aid" => $aid];
+        execute_db_sql("UPDATE accounts SET deleted = 1 WHERE aid = ||aid||", $vars);
+        execute_db_sql("UPDATE enrollments SET deleted = 1 WHERE chid IN (SELECT chid FROM children WHERE aid = ||aid||)", $vars);
+        execute_db_sql("UPDATE children SET deleted = 1 WHERE aid = ||aid||", $vars);
+        execute_db_sql("UPDATE contacts SET deleted = 1 WHERE aid = ||aid||", $vars);
         $MYVARS->GET["aid"] = '';
         get_admin_accounts_form();
     }
@@ -3849,28 +4224,40 @@ function deactivate_account() {
 
 function toggle_contact_activation() {
     global $CFG, $MYVARS;
-    $cid     = empty($MYVARS->GET["cid"]) ? false : $MYVARS->GET["cid"];
-    $contact = get_db_row("SELECT * FROM contacts WHERE cid='$cid'");
-    $account = get_db_row("SELECT * FROM accounts WHERE aid='" . $contact["aid"] . "'");
+    $cid     = clean_param_opt($MYVARS->GET, "cid", "int", 0);
+    $contact = get_db_row("SELECT * FROM contacts WHERE cid = ||cid||", false, ["cid" => $cid]);
+    $account = get_db_row("SELECT * FROM accounts WHERE aid = ||aid||", false, ["aid" => $contact["aid"]]);
     $deleted = empty($contact["deleted"]) ? "1" : "0";
     if ($cid) {
-        execute_db_sql("UPDATE contacts SET deleted='$deleted' WHERE cid='$cid'");
+        execute_db_sql("UPDATE contacts SET deleted = ||deleted|| WHERE cid = ||cid||", [
+            "deleted" => $deleted,
+            "cid" => $cid,
+        ]);
         if (!empty($account["deleted"]) && empty($deleted)) {
-            execute_db_sql("UPDATE accounts SET deleted='$deleted' WHERE aid='" . $account["aid"] . "'");
+            execute_db_sql("UPDATE accounts SET deleted = ||deleted|| WHERE aid = ||aid||", [
+                "deleted" => $deleted,
+                "aid" => $account["aid"],
+            ]);
         }
     }
 }
 
 function toggle_child_activation() {
     global $CFG, $MYVARS;
-    $chid    = empty($MYVARS->GET["chid"]) ? false : $MYVARS->GET["chid"];
-    $child   = get_db_row("SELECT * FROM children WHERE chid='$chid'");
-    $account = get_db_row("SELECT * FROM accounts WHERE aid='" . $child["aid"] . "'");
+    $chid    = clean_param_opt($MYVARS->GET, "chid", "int", 0);
+    $child   = get_db_row("SELECT * FROM children WHERE chid = ||chid||", false, ["chid" => $chid]);
+    $account = get_db_row("SELECT * FROM accounts WHERE aid = ||aid||", false, ["aid" => $child["aid"]]);
     $deleted = empty($child["deleted"]) ? "1" : "0";
     if ($chid) {
-        execute_db_sql("UPDATE children SET deleted='$deleted' WHERE chid='$chid'");
+        execute_db_sql("UPDATE children SET deleted = ||deleted|| WHERE chid = ||chid||", [
+            "deleted" => $deleted,
+            "chid" => $chid,
+        ]);
         if (!empty($account["deleted"]) && empty($deleted)) {
-            execute_db_sql("UPDATE accounts SET deleted='$deleted' WHERE aid='" . $account["aid"] . "'");
+            execute_db_sql("UPDATE accounts SET deleted = ||deleted|| WHERE aid = ||aid||", [
+                "deleted" => $deleted,
+                "aid" => $account["aid"],
+            ]);
         }
     }
 }
@@ -3879,36 +4266,45 @@ function toggle_enrollment() {
     global $CFG, $MYVARS;
     $fields         = empty($MYVARS->GET["values"]) ? [] : $MYVARS->GET["values"];
     $days_attending = "";
+    $eid = $aid = $chid = $pid = $exempt = $callback = null;
     foreach ($fields as $field) {
         switch ($field["name"]) {
+            case "callback":
+                ${$field["name"]} = $field["value"];
+                break;
             case "eid":
             case "aid":
             case "chid":
             case "pid":
             case "exempt":
-            case "callback":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
             case "M":
             case "T":
             case "W":
             case "Th":
             case "F":
-                $days_attending .= empty($days_attending) ? dbescape($field["value"]) : "," . dbescape($field["value"]);
+                $days_attending .= empty($days_attending) ? $field["value"] : "," . $field["value"];
                 break;
         }
     }
 
-    $pid      = empty($pid) ? (empty($MYVARS->GET["pid"]) ? get_pid() : $MYVARS->GET["pid"]) : $pid;
-    $chid     = empty($chid) ? (empty($MYVARS->GET["chid"]) ? false : $MYVARS->GET["chid"]) : $chid;
+    $pid      = empty($pid) ? clean_param_opt($MYVARS->GET, "pid", "int", get_pid()) : $pid;
+    $chid     = empty($chid) ? clean_param_opt($MYVARS->GET, "chid", "int", 0) : $chid;
     $callback = empty($callback) ? false : $callback;
     if (!empty($eid)) {
-        execute_db_sql("UPDATE enrollments SET days_attending='$days_attending', exempt='$exempt' WHERE eid='$eid'");
+        execute_db_sql(
+            "UPDATE enrollments SET days_attending = ||days||, exempt = ||exempt|| WHERE eid = ||eid||",
+            ["days" => $days_attending, "exempt" => $exempt, "eid" => $eid]
+        );
     } elseif ($chid && $pid) {
-        if (get_db_row("SELECT * FROM enrollments WHERE pid='$pid' AND chid='$chid'")) {
-            execute_db_sql("DELETE FROM enrollments WHERE pid='$pid' AND chid='$chid'");
+        if (get_db_row("SELECT * FROM enrollments WHERE pid = ||pid|| AND chid = ||chid||", false, ["pid" => $pid, "chid" => $chid])) {
+            execute_db_sql("DELETE FROM enrollments WHERE pid = ||pid|| AND chid = ||chid||", ["pid" => $pid, "chid" => $chid]);
         } else {
-            execute_db_sql("INSERT INTO enrollments (pid, chid, days_attending, exempt) VALUES('$pid', '$chid', '$days_attending', '$exempt')");
+            execute_db_sql(
+                "INSERT INTO enrollments (pid, chid, days_attending, exempt) VALUES (||pid||, ||chid||, ||days||, ||exempt||)",
+                ["pid" => $pid, "chid" => $chid, "days" => $days_attending, "exempt" => $exempt]
+            );
         }
     }
 
@@ -3927,17 +4323,20 @@ function toggle_enrollment() {
 
 function toggle_exemption() {
     global $CFG, $MYVARS;
-    $id       = $MYVARS->GET["id"];
-    $perchild = get_db_row("SELECT * FROM billing_perchild WHERE id='$id'");
-    $aid      = get_db_field("aid", "children", "chid='" . $perchild["chid"] . "'");
+    $id       = clean_param_req($MYVARS->GET, "id", "int");
+    $perchild = get_db_row("SELECT * FROM billing_perchild WHERE id = ||id||", false, ["id" => $id]);
+    $aid      = get_db_field("aid", "children", "chid = ||chid||", ["chid" => $perchild["chid"]]);
     if (empty($perchild["exempt"])) {
-        execute_db_sql("UPDATE billing_perchild SET exempt='1' WHERE id='$id'");
+        execute_db_sql("UPDATE billing_perchild SET exempt = '1' WHERE id = ||id||", ["id" => $id]);
     } else {
-        execute_db_sql("UPDATE billing_perchild SET exempt='0' WHERE id='$id'");
+        execute_db_sql("UPDATE billing_perchild SET exempt = '0' WHERE id = ||id||", ["id" => $id]);
     }
 
     // Now you must redo the entire week's invoices for that account
-    execute_db_sql("DELETE FROM billing WHERE fromdate='" . $perchild["fromdate"] . "' AND pid='" . $perchild["pid"] . "' AND aid='$aid'");
+    execute_db_sql(
+        "DELETE FROM billing WHERE fromdate = ||fromdate|| AND pid = ||pid|| AND aid = ||aid||",
+        ["fromdate" => $perchild["fromdate"], "pid" => $perchild["pid"], "aid" => $aid]
+    );
     make_account_invoice($perchild["pid"], $aid, $perchild["fromdate"]);
 }
 
@@ -3947,7 +4346,7 @@ function view_required_notes_form($pid = false, $evid = false) {
     $evid = $evid ? $evid : (empty($MYVARS->GET["evid"]) ? false : $MYVARS->GET["evid"]);
 
     $notes_list = "";
-    if ($events = get_db_result("SELECT * FROM events_required_notes e JOIN notes_required n ON e.rnid = n.rnid WHERE n.deleted=0 AND e.evid='$evid' ORDER BY e.sort")) {
+    if ($events = get_db_result("SELECT * FROM events_required_notes e JOIN notes_required n ON e.rnid = n.rnid WHERE n.deleted = 0 AND e.evid = ||evid|| ORDER BY e.sort", ["evid" => $evid])) {
         $notes_list .= '<strong>Required Notes:</strong>
         <button type="button" style="font-size:9px;float:right;" onclick="$.ajax({
               type: \'POST\',
@@ -3995,34 +4394,54 @@ function view_required_notes_form($pid = false, $evid = false) {
 
 function save_required_notes() {
     global $CFG, $MYVARS;
-    $fields         = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
-    $days_attending = "";
+    $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
+    $rnid = $question_type = $title = $tag = null;
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "rnid":
+                ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
+                break;
             case "question_type":
-                ${$field["name"]} = dbescape($field["value"]);
+                ${$field["name"]} = $field["value"];
                 break;
             case "title":
-                ${$field["name"]} = dbescape($field["value"]);
-                $tag   = strtolower(preg_replace("/[^a-zA-Z0-9\s]/", "_", $title));
+                ${$field["name"]} = $field["value"];
+                $tag = strtolower(preg_replace("/[^a-zA-Z0-9\s]/", "_", $title));
                 break;
         }
     }
 
-    $pid  = empty($pid) ? (empty($MYVARS->GET["pid"]) ? get_pid() : $MYVARS->GET["pid"]) : $pid;
-    $evid = empty($evid) ? (empty($MYVARS->GET["evid"]) ? false : $MYVARS->GET["evid"]) : $evid;
-    $rnid = empty($rnid) ? (empty($MYVARS->GET["rnid"]) ? false : $MYVARS->GET["rnid"]) : $rnid;
+    $pid  = clean_param_opt($MYVARS->GET, "pid", "int", get_pid());
+    $evid = clean_param_opt($MYVARS->GET, "evid", "int", 0);
+    $rnid = empty($rnid) ? clean_param_opt($MYVARS->GET, "rnid", "int", 0) : $rnid;
 
     if (empty($rnid)) { // Add new
-        $rnid = execute_db_sql("INSERT INTO notes_required (pid, type, tag, title, question_type, deleted) VALUES('$pid', 'actid', '$tag', '$title', '$question_type', 0)");
-        $sort = get_db_count("SELECT * FROM events_required_notes WHERE evid='$evid'");
+        $rnid = execute_db_sql(
+            "INSERT INTO notes_required (pid, type, tag, title, question_type, deleted) VALUES (||pid||, 'actid', ||tag||, ||title||, ||question_type||, 0)",
+            ["pid" => $pid, "tag" => $tag, "title" => $title, "question_type" => $question_type]
+        );
+        $sort = get_db_count("SELECT * FROM events_required_notes WHERE evid = ||evid||", ["evid" => $evid]);
         $sort++;
-        execute_db_sql("INSERT INTO events_required_notes (evid, rnid, sort) VALUES('$evid', '$rnid', '$sort')");
+        execute_db_sql(
+            "INSERT INTO events_required_notes (evid, rnid, sort) VALUES (||evid||, ||rnid||, ||sort||)",
+            ["evid" => $evid, "rnid" => $rnid, "sort" => $sort]
+        );
     } else {
-        $oldnote = get_db_row("SELECT * FROM notes_required WHERE rnid='$rnid'");
-        execute_db_sql("UPDATE notes_required SET title='$title', tag='$tag', question_type='$question_type' WHERE rnid='$rnid'");
-        execute_db_sql("UPDATE notes SET note=REPLACE(note, '" . $oldnote["title"] . ":', '$title:'), tag='$tag' WHERE rnid='$rnid'");
+        $oldnote = get_db_row("SELECT * FROM notes_required WHERE rnid = ||rnid||", false, ["rnid" => $rnid]);
+        execute_db_sql(
+            "UPDATE notes_required SET title = ||title||, tag = ||tag||, question_type = ||question_type|| WHERE rnid = ||rnid||",
+            ["title" => $title, "tag" => $tag, "question_type" => $question_type, "rnid" => $rnid]
+        );
+        // REPLACE prefix: title values are user-controlled; bind both old and new.
+        execute_db_sql(
+            "UPDATE notes SET note = REPLACE(note, ||old_prefix||, ||new_prefix||), tag = ||tag|| WHERE rnid = ||rnid||",
+            [
+                "old_prefix" => $oldnote["title"] . ":",
+                "new_prefix" => $title . ":",
+                "tag" => $tag,
+                "rnid" => $rnid,
+            ]
+        );
     }
 
     echo view_required_notes_form($pid, $evid);
@@ -4055,17 +4474,17 @@ function add_required_notes_form() {
 
 function delete_required_notes() {
     global $CFG, $MYVARS;
-    $pid  = empty($pid) ? (empty($MYVARS->GET["pid"]) ? get_pid() : $MYVARS->GET["pid"]) : $pid;
-    $evid = empty($evid) ? (empty($MYVARS->GET["evid"]) ? false : $MYVARS->GET["evid"]) : $evid;
-    $rnid = empty($rnid) ? (empty($MYVARS->GET["rnid"]) ? false : $MYVARS->GET["rnid"]) : $rnid;
+    $pid  = clean_param_opt($MYVARS->GET, "pid", "int", get_pid());
+    $evid = clean_param_opt($MYVARS->GET, "evid", "int", 0);
+    $rnid = clean_param_opt($MYVARS->GET, "rnid", "int", 0);
 
-    if (get_db_row("SELECT nid FROM notes WHERE rnid='$rnid'")) { // Been used already
-        execute_db_sql("UPDATE notes_required SET deleted='1' WHERE rnid='$rnid'");
+    if (get_db_row("SELECT nid FROM notes WHERE rnid = ||rnid||", false, ["rnid" => $rnid])) { // Been used already
+        execute_db_sql("UPDATE notes_required SET deleted = '1' WHERE rnid = ||rnid||", ["rnid" => $rnid]);
     } else {
-        execute_db_sql("DELETE FROM notes_required WHERE rnid='$rnid'");
+        execute_db_sql("DELETE FROM notes_required WHERE rnid = ||rnid||", ["rnid" => $rnid]);
     }
 
-    execute_db_sql("DELETE FROM events_required_notes WHERE rnid='$rnid'");
+    execute_db_sql("DELETE FROM events_required_notes WHERE rnid = ||rnid||", ["rnid" => $rnid]);
 
     required_notes_resort($evid);
     echo view_required_notes_form($pid, $evid);
@@ -4073,24 +4492,33 @@ function delete_required_notes() {
 
 function required_notes_sort() {
     global $CFG, $MYVARS;
-    $pid   = $MYVARS->GET["pid"];
-    $evid  = $MYVARS->GET["evid"];
-    $rnids = $MYVARS->GET["serial"];
+    $pid   = clean_param_opt($MYVARS->GET, "pid", "int", 0);
+    $evid  = clean_param_opt($MYVARS->GET, "evid", "int", 0);
+    $rnids = $MYVARS->GET["serial"] ?? [];
 
     $i = 1;
     foreach ($rnids as $rnid) {
-        execute_db_sql("UPDATE events_required_notes SET sort='$i' WHERE rnid='$rnid'");
-        $i++;
+        $rnid = clean_var_opt($rnid, "int", 0);
+        if ($rnid) {
+            execute_db_sql("UPDATE events_required_notes SET sort = ||sort|| WHERE rnid = ||rnid||", [
+                "sort" => $i,
+                "rnid" => $rnid,
+            ]);
+            $i++;
+        }
     }
 }
 
 function required_notes_resort($evid) {
     global $CFG, $MYVARS;
 
-    if ($notes = get_db_result("SELECT * FROM events_required_notes WHERE evid='$evid' ORDER BY sort")) {
+    if ($notes = get_db_result("SELECT * FROM events_required_notes WHERE evid = ||evid|| ORDER BY sort", ["evid" => $evid])) {
         $i = 1;
         while ($note = fetch_row($notes)) {
-            execute_db_sql("UPDATE events_required_notes SET sort='$i' WHERE rnid='" . $note["rnid"] . "'");
+            execute_db_sql("UPDATE events_required_notes SET sort = ||sort|| WHERE rnid = ||rnid||", [
+                "sort" => $i,
+                "rnid" => $note["rnid"],
+            ]);
             $i++;
         }
     }

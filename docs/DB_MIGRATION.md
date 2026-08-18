@@ -93,22 +93,79 @@ recommendation is:
 3. Remove the `dbtype` option from `config-sample.php` entirely, since
    there is only one viable driver.
 
-## SQL-injection audit — recommended next step
+## SQL-injection audit — in progress (Phase 4)
 
-The prepared-statement capability is now available, but it hasn't been
-retrofitted onto the ~4,000-line `ajax/ajax.php` or the other 15 files
-that build SQL via string interpolation — that's a much larger,
-higher-risk pass that deserves its own review cycle (ideally with a
-staging DB to test against, which wasn't available in this session).
-Recommended order, highest-risk first:
+Prepared statements are available. Retrofit is underway on the highest-risk
+surfaces. `get_db_count()` now also accepts an optional `$vars` array.
 
-1. `ajax/ajax.php`, `ajax/reports.php` — handle the most
-   user-influenced input (search fields, report filters).
-2. `lib/billinglib.php` — handles money; also the best candidate for
-   wrapping in `start_db_transaction()`/`commit_db_transaction()`.
-3. Everything else in `ajax/*.php`.
+### Completed in this pass
 
-A safe migration pattern per query: change the interpolated variable
-to a `||name||` token, add the `$vars` array as the new trailing
-argument, and diff the generated SQL (log it once) against the old
-version to confirm it's identical before deploying.
+**`ajax/ajax.php`**
+- `check_in_out_employee()` — employeeid + activity/notes inserts
+- `get_check_in_out_form()` — pid filter
+- `check_in_out_form()` — chid lookup + required-notes count
+- `check_in_out()` — event lookup, balance helpers, activity + notes inserts
+- `add_edit_payment()` — payment insert/update (typed clean + prepared)
+- `add_edit_account()` — account insert/update (typed clean + prepared)
+- `add_edit_employee()` — employee + wage history (typed + prepared)
+- `add_edit_child()` — child + auto-enrollment insert
+- `add_edit_contact()` — contact insert/update
+- `add_edit_program()` — program rates insert/update
+- `add_edit_expense()` — expense (negative payment) insert
+- `delete_expense()`, `delete_payment()`, `delete_note()`, `delete_activity()`
+- `delete_tag()` — prepared values + **whitelist** for dynamic table name
+- `billing_overrides()` — nullable rates via prepared (null → SQL NULL)
+- `add_edit_tag()` — whitelist table + prepared values
+- `add_edit_note()` — note insert/update variants
+- `save_required_notes()`, `delete_required_notes()`, `required_notes_sort()`
+- `toggle_exemption()` — billing_perchild + invoice rebuild
+- `delete_wage_history()`, `delete_document()`, `delete_program()` (transactional cascade)
+- `add_edit_bulletin()`, `add_activity()`, `add_edit_notes()` (fixed column bug on aid insert)
+- `copy_program()`, `activate_program()`, `deactivate_program()`
+- `activate_account()`, `deactivate_account()`, `activate_employee()`, `deactivate_employee()`
+- `toggle_contact_activation()`, `toggle_child_activation()`, `toggle_enrollment()`
+- `validate()` — **auth/PIN paths** fully prepared
+- List/get helpers: `get_notifications()`, `get_contact_name()`, form loaders
+  (programs/accounts/children/contacts/employees), billing invoice sums,
+  `required_notes_resort()`, `add_edit_employee_activity()`,
+  `save_employee_timecard()`, `deactivate_employee_activity()`, etc.
+
+Also: `find_var_type(null)` returns `'s'` so PHP null binds as SQL NULL.
+
+**`ajax/ajax.php` status:** **0 remaining** string-interpolated `get_db_*` /
+`execute_db_*` call sites (verified by scan).
+
+**`lib/billinglib.php` status:** **fully converted** (0 remaining user-interpolated sites).
+
+- `account_balance()`, `apply_overrides()`, `week_balance()`
+- `make_account_invoice()` — prepared + transaction
+- `save_child_invoice()` — discount sibling query + inserts prepared
+- `get_child_week_attendance_list()`, `make_child_invoice()`
+- `create_invoices()` — deletes, account/child loops, employee first-in
+- `get_enrollment_method()`
+
+**`ajax/reports.php` status:** converted — `$type` column whitelist, date-range
+tokens (`||t_from||`/`||t_to||`), report-switch queries + invoice/timeline loops,
+employee payroll, attendance-throughout-day, note_entry helpers. `$sql_vars`
+passed to `get_db_result($SQL, $sql_vars)`.
+
+### Still to do (recommended order)
+
+1. Other `ajax/*.php` tab files if they build SQL directly (likely thin).
+2. Smoke-test reports + billing invoice generation on staging.
+
+### Safe migration pattern
+
+```php
+// Before
+$row = get_db_row("SELECT * FROM t WHERE id='$id'");
+execute_db_sql("INSERT INTO t (a,b) VALUES('$a','$b')");
+
+// After
+$row = get_db_row("SELECT * FROM t WHERE id = ||id||", false, ["id" => $id]);
+execute_db_sql("INSERT INTO t (a,b) VALUES (||a||, ||b||)", ["a" => $a, "b" => $b]);
+```
+
+Prefer `clean_param_req` / `clean_var_opt` for incoming request values
+before they enter `$vars`. Tokens may be written with or without surrounding
+quotes (`'||id||'` or `||id||`); the prepare layer strips them.

@@ -265,6 +265,9 @@ function build_prepared_variables($SQL, $vars, $pattern) {
 }
 
 function find_var_type($var) {
+    if ($var === null) {
+        return 's'; // mysqli binds PHP null as SQL NULL for s/i/d
+    }
     switch (gettype($var)) {
         case 'string':  return 's';
         case 'integer': return 'i';

@@ -234,6 +234,7 @@ $sitename = htmlspecialchars($CFG->sitename);
                 </div>
                 <div class="note-form">
                     <div class="note-form-editing-label" id="note_editing_label" style="display:none;">Editing note &ndash; <span class="link-button-inline" id="note_editing_cancel">cancel</span></div>
+                    <div class="note-form-editing-label" id="note_adding_label">Add new note</div>
                     <select id="note_tag_select"></select>
                     <textarea class="app-textarea" id="note_text_input" rows="2" placeholder="Write a note..."></textarea>
                     <label class="notify-label">

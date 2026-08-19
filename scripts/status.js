@@ -920,10 +920,11 @@
             }
             var section = document.createElement('section');
             section.className = 'card';
-            section.innerHTML = '<h2>' + info.emoji + ' ' + escapeHtml(info.label) +
+            let hidden = !text ? 'style="display: none;"' : '';
+            section.innerHTML = '<h2>' + info.emoji + ' ' + escapeHtml(info.label) + '</h2>' +
                 (ratingInfo ? ' <span class="meal-rating-badge">' + ratingInfo.emoji + ' ' + escapeHtml(ratingInfo.label) + '</span>' : '') +
-                '</h2>' +
-                '<div class="menu-text"></div>';
+                '<div class="menu-text" ' + hidden + '></div>';
+
             section.querySelector('.menu-text').textContent = text;
             container.appendChild(section);
         });
@@ -1571,6 +1572,7 @@
         document.getElementById('note_persist_checkbox').checked = notifyVal === 2;
         document.getElementById('add_note_btn').textContent = 'Save Note';
         document.getElementById('note_editing_label').style.display = '';
+        document.getElementById('note_adding_label').style.display = 'none';
         document.getElementById('note_text_input').focus();
     }
 
@@ -1582,6 +1584,7 @@
         document.getElementById('note_persist_checkbox').checked = false;
         document.getElementById('add_note_btn').textContent = 'Add Note';
         document.getElementById('note_editing_label').style.display = 'none';
+        document.getElementById('note_adding_label').style.display = '';
     }
 
     // Resolve notify level from the two checkboxes: persist (2) > notify (1) > 0.

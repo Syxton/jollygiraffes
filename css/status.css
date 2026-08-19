@@ -723,15 +723,19 @@ html, body {
 }
 
 .meal-rating-badge {
-    display: inline-block;
-    font-size: 13px;
-    font-weight: normal;
     background: #E6FCF5;
     color: #22282E;
     border-radius: 999px;
     padding: 3px 10px;
     margin-left: 6px;
     vertical-align: middle;
+    font-size: 20px;
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    float: left;
+    position: relative;
+    top: -40px;
 }
 
 .notes-list {
@@ -750,7 +754,7 @@ html, body {
     padding-top: 12px;
 }
 .note-form-editing-label {
-    font-size: 13px;
+    font-size: 15px;
     color: #6B7280;
 }
 .note-form-editing-label .link-button-inline {

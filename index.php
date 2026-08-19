@@ -94,7 +94,7 @@ function kiosk_lock_screen() {
             <div style="clear:both;"></div>
             ' . kiosk_keypad_button(7) . kiosk_keypad_button(8) . kiosk_keypad_button(9) . '
             <div style="clear:both;"></div>
-            <button onclick="kioskClearPin();" class="keypad_button_big ui-corner-all">Clear</button>
+            <button style="width: 125px" onclick="kioskClearPin();" class="keypad_button_big ui-corner-all">Clear</button>
             ' . kiosk_keypad_button(0) . '
             <div style="clear:both;"></div>
         </div>

@@ -663,6 +663,7 @@ svg {
     width: 75px;
     height: 75px;
     margin: 5px;
+    font-size: 2em;
 }
 
 .keypad_buttons {
@@ -931,7 +932,10 @@ svg {
 
 .scroll-content:has(.child_wrapper .child) {
     display: flex;
+    gap: 15px;
     flex-wrap: wrap;
+    justify-content: space-around;
+    flex-direction: row;
 }
 
 .scroll-content .scroll-pane > .scroll-content {

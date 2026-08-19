@@ -146,7 +146,7 @@
         Billing
     </button>
 </div>
-<div id="admin_display" class="admin_display fill_height layout-flex">
+<div id="admin_display" class="admin_display fill_height">
     <?php echo $content; ?>
 </div>
 </div><!-- /.admin_layout_wrapper -->

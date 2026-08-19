@@ -32,6 +32,6 @@ $returnme .= from_template("contacttabs.php", [
 ]);
 
 $returnme .= '
-    <div id="subselect_div" class="scroll-pane infobox fill_height layout-flex">
+    <div id="subselect_div" class="scroll-pane infobox fill_height">
         ' . $info . '
     </div>';

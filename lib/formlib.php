@@ -1127,10 +1127,10 @@ function get_form($formname, $vars = null, $identifier = "") {
             $form = '<div id="event_editor' . $identifier . '" title="' . $title . '" style="display:none;">
                     <form name="' . $formname . '_form' . $identifier . '">
                         ' . $fields . '
-                        <table class="fill_height layout-flex" style="width:100%;">
+                        <table class="fill_height" style="width:100%;">
                             <tr>
                                 <td style="vertical-align:top;width:30%"><strong>Select Event</strong><br />' . $events_list . '</td>
-                                <td style="vertical-align:top;width:70%"><div class="fill_height layout-flex" id="required_notes_div' . $identifier . '"></div></td>
+                                <td style="vertical-align:top;width:70%"><div class="fill_height" id="required_notes_div' . $identifier . '"></div></td>
                             </tr>
                         </table>
                         <button class="bottom-right" type="button" onclick="$(\'#event_editor' . $identifier . '\').dialog(\'close\');">Close</button>

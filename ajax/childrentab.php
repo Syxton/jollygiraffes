@@ -43,6 +43,6 @@ $returnme .= from_template("childbutton.php", [
         "notes_selected" => $notes_selected,
         "reports_selected" => $reports_selected,
     ]) . '
-    <div id="subselect_div" class="scroll-pane infobox fill_height layout-flex">
+    <div id="subselect_div" class="scroll-pane infobox fill_height">
         ' . $info . '
     </div>';

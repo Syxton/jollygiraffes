@@ -131,7 +131,7 @@ if ($results = get_db_result($SQL)) {
         <div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px;">
             Children:
         </div>
-        <div id="children" class="scroll-pane infobox fill_height layout-flex">
+        <div id="children" class="scroll-pane infobox fill_height">
             ' . $children . '
         </div>
         <div style="clear:both;"></div>';

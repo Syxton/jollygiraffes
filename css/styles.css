@@ -1455,6 +1455,165 @@ div.day-add a {
     width: 0 !important;
 }
 
+/* ---- Base: any container that holds a "fill" child becomes a flex
+   column/row and gives up manual height math entirely. ---- */
+.layout-flex-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* required so children can shrink instead of overflow */
+    height: 100%;
+}
+
+.layout-flex-row {
+    display: flex;
+    flex-direction: row;
+    min-width: 0;
+    width: 100%;
+}
+
+/* ---- Replacement for .fill_height: grow to consume remaining
+   vertical space in a .layout-flex-col parent. ---- */
+.fill_height {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto; /* let flexbox drive it, not JS */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ---- Replacement for .fill_width: grow to consume remaining
+   horizontal space in a .layout-flex-row parent. ---- */
+.fill_width {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+}
+
+.layout-flex-col > .top,
+.layout-flex-col > .bottom {
+    flex: 0 0 auto; /* fixed-size, don't grow/shrink */
+}
+
+.layout-flex-row > .side {
+    flex: 0 0 auto;
+}
+
+.layout-split-row {
+    display: flex;
+    flex: 1;
+    align-items: center;
+}
+
+.layout-split-row > * {
+    flex: 1 1 320px; /* wrap to full width once below ~320px each */
+    min-width: 0;
+}
+
+/* Prevent the historical pattern of stacking multiple
+   `position: absolute` panels inside a `position: relative` parent
+   with no defined stacking context boundaries (styles.css lines
+   ~171, 277, 333, 605-778). Any NEW absolutely-positioned overlay
+   should opt in to this instead of ad hoc absolute+!important: */
+.layout-overlay-anchor {
+    position: relative;
+    isolation: isolate; /* creates a clean stacking context */
+}
+
+.layout-overlay {
+    position: absolute;
+    inset: 0;
+}
+
+/* =====================================================================
+   Admin workspace — CSS Grid
+   Replaces float:left .container_list + percentage heights.
+   ===================================================================== */
+
+.admin_layout_wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+}
+
+.admin_layout_wrapper > .admin_menu {
+    flex: 0 0 auto;
+}
+
+.admin_layout_wrapper > .admin_display {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;          /* override styles.css 92% */
+    width: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---- Grid shell: list | actions / info ---- */
+.admin_main_layout.layout-grid-admin {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    gap: 8px;
+    box-sizing: border-box;
+
+    grid-template-columns: minmax(200px, 40%) 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        "list actions"
+        "list info";
+}
+
+.admin_main_layout.layout-grid-admin > .container_list {
+    grid-area: list;
+    float: none;           /* kill styles.css float */
+    width: auto;
+    height: auto;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+}
+
+.admin_main_layout.layout-grid-admin > .container_actions {
+    grid-area: actions;
+    margin-bottom: 0;
+}
+
+.admin_main_layout.layout-grid-admin > .container_info {
+    grid-area: info;
+    height: auto;          /* kill styles.css 95% */
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Nested scroll regions inside info (tabs, tags list, etc.) */
+.admin_main_layout.layout-grid-admin > .container_info .infobox,
+.admin_main_layout.layout-grid-admin > .container_info .scroll-pane.fill_height,
+.admin_main_layout.layout-grid-admin > .container_info .fill_height.layout-flex {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    overflow-y: auto;
+}
+
+/* ---- Expanded list (legacy .expanded on list / info / actions) ---- */
+.admin_main_layout.layout-grid-admin:has(> .container_list.expanded),
+.admin_main_layout.layout-grid-admin.is-expanded {
+    grid-template-columns: 0 1fr;
+}
+
+.admin_main_layout.layout-grid-admin:has(> .container_list.expanded) > .container_list,
+.admin_main_layout.layout-grid-admin.is-expanded > .container_list {
+    overflow: hidden;
+    border-width: 0;
+    padding: 0;
+}
 
 /* ============================================
    Media Queries
@@ -1509,6 +1668,25 @@ div.day-add a {
 
 /* Large phones (700px and down) */
 @media only screen and (max-width: 700px) {
+    .layout-split-row > * {
+        width: 100%;
+    }
+
+    .admin_main_layout.layout-grid-admin {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(100px, 28vh) auto 1fr;
+        grid-template-areas:
+            "list"
+            "actions"
+            "info";
+    }
+
+    .admin_main_layout.layout-grid-admin:has(> .container_list.expanded),
+    .admin_main_layout.layout-grid-admin.is-expanded {
+        grid-template-columns: 1fr;
+        grid-template-rows: 0 auto 1fr;
+    }
+
     .admin_display .container_list:first-of-type {
         width: 100%;
         height: 28vh;
@@ -1803,5 +1981,11 @@ div.day-add a {
         zoom: 1 !important;
         left: 0 !important;
         top: 0 !important;
+    }
+}
+
+@media only screen and (max-width: 250px) {
+    .big_button.signinout {
+        font-size: 23px !important;
     }
 }

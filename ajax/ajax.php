@@ -2927,7 +2927,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                 </div>';
         }
         $returnme = '
-            <div class="scroll-pane fill_height layout-flex">
+            <div class="scroll-pane fill_height">
                 <div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px; 5px;">
                     Invoices: ' . $yearselector . '
                 </div>
@@ -3361,7 +3361,7 @@ function get_reports_list($return = false, $pid = null, $aid = null, $chid = nul
     }
 
     // Activity from / to
-    $returnme .= '<div class="scroll-pane document_list_item ui-corner-all fill_height layout-flex" style="text-align:center">
+    $returnme .= '<div class="scroll-pane document_list_item ui-corner-all fill_height" style="text-align:center">
                         <form id="myValidForm" method="get" action="ajax/reports.php" onsubmit="return false;">
                             <input type="hidden" name="report" id="report" value="" />
                             <input type="hidden" name="id" id="id" value="' . $id . '" />
@@ -3861,7 +3861,7 @@ function get_tags_info($return = false, $tagtype = null, $tag = null) {
             <div style="display:table-cell;font-weight: bold;font-size: 110%;padding: 10px;">
                 Tags:
             </div>
-            <div id="tags" class="scroll-pane infobox fill_height layout-flex">';
+            <div id="tags" class="scroll-pane infobox fill_height">';
         while ($tagrow = fetch_row($tags)) {
             $identifier = time() . "note_$tagtype" . "_" . $tagrow["tag"];
 

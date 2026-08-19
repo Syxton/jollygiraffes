@@ -12,7 +12,7 @@
     <?php echo $contacts; ?>
     <?php if (!$admin) { ?>
         <li class="ui-widget-content" id="other_li" rel="$('.keyboard').getkeyboard().reveal();">
-            <span class="contact fill_width layout-flex" style="display:inline-block;background-color:initial;">
+            <span class="contact fill_width" style="display:inline-block;background-color:initial;">
                 Other: <input class="cid keyboard autocapitalizewords"
                     id="cid_other"
                     name="cid_other"

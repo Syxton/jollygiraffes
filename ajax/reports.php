@@ -59,7 +59,7 @@ $returnme .= '
                     link.click();
                 }
             });
-            ">' . icon('copy', "2") . ' Copy</button></div><div id="printthis" class="printthis fill_height layout-flex" style="padding-left:10px;width:785px;">';
+            ">' . icon('copy', "2") . ' Copy</button></div><div id="printthis" class="printthis fill_height" style="padding-left:10px;width:785px;">';
 
 $fromnum = strtotime($from);
 $tonum = strtotime($to);

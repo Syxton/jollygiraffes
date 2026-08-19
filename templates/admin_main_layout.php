@@ -1,8 +1,3 @@
-<!--
-  Admin workspace: list | actions + info
-  Uses CSS Grid (.layout-grid-admin). No floats, no JS height math.
-  See docs/CSS_MIGRATION.md / layout.css.
--->
 <div class="admin_main_layout layout-grid-admin">
     <div class="container_list scroll-pane ui-corner-all">
         <?php echo $header; ?>

@@ -554,7 +554,7 @@ function create_invoices($return = false, $pid = null, $aid = null, $refreshall 
         $returnme .= '<div>None</div>';
     }
 
-    $returnme = '<div style="display:table-cell;font-weight: bold;font-size: 120%;padding: 10px;">Invoices Created:</div><div class="scroll-pane fill_height layout-flex"><div style="padding:10px;">' . $returnme . '</div></div>';
+    $returnme = '<div style="display:table-cell;font-weight: bold;font-size: 120%;padding: 10px;">Invoices Created:</div><div class="scroll-pane fill_height"><div style="padding:10px;">' . $returnme . '</div></div>';
 
     if ($return) {
         return $returnme;

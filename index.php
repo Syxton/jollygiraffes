@@ -40,7 +40,7 @@ include_once('header.html');
 echo '
     <div id="display_level" class="display_level ui-corner-all">
         <div style="display: flex;align-items: flex-start;justify-content: space-between;">
-            <div>
+            <div style="width:150px;">
             ' . get_employee_timeclock_button() . '
             </div>
             <div id="clock" class="light">

@@ -28,6 +28,7 @@ body, html {
 
 .mylogo {
     height: 30%;
+    margin: 15px 0px;
     max-height: 200px;
     min-height: 100px;
     width: 100%;

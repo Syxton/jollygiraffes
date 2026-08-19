@@ -25,7 +25,7 @@ function employee_timesheet($thisweekpay = false) {
         while ($row = fetch_row($result)) {
             $employee_button = '
                 <div class="employee_wrapper ui-corner-all">
-                    ' . get_employee_button($row["employeeid"]) . '
+                    ' . get_employee_button($row["employeeid"], "", "position: absolute") . '
                 </div>';
 
             $checked_in = is_working($row["employeeid"]);

@@ -1169,21 +1169,36 @@
         });
     }
 
-    function renderQuickNoteButtons() {
+    function hasActiveNeedDiapers(day) {
+        if (!day || !day.notes) { return false; }
+        var info = state.quickNotes.need_diapers;
+        if (!info) { return false; }
+        return day.notes.some(function (n) {
+            return n.notify === 2 && n.note === info.text;
+        });
+    }
+
+    function renderQuickNoteButtons(day) {
         var wrap = document.getElementById('quick_note_buttons');
         wrap.innerHTML = '';
+        var needDiapersActive = hasActiveNeedDiapers(day);
         Object.keys(state.quickNotes).forEach(function (key) {
             var info = state.quickNotes[key];
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'quick-note-btn';
+            if (key === 'need_diapers' && needDiapersActive) {
+                btn.classList.add('active');
+            }
             btn.innerHTML = '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>';
             btn.addEventListener('click', function () {
                 post('quick_note', { chid: state.chid, key: key }).then(function (res) {
                     if (res.success) {
                         renderAdminDay(res.day);
-                        btn.classList.add('sent');
-                        setTimeout(function () { btn.classList.remove('sent'); }, 1200);
+                        if (key !== 'need_diapers') {
+                            btn.classList.add('sent');
+                            setTimeout(function () { btn.classList.remove('sent'); }, 1200);
+                        }
                     }
                 });
             });
@@ -1551,7 +1566,9 @@
         state.editingNoteId = n.nid;
         document.getElementById('note_tag_select').value = n.tag;
         document.getElementById('note_text_input').value = n.note;
-        document.getElementById('note_notify_checkbox').checked = !!n.notify;
+        var notifyVal = parseInt(n.notify, 10) || 0;
+        document.getElementById('note_notify_checkbox').checked = notifyVal >= 1;
+        document.getElementById('note_persist_checkbox').checked = notifyVal === 2;
         document.getElementById('add_note_btn').textContent = 'Save Note';
         document.getElementById('note_editing_label').style.display = '';
         document.getElementById('note_text_input').focus();
@@ -1562,8 +1579,20 @@
         document.getElementById('note_tag_select').value = '';
         document.getElementById('note_text_input').value = '';
         document.getElementById('note_notify_checkbox').checked = false;
+        document.getElementById('note_persist_checkbox').checked = false;
         document.getElementById('add_note_btn').textContent = 'Add Note';
         document.getElementById('note_editing_label').style.display = 'none';
+    }
+
+    // Resolve notify level from the two checkboxes: persist (2) > notify (1) > 0.
+    function noteNotifyFromForm() {
+        if (document.getElementById('note_persist_checkbox').checked) {
+            return 2;
+        }
+        if (document.getElementById('note_notify_checkbox').checked) {
+            return 1;
+        }
+        return 0;
     }
 
     function bindAdminEvents() {
@@ -1589,10 +1618,10 @@
         document.getElementById('add_note_btn').addEventListener('click', function () {
             var tag = document.getElementById('note_tag_select').value;
             var text = document.getElementById('note_text_input').value.trim();
-            var notify = document.getElementById('note_notify_checkbox').checked;
+            var notify = noteNotifyFromForm();
             if (!text) { return; }
             if (state.editingNoteId) {
-                post('edit_note', { chid: state.chid, nid: state.editingNoteId, tag: tag, note: text, notify: notify ? '1' : '' }).then(function (res) {
+                post('edit_note', { chid: state.chid, nid: state.editingNoteId, tag: tag, note: text, notify: String(notify) }).then(function (res) {
                     if (res.success) {
                         stopEditingNote();
                         flashExpandCard('notes', 'notes_card_toggle', 'admin_notes_history');
@@ -1603,14 +1632,27 @@
                 });
                 return;
             }
-            post('add_note', { chid: state.chid, tag: tag, note: text, notify: notify ? '1' : '' }).then(function (res) {
+            post('add_note', { chid: state.chid, tag: tag, note: text, notify: String(notify) }).then(function (res) {
                 if (res.success) {
                     document.getElementById('note_text_input').value = '';
                     document.getElementById('note_notify_checkbox').checked = false;
+                    document.getElementById('note_persist_checkbox').checked = false;
                     flashExpandCard('notes', 'notes_card_toggle', 'admin_notes_history');
                     renderAdminDay(res.day);
                 }
             });
+        });
+
+        // Checking persist implies notify; unchecking notify clears persist.
+        document.getElementById('note_persist_checkbox').addEventListener('change', function () {
+            if (this.checked) {
+                document.getElementById('note_notify_checkbox').checked = true;
+            }
+        });
+        document.getElementById('note_notify_checkbox').addEventListener('change', function () {
+            if (!this.checked) {
+                document.getElementById('note_persist_checkbox').checked = false;
+            }
         });
 
         document.getElementById('add_bottle_btn').addEventListener('click', function () {
@@ -2212,7 +2254,7 @@
                     ` + escapeHtml(n.time) + `
                 </span>
                 <span class="chip-label">
-                    ` + (n.notify ? ' \ud83d\udd14' : '') + escapeHtml(n.tag_title) + `
+                    ` + (n.notify == 2 ? ' \ud83d\udccc' : (n.notify ? ' \ud83d\udd14' : '')) + escapeHtml(n.tag_title) + `
                 </span>
                 <div class="chip-button-area">
                     <button title="Edit" type="button" class="note-edit chip-icon-btn" data-nid="` + n.nid + `">
@@ -2248,6 +2290,9 @@
             });
         });
         applyCardCollapse('notes', 'notes_card_toggle', 'admin_notes_history', day.notes.length);
+
+        // Keep Need Diapers button selected while a persist notification is active.
+        renderQuickNoteButtons(day);
     }
 
     // ------------------------------------------------------------------

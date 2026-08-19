@@ -480,7 +480,8 @@ switch ($action) {
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         $tag    = isset($_POST['tag']) ? $_POST['tag'] : '';
         $note   = isset($_POST['note']) ? trim($_POST['note']) : '';
-        $notify = !empty($_POST['notify']);
+        // notify: 0 none, 1 single-day, 2 persist. Accept legacy bool-ish too.
+        $notify = isset($_POST['notify']) ? $_POST['notify'] : 0;
         if ($note === '') {
             status_json(["success" => false, "message" => "Note can't be empty."]);
         }
@@ -494,7 +495,7 @@ switch ($action) {
         $nid    = isset($_POST['nid']) ? intval($_POST['nid']) : 0;
         $tag    = isset($_POST['tag']) ? $_POST['tag'] : '';
         $note   = isset($_POST['note']) ? trim($_POST['note']) : '';
-        $notify = !empty($_POST['notify']);
+        $notify = isset($_POST['notify']) ? $_POST['notify'] : 0;
         if ($note === '') {
             status_json(["success" => false, "message" => "Note can't be empty."]);
         }

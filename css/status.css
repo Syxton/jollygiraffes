@@ -555,10 +555,10 @@ html, body {
     background: #F1F3F5;
     border-radius: 999px;
     padding: 6px 12px;
-    font-size: 13px;
+    font-size: 18px;
     color: #22282E;
 }
-.activity-chip .emoji { font-size: 18px; }
+.activity-chip .emoji { font-size: 30px; }
 
 @media (min-width: 700px) {
     .activity-buttons { grid-template-columns: repeat(4, 1fr); }
@@ -958,6 +958,10 @@ html, body {
     color: #22282E;
 }
 .quick-note-btn .emoji { font-size: 40px; text-shadow: 0 0 2px rgb(77, 76, 76);}
+.quick-note-btn.active {
+    outline: 2px solid #2b8a3e;
+    background: #d3f9d8;
+}
 .quick-note-btn.sent {
     background: #E6FCF5;
     border-color: #40C057;

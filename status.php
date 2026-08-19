@@ -240,6 +240,10 @@ $sitename = htmlspecialchars($CFG->sitename);
                         <input class="styled-checkbox" type="checkbox" id="note_notify_checkbox">
                         Notify parent at sign-out
                     </label>
+                    <label class="notify-label" id="note_persist_label">
+                        <input class="styled-checkbox" type="checkbox" id="note_persist_checkbox">
+                        Persist (keep notifying until cleared)
+                    </label>
                     <button class="primary-button" id="add_note_btn">Add Note</button>
                 </div>
             </section>

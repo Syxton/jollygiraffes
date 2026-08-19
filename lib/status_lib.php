@@ -53,18 +53,21 @@ if (!isset($STATUSLIB)) {
 
     // Quick-tap notes next to Potty Time. Writes a note tagged "Request"
     // (auto-created on notes_tags if needed).
+    // notify: 1 = single-day notify, 2 = persist (keep notifying until cleared).
     $GLOBALS['STATUS_QUICK_NOTES'] = [
         'need_diapers' => [
             'label'     => 'Need Diapers',
             'emoji'     => '🚼',
             'tag_title' => 'Request',
             'text'      => "Running low on diapers - please bring more.",
+            'notify'    => 2,
         ],
         'clothing_pickup' => [
             'label'     => 'Clothing Change',
             'emoji'     => '👕',
             'tag_title' => 'Request',
             'text'      => "Needed a clothing change today - please pick up their dirty clothes.",
+            'notify'    => 1,
         ],
     ];
 
@@ -95,7 +98,7 @@ if (!isset($STATUSLIB)) {
         'art'                => ['label' => 'Art',                'emoji' => '🎨'],
         'pretend_play'       => ['label' => 'Pretend Play',       'emoji' => '🎭'],
         'sensory'            => ['label' => 'Sensory',            'emoji' => '🖐️'],
-        'belly_time'         => ['label' => 'Belly Time',         'emoji' => '🐢'],
+        'belly_time'         => ['label' => 'Belly Time',         'emoji' => '🦭'],
         'videos'             => ['label' => 'Videos',             'emoji' => '📺'],
     ];
 
@@ -107,13 +110,16 @@ if (!isset($STATUSLIB)) {
 
     // Incidents Quick Report: one-tap injury/incident logging. Each type
     // has a default note staff can edit further; attachments reuse the
-    // same events+documents linkage as Potty Time.
+    // same events+documents linkage as Potty Time. The note text lives in
+    // the notes table (events.nid); note_tag is the notes_tags title used
+    // when the linked note is created ("behavior" vs "Injury").
     $GLOBALS['STATUS_INCIDENT_TYPES'] = [
-        'inc_hurt'    => ['label' => 'Hurt Someone',    'emoji' => '👊', 'color' => '#E03131', 'default_note' => 'Hurt another child.'],
-        'inc_bit'     => ['label' => 'Bit Someone',     'emoji' => '😬', 'color' => '#c62a2a', 'default_note' => 'Bit another child.'],
-        'inc_gotbit'  => ['label' => 'Bitten',          'emoji' => '😫', 'color' => '#c65bbd', 'default_note' => 'Was bitten by another child.'],
-        'inc_booboo'  => ['label' => 'Boo Boo',         'emoji' => '🤕', 'color' => '#926969', 'default_note' => 'Had a minor boo-boo.'],
-        'inc_bandaid' => ['label' => 'Band-Aid',        'emoji' => '🩹', 'color' => '#6f5dff', 'default_note' => 'Needed a band-aid.'],
+        'inc_hurt'    => ['label' => 'Hurt Someone',    'emoji' => '👊', 'color' => '#E03131', 'default_note' => 'Hurt another child.',           'note_tag' => 'behavior'],
+        'inc_bit'     => ['label' => 'Bit Someone',     'emoji' => '😬', 'color' => '#c62a2a', 'default_note' => 'Bit another child.',            'note_tag' => 'behavior'],
+        'inc_gotbit'  => ['label' => 'Bitten',          'emoji' => '😫', 'color' => '#c65bbd', 'default_note' => 'Was bitten by another child.',  'note_tag' => 'Injury'],
+        'inc_booboo'  => ['label' => 'Boo Boo',         'emoji' => '🤕', 'color' => '#926969', 'default_note' => 'Had a minor boo-boo.',          'note_tag' => 'Injury'],
+        'inc_bandaid' => ['label' => 'Band-Aid',        'emoji' => '🩹', 'color' => '#6f5dff', 'default_note' => 'Needed a band-aid.',            'note_tag' => 'Injury'],
+        'inc_sick'    => ['label' => 'Sick',            'emoji' => '🤢', 'color' => '#8cea84', 'default_note' => 'Got sick',                      'note_tag' => 'Injury'],
     ];
 
     // Naptime: shown 1pm-3pm for children over this age. Duration
@@ -192,6 +198,13 @@ if (!isset($STATUSLIB)) {
             execute_db_sql("ALTER TABLE events ADD COLUMN amount int(11) NOT NULL DEFAULT '0'");
         }
 
+        // events.nid links an incident event to its notes-table row (the
+        // free-text note for Incidents lives in notes, not events.note).
+        if (!status_column_exists('events', 'nid')) {
+            execute_db_sql("ALTER TABLE events ADD COLUMN nid int(11) NOT NULL DEFAULT '0'");
+            execute_db_sql("ALTER TABLE events ADD KEY nid (nid)");
+        }
+
         // documents.evid links an attachment to one Potty Time entry
         if (!status_column_exists('documents', 'evid')) {
             execute_db_sql("ALTER TABLE documents ADD COLUMN evid int(11) NOT NULL DEFAULT '0'");
@@ -203,6 +216,11 @@ if (!isset($STATUSLIB)) {
             execute_db_sql("ALTER TABLE notes ADD COLUMN daykey int(11) NOT NULL DEFAULT '0'");
             execute_db_sql("ALTER TABLE notes ADD KEY chid_day (chid,daykey)");
         }
+
+        // One-time: move legacy events.note text for incident rows into the
+        // notes table and set events.nid. Safe to re-run (only touches rows
+        // that still have note text and nid=0).
+        status_migrate_incident_notes();
 
         // accounts.link_code is the shareable parent link (?c=Smith)
         if (!status_column_exists('accounts', 'link_code')) {
@@ -814,21 +832,31 @@ if (!isset($STATUSLIB)) {
             }
         }
 
-        // Incidents Quick Report - editable, with note + attachments
+        // Incidents Quick Report - editable, with note (from notes table via
+        // events.nid) + attachments. Falls back to events.note for any row
+        // that has not been migrated yet.
         $incidents = [];
         $inctags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_INCIDENT_TYPES))) . "'";
-        if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag IN ($inctags) ORDER BY timelog ASC, evid ASC")) {
+        if ($result = get_db_result("SELECT e.*, n.note AS note_text, n.nid AS note_nid
+                                       FROM events e
+                                  LEFT JOIN notes n ON n.nid = e.nid AND n.nid != 0
+                                      WHERE e.chid='$chid' AND e.daykey='$daykey' AND e.tag IN ($inctags)
+                                   ORDER BY e.timelog ASC, e.evid ASC")) {
             while ($row = fetch_row($result)) {
                 $info = $STATUS_INCIDENT_TYPES[$row["tag"]];
+                $note_text = $row["note_text"] !== null && $row["note_text"] !== ''
+                    ? $row["note_text"]
+                    : $row["note"];
                 $incidents[] = [
                     "evid"        => (int) $row["evid"],
+                    "nid"         => (int) ($row["note_nid"] ? $row["note_nid"] : $row["nid"]),
                     "type"        => $row["tag"],
                     "label"       => $info["label"],
                     "emoji"       => $info["emoji"],
                     "color"       => $info["color"],
                     "time"        => get_date("g:i a", display_time($row["timelog"])),
                     "hm"          => get_date("H:i", display_time($row["timelog"])),
-                    "note"        => $row["note"],
+                    "note"        => $note_text,
                     "attachments" => status_get_attachments($chid, $row["evid"]),
                 ];
             }
@@ -863,12 +891,16 @@ if (!isset($STATUSLIB)) {
             }
         }
 
-        // Notes added via the status page only (daykey=0 = pre-existing/unrelated)
+        // Notes added via the status page (daykey=0 = pre-existing/unrelated).
+        // Also include persist notes (notify=2) for this child even if their
+        // daykey is not today, so admin can see/edit them and parents keep
+        // seeing the notification until cleared.
         $notes = [];
         if ($result = get_db_result("SELECT n.*, t.title AS tag_title, t.color AS tag_color, t.textcolor AS tag_textcolor
                                         FROM notes n
                                         LEFT JOIN notes_tags t ON t.tag = n.tag
-                                       WHERE n.chid='$chid' AND n.daykey='$daykey' AND n.daykey != 0
+                                       WHERE n.chid='$chid' AND n.daykey != 0
+                                         AND (n.daykey='$daykey' OR n.notify = 2)
                                        ORDER BY n.timelog ASC")) {
             while ($row = fetch_row($result)) {
                 $notes[] = [
@@ -878,7 +910,8 @@ if (!isset($STATUSLIB)) {
                     "color"     => $row["tag_color"] ? $row["tag_color"] : "#silver",
                     "textcolor" => $row["tag_textcolor"] ? $row["tag_textcolor"] : "#000",
                     "note"      => $row["note"],
-                    "notify"    => (bool) $row["notify"],
+                    "notify"    => (int) $row["notify"],
+                    "persist"   => ((int) $row["notify"] === 2),
                     "time"      => get_date("g:i a", display_time($row["timelog"])),
                     "hm"        => get_date("H:i", display_time($row["timelog"])),
                 ];
@@ -1029,38 +1062,114 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid);
     }
 
-    // Incidents Quick Report - one-tap create (pre-filled with a default
-    // note), then editable like Potty Time. Reuses the same events+
-    // documents attachment pattern.
-    function status_add_incident($chid, $type) {
+    // Map incident type -> notes_tags title ("behavior" or "Injury").
+    function status_incident_note_tag_title($type) {
         global $STATUS_INCIDENT_TYPES;
         if (!isset($STATUS_INCIDENT_TYPES[$type])) {
+            return 'Injury';
+        }
+        return isset($STATUS_INCIDENT_TYPES[$type]['note_tag'])
+            ? $STATUS_INCIDENT_TYPES[$type]['note_tag']
+            : 'Injury';
+    }
+
+    // One-time migration: rows that still store incident text in events.note
+    // get a notes row created and events.nid set. Safe to re-run.
+    function status_migrate_incident_notes() {
+        global $CFG, $STATUS_INCIDENT_TYPES;
+        if (!status_column_exists('events', 'nid')) {
+            return;
+        }
+        if (!function_exists('make_or_get_tag')) {
+            include_once($CFG->dirroot . '/lib/pagelib.php');
+        }
+        $inctags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_INCIDENT_TYPES))) . "'";
+        $result = get_db_result("SELECT evid, chid, aid, daykey, timelog, tag, note
+                                   FROM events
+                                  WHERE tag IN ($inctags)
+                                    AND nid = 0
+                                    AND note != ''");
+        if (!$result) {
+            return;
+        }
+        while ($row = fetch_row($result)) {
+            $tag_title = status_incident_note_tag_title($row['tag']);
+            $tag = make_or_get_tag($tag_title, 'notes');
+            $note = dbescape($row['note']);
+            $tag  = dbescape($tag);
+            $chid = intval($row['chid']);
+            $aid  = intval($row['aid']);
+            $day  = intval($row['daykey']);
+            $time = intval($row['timelog']);
+            $evid = intval($row['evid']);
+            // notify=1 (single-day) for migrated incident notes
+            $nid = execute_db_sql("INSERT INTO notes (pid, aid, cid, actid, chid, employeeid, rnid, tag, note, data, timelog, notify, daykey)
+                                   VALUES (0,'$aid',0,0,'$chid',0,0,'$tag','$note','','$time',1,'$day')");
+            if ($nid) {
+                execute_db_sql("UPDATE events SET nid='$nid', note='' WHERE evid='$evid'");
+            }
+        }
+    }
+
+    // Incidents Quick Report - one-tap create. Creates a notes row (notify=1,
+    // tag behavior/Injury) and an events row that references it via nid.
+    // Attachments still hang off the event (documents.evid).
+    function status_add_incident($chid, $type) {
+        global $CFG, $STATUS_INCIDENT_TYPES;
+        if (!isset($STATUS_INCIDENT_TYPES[$type])) {
             return false;
+        }
+        if (!function_exists('make_or_get_tag')) {
+            include_once($CFG->dirroot . '/lib/pagelib.php');
         }
         $chid = intval($chid);
         $aid  = intval(get_db_field("aid", "children", "chid='$chid'"));
         $time = get_timestamp();
         $day  = status_daykey($time);
-        $note = dbescape($STATUS_INCIDENT_TYPES[$type]['default_note']);
-        $evid = execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, note)
-                                 VALUES (0,'" . dbescape($type) . "',0,'$chid','$aid','$day','$time','$note')");
-        return ["evid" => $evid, "day" => status_get_day($chid, $day)];
+        $note_text = $STATUS_INCIDENT_TYPES[$type]['default_note'];
+        $tag_title = status_incident_note_tag_title($type);
+        $tag = make_or_get_tag($tag_title, 'notes');
+        // Single-day parent notify for incidents
+        $nid = execute_db_sql("INSERT INTO notes (pid, aid, cid, actid, chid, employeeid, rnid, tag, note, data, timelog, notify, daykey)
+                               VALUES (0,'$aid',0,0,'$chid',0,0,'" . dbescape($tag) . "','" . dbescape($note_text) . "','','$time',1,'$day')");
+        $nid = intval($nid);
+        $evid = execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, note, nid)
+                                 VALUES (0,'" . dbescape($type) . "',0,'$chid','$aid','$day','$time','','$nid')");
+        return ["evid" => $evid, "nid" => $nid, "day" => status_get_day($chid, $day)];
     }
 
     function status_edit_incident($chid, $evid, $type, $note, $hour, $minute) {
-        global $STATUS_INCIDENT_TYPES;
+        global $CFG, $STATUS_INCIDENT_TYPES;
         if (!isset($STATUS_INCIDENT_TYPES[$type])) {
             return false;
+        }
+        if (!function_exists('make_or_get_tag')) {
+            include_once($CFG->dirroot . '/lib/pagelib.php');
         }
         $chid = intval($chid);
         $evid = intval($evid);
         $inctags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_INCIDENT_TYPES))) . "'";
-        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($inctags)")) {
+        $row = get_db_row("SELECT * FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($inctags)");
+        if (!$row) {
             return false;
         }
         $timelog = status_resolve_timelog($hour, $minute);
         $day = status_daykey($timelog);
-        execute_db_sql("UPDATE events SET tag='" . dbescape($type) . "', note='" . dbescape($note) . "', timelog='$timelog', daykey='$day'
+        $nid = intval($row['nid']);
+        $tag_title = status_incident_note_tag_title($type);
+        $tag = make_or_get_tag($tag_title, 'notes');
+
+        if ($nid) {
+            execute_db_sql("UPDATE notes SET tag='" . dbescape($tag) . "', note='" . dbescape($note) . "', daykey='$day', timelog='$timelog'
+                             WHERE nid='$nid' AND chid='$chid'");
+        } else {
+            // Legacy row still on events.note - create the notes row now
+            $aid = intval($row['aid']);
+            $nid = execute_db_sql("INSERT INTO notes (pid, aid, cid, actid, chid, employeeid, rnid, tag, note, data, timelog, notify, daykey)
+                                   VALUES (0,'$aid',0,0,'$chid',0,0,'" . dbescape($tag) . "','" . dbescape($note) . "','','$timelog',1,'$day')");
+            $nid = intval($nid);
+        }
+        execute_db_sql("UPDATE events SET tag='" . dbescape($type) . "', note='', nid='$nid', timelog='$timelog', daykey='$day'
                          WHERE evid='$evid' AND chid='$chid'");
         return status_get_day($chid, $day);
     }
@@ -1070,13 +1179,18 @@ if (!isset($STATUSLIB)) {
         $chid = intval($chid);
         $evid = intval($evid);
         $inctags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_INCIDENT_TYPES))) . "'";
-        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($inctags)")) {
+        $row = get_db_row("SELECT * FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($inctags)");
+        if (!$row) {
             return status_get_day($chid);
         }
         if ($result = get_db_result("SELECT * FROM documents WHERE chid='$chid' AND evid='$evid'")) {
-            while ($row = fetch_row($result)) {
-                status_delete_attachment_row($row);
+            while ($doc = fetch_row($result)) {
+                status_delete_attachment_row($doc);
             }
+        }
+        $nid = intval($row['nid']);
+        if ($nid) {
+            execute_db_sql("DELETE FROM notes WHERE nid='$nid' AND chid='$chid' AND daykey != 0");
         }
         execute_db_sql("DELETE FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($inctags)");
         return status_get_day($chid);
@@ -1244,6 +1358,8 @@ if (!isset($STATUSLIB)) {
     }
 
     // "Need Diapers" / "Clothing Change" - pre-written notes tagged "Request".
+    // Need Diapers uses notify=2 (persist). If an active persist Need Diapers
+    // note already exists for the child, tapping again clears it (notify=0).
     function status_quick_note($chid, $key) {
         global $CFG, $STATUS_QUICK_NOTES;
         if (!isset($STATUS_QUICK_NOTES[$key])) {
@@ -1254,7 +1370,22 @@ if (!isset($STATUSLIB)) {
         }
         $info = $STATUS_QUICK_NOTES[$key];
         $tag  = make_or_get_tag($info['tag_title'], 'notes');
-        return status_add_note($chid, $tag, $info['text'], true);
+        $notify_level = isset($info['notify']) ? intval($info['notify']) : 1;
+        $chid = intval($chid);
+
+        // Toggle-off for persistent Need Diapers
+        if ($key === 'need_diapers' && $notify_level === 2) {
+            $existing = get_db_row("SELECT nid FROM notes
+                                     WHERE chid='$chid' AND daykey != 0 AND notify = 2
+                                       AND note = '" . dbescape($info['text']) . "'
+                                     ORDER BY timelog DESC LIMIT 1");
+            if ($existing) {
+                execute_db_sql("UPDATE notes SET notify=0 WHERE nid='" . intval($existing['nid']) . "' AND chid='$chid'");
+                return status_get_day($chid);
+            }
+        }
+
+        return status_add_note($chid, $tag, $info['text'], $notify_level);
     }
 
     // Each meal (breakfast/lunch/dinner) has its own row, so saving one
@@ -1521,7 +1652,21 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid);
     }
 
-    // notify=1 uses the same field the app's sign-out bulletin feature reads.
+    // notify values:
+    //   0 = no parent notify
+    //   1 = single-day notify (sign-out bulletin + parent status for that day)
+    //   2 = persist (keep notifying until staff clears it)
+    // $notify may be bool (legacy) or int 0/1/2.
+    function status_normalize_notify($notify) {
+        if ($notify === true || $notify === '1' || $notify === 1) {
+            return 1;
+        }
+        if ($notify === '2' || $notify === 2) {
+            return 2;
+        }
+        return 0;
+    }
+
     function status_add_note($chid, $tag, $note, $notify) {
         $tags = array_column(status_notes_tags(), 'tag');
         if (!in_array($tag, $tags)) {
@@ -1531,7 +1676,7 @@ if (!isset($STATUSLIB)) {
         $aid    = intval(get_db_field("aid", "children", "chid='$chid'"));
         $time   = get_timestamp();
         $day    = status_daykey($time);
-        $notify = $notify ? 1 : 0;
+        $notify = status_normalize_notify($notify);
         $note   = dbescape($note);
         $tag    = dbescape($tag);
         execute_db_sql("INSERT INTO notes (pid, aid, cid, actid, chid, employeeid, rnid, tag, note, data, timelog, notify, daykey)
@@ -1546,7 +1691,7 @@ if (!isset($STATUSLIB)) {
         }
         $nid    = intval($nid);
         $chid   = intval($chid);
-        $notify = $notify ? 1 : 0;
+        $notify = status_normalize_notify($notify);
         $note   = dbescape($note);
         $tag    = dbescape($tag);
         // Only notes this feature created (daykey != 0)
@@ -1560,6 +1705,10 @@ if (!isset($STATUSLIB)) {
         $chid = intval($chid);
         // Only notes this feature created (daykey != 0)
         execute_db_sql("DELETE FROM notes WHERE nid='$nid' AND chid='$chid' AND daykey != 0");
+        // Clear any incident event that pointed at this note
+        if (status_column_exists('events', 'nid')) {
+            execute_db_sql("UPDATE events SET nid=0 WHERE nid='$nid' AND chid='$chid'");
+        }
         return status_get_day($chid, status_daykey());
     }
 

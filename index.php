@@ -39,8 +39,8 @@ include_once('header.html');
 // Main Layout
 echo '
     <div id="display_level" class="display_level ui-corner-all">
-        <div style="display: flex;align-items: flex-start;justify-content: space-between;">
-            <div style="width:150px;">
+        <div class="signintopbar">
+            <div class="topcornerbuttons">
             ' . get_employee_timeclock_button() . '
             </div>
             <div id="clock" class="light">
@@ -50,7 +50,7 @@ echo '
                     <div class="digits"></div>
                 </div>
             </div>
-            <div style="width:150px;text-align: right;">
+            <div class="topcornerbuttons" text-align: right;">
             ' . get_admin_button() . '
             </div>
         </div>

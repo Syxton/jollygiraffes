@@ -1,3 +1,7 @@
+/* ============================================
+   Global / Reset
+   ============================================ */
+
 *::-moz-selection {
     background: rgba(0, 0, 0, 0);
 }
@@ -22,26 +26,10 @@ body, html {
     overflow: hidden;
 }
 
-.draggable {
-    cursor: move;
-}
 
-.mylogo {
-    height: 30%;
-    margin: 15px 0px;
-    max-height: 200px;
-    min-height: 70px;
-    width: 100%;
-    display: block;
-    text-align: center;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
-button span {
-    white-space: nowrap;
-}
+/* ============================================
+   Typography
+   ============================================ */
 
 h1 {
     color: white;
@@ -70,54 +58,17 @@ h3 {
     text-shadow: black 1px 1px 3px;
 }
 
+.label {
+    color: white;
+    font-weight: bold;
+}
+
 #activepidname {
     z-index: 0;
     font-size: clamp(7px, 4vmin, 25px);
     font-weight: bold;
     color: white;
     text-shadow: 0px 0px 8px black;
-}
-
-.admin-menu {
-    white-space: nowrap;
-}
-
-.label {
-    color: white;
-    font-weight: bold;
-}
-
-.scroll-pane .list_buttons {
-    zoom: 90%;
-    margin-left: 4px;
-}
-
-.main_level {
-    display: flex;
-    position: relative;
-    height: 100vh;
-    background-size: cover;
-}
-
-.admin_display {
-    margin: auto;
-    width: 99%;
-    height: 92%;
-}
-
-.admin_menu {
-    display: flex;
-    padding: 10px;
-    text-align: center;
-    flex-wrap: wrap;
-    align-content: center;
-    justify-content: center;
-    align-items: center;
-}
-
-.break {
-    white-space: nowrap;
-    clear: both;
 }
 
 .footer-text {
@@ -127,46 +78,6 @@ h3 {
     font-size: clamp(4px, 4vmin, 2em);
     text-shadow: black 0px 0px 10px;
     justify-content: space-between;
-}
-
-.display_level {
-    display: flex;
-    flex: 1;
-    gap: 10px;
-    padding: 5px;
-    overflow: auto;
-    flex-direction: column;
-    justify-content: space-between;
-}
-
-.container_main {
-    flex: 1;
-    border: 2px solid silver;
-    background: 0 #325;
-}
-
-.list_title {
-    display: inline-flex;
-    color: white;
-    padding: 10px;
-    font-weight: bold;
-    font-size: clamp(15px, 4vmin, 23px);
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.child_buttons {
-    display: inline-flex;
-    flex-wrap: wrap;
-    align-items: center;
-}
-
-.child+.list_title {
-    vertical-align: top;
-}
-
-.child.slider-item {
-    border-radius: 10px;
 }
 
 .last_update {
@@ -181,15 +92,248 @@ h3 {
     right: 5px;
 }
 
-.list_links {
-    font-size: 12px;
-    font-weight: normal;
-    display: inline-flex;
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: 100%;
-    white-space: normal;
+.center {
+    text-align: center;
 }
+
+
+/* ============================================
+   Main Layout Structure
+   ============================================ */
+
+.main_level {
+    display: flex;
+    position: relative;
+    height: 100vh;
+    background-size: cover;
+}
+
+.display_level {
+    display: flex;
+    flex: 1;
+    gap: 10px;
+    padding: 5px;
+    overflow: auto;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.admin_display {
+    margin: auto;
+    width: 99%;
+    height: 92%;
+}
+
+.admin_menu,
+.admin-menu {
+    display: flex;
+    padding: 10px;
+    text-align: center;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.container_main {
+    flex: 1;
+    border: 2px solid silver;
+    background: 0 #325;
+}
+
+.container_list {
+    border: 2px solid silver;
+    background: 0 #325;
+    width: 40%;
+    float: left;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.container_side {
+    min-width: 170px;
+    width: 16%;
+}
+
+.container_info {
+    background: lightCyan;
+    border: 2px solid silver;
+    height: 95%;
+}
+
+.container_actions {
+    background: lightCyan;
+    border: 2px solid silver;
+    padding: 5px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.container_actions button,
+.container_actions form {
+    display: contents;
+    margin: auto;
+}
+
+.container_list.expanded {
+    width: 0px !important;
+}
+
+.container_info.expanded,
+.container_actions.expanded {
+    width: 99% !important;
+}
+
+.bottom {
+    width: 100%;
+    height: 150px;
+}
+
+.flexsection {
+    flex: 1;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.flexsection_open {
+    rotate: 90deg;
+}
+
+.flexsection_contents {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.break {
+    white-space: nowrap;
+    clear: both;
+}
+
+.small_spacer {
+    height: 5vh;
+}
+
+
+/* ============================================
+   Logo & Branding
+   ============================================ */
+
+.mylogo {
+    height: 30%;
+    margin: 15px 0px;
+    max-height: 300px;
+    min-height: 70px;
+    width: 100%;
+    display: block;
+    text-align: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+
+/* ============================================
+   Absolute Positioning Helpers
+   ============================================ */
+
+.top-left {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 100;
+}
+
+.top-center {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    text-align: center;
+    z-index: 1;
+}
+
+.top-right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 100;
+}
+
+.middle-left {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    z-index: 100;
+    text-align: center;
+}
+
+.middle-center {
+    width: 100%;
+    text-align: center;
+    z-index: 1;
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: center;
+}
+
+.middle-right {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    z-index: 100;
+    text-align: center;
+}
+
+.bottom-left {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+}
+
+.bottom-center {
+    width: 100% !important;
+    text-align: center;
+    z-index: 1;
+}
+
+.bottom-right {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    z-index: 100;
+}
+
+
+/* ============================================
+   Visibility Utilities
+   ============================================ */
+
+.inactiveaccount {
+    display: none;
+}
+
+.visible {
+    display: inherit;
+}
+
+.hidden {
+    display: none;
+}
+
+.show_mobile,
+.show_tablet {
+    display: none;
+}
+
+
+/* ============================================
+   List Boxes & List Items
+   ============================================ */
 
 .list_box {
     display: flex;
@@ -201,7 +345,8 @@ h3 {
     align-items: center;
 }
 
-.list_box.activeaccount:hover, .selectablelist {
+.list_box.activeaccount:hover,
+.selectablelist {
     cursor: pointer;
 }
 
@@ -223,7 +368,7 @@ h3 {
     flex-direction: column;
 }
 
-.program_name+.list_box_item_right {
+.program_name + .list_box_item_right {
     width: 30%;
     display: inline-block;
 }
@@ -235,30 +380,71 @@ h3 {
     padding: 5px;
 }
 
+.list_box_item_full .list_title {
+    font-size: clamp(15px, 3vmin, 25px);
+}
+
+.list_title {
+    display: inline-flex;
+    color: white;
+    padding: 10px;
+    font-weight: bold;
+    font-size: clamp(15px, 4vmin, 23px);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.list_title.leftselector {
+    white-space: normal !important;
+    display: flex;
+}
+
+.list_links {
+    font-size: 12px;
+    font-weight: normal;
+    display: inline-flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+}
+
+.list_box.eventbutton {
+    width: initial;
+    color: white;
+    text-align: center;
+    font-size: 20px;
+    padding: 10px;
+}
+
+.child_buttons {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.child + .list_title {
+    vertical-align: top;
+}
+
+.document_list_item {
+    border: 1px solid silver;
+    background-color: whitesmoke;
+    padding: 10px;
+    margin: 5px;
+}
+
+
+/* ============================================
+   Status / State Colors
+   ============================================ */
+
 .emergency {
     background-color: darkred !important;
 }
 
 .primary {
     background-color: green !important;
-}
-
-.container_info {
-    background: lightCyan;
-    border: 2px solid silver;
-    height: 95%;
-}
-
-.infobox {
-    border-top: 2px solid black;
-    height: calc(50% - 20px);
-}
-
-.info_action-bar {
-    text-align: center;
-    white-space: nowrap;
-    margin: 10px;
-    z-index: 0;
 }
 
 .attending {
@@ -269,42 +455,6 @@ h3 {
     background-color: #00000029 !important;
 }
 
-.notifytab {
-    background: yellow;
-    border-radius: 10px 10px 0 0;
-    display:inline-flex;
-    font-size:2em;
-    align-items:center;
-    justify-content:center;
-    padding:10px;
-}
-
-.notify {
-    display: flex;
-    padding: 5px;
-    gap: 20px;
-    font-size: 2em;
-    color: black;
-    font-weight: bold;
-    background: yellow;
-    border-radius: 50px;
-    align-items: center;
-    justify-content: center;
-}
-
-.notify_tagonly .tag {
-    border-radius: 0px;
-    margin: 1px;
-    font-size: .85em;
-    border-radius: 0 0 5px 5px;
-}
-
-.notify_tagonly {
-    position: absolute;
-    right: 2px;
-    top: 0px;
-}
-
 .caution {
     background-color: #7a3333 !important;
 }
@@ -313,52 +463,52 @@ h3 {
     background-color: #701b1c !important;
 }
 
-.container_actions {
-    background: lightCyan;
-    border: 2px solid silver;
-    padding: 5px;
-    margin-bottom: 5px;
-    display: flex;
-    align-items: center;
+.expected-today {
+    background-color: #d8a610;
 }
 
-.container_actions button, .container_actions form {
-    display: contents;
-    margin: auto;
+.balance_good {
+    color: darkseagreen;
+    text-decoration: none;
 }
 
-.container_list {
-    border: 2px solid silver;
-    background: 0 #325;
-    width: 40%;
-    float: left;
-    height: 100%;
-    box-sizing: border-box;
+.balance_bad {
+    color: red;
+    font-weight: bold;
+    text-decoration: none;
 }
 
-.container_side {
-    min-width: 170px;
-    width: 16%;
+
+/* ============================================
+   Buttons – Base & Variants
+   ============================================ */
+
+button span {
+    white-space: nowrap;
 }
 
-.bottom {
-    width: 100%;
-    height: 150px;
+.button:hover {
+    opacity: .8;
 }
 
-.image_wrapper {
-    display: inline-block;
-    padding: 10px 2px;
-    min-height: 250px;
-    min-width: 250px;
-    width: 100%;
-    position: relative;
+.button:active {
+    background: 0 silver;
 }
 
-.image_caption {
-    position: absolute;
-    bottom: 0px;
-    width: 98%;
+.noaction:hover {
+    opacity: 1;
+    cursor: auto;
+}
+
+.selected_button {
+    background: 0 #485060 !important;
+    color: white;
+    font-weight: bold;
+}
+
+button.selected_button:hover {
+    color: silver;
+    font-weight: bold;
 }
 
 .inline-button {
@@ -376,29 +526,13 @@ h3 {
     color: inherit !important;
 }
 
-.calendar-day .inline-button {
-    margin: 2px;
-    border: 1px solid darkslategray;
-    padding: 5px !important;
-    background: #cbc8c8;
-}
-
 .inline-button a {
     color: white;
 }
 
-.inline-button a:link {
-    text-decoration: none;
-}
-
-.inline-button a:visited {
-    text-decoration: none;
-}
-
-.inline-button a:hover {
-    text-decoration: none;
-}
-
+.inline-button a:link,
+.inline-button a:visited,
+.inline-button a:hover,
 .inline-button a:active {
     text-decoration: none;
 }
@@ -416,57 +550,144 @@ h3 {
     vertical-align: text-bottom;
 }
 
-.slider-item {
-    width: 25vw;
-    height: 25vw;
-    max-width: 136px;
-    max-height: 136px;
-    min-width: 80px;
-    min-height: 80px;
-    border: none;
+.calendar-day .inline-button {
     margin: 2px;
-    background-color: whitesmoke;
+    border: 1px solid darkslategray;
+    padding: 5px !important;
+    background: #cbc8c8;
 }
 
-.child .ui-button-text {
-    padding: 0;
+.big_button {
+    font-size: clamp(30px, 6vmin, 40px) !important;
+    padding: .4em 1em !important;
+    margin: 10px;
+    font-weight: bold !important;
 }
 
-.slider-item-text {
-    top: inherit !important;
+.big_button.signinout {
+    margin: auto 0;
+}
+
+.big_confirm button {
+    padding: 10px 20px;
+}
+
+.bb_middle {
+    margin-top: -75px;
+}
+
+.upload-button {
+    background: 0 grey;
     color: white;
-    text-shadow: #2C2C2C 1px 1px 3px;
-    font-weight: bold;
-    position: relative;
 }
 
-.child_wrapper {
-    background: white;
-    display: inline-block;
-    padding: 2px;
-    margin: 4px;
+.upload-button:hover {
+    background: 0 silver;
+}
+
+.upload-button:active {
+    background: 0 darkgrey;
+}
+
+.buttoncontainer {
+    width: 49%;
     border: none;
 }
 
-.document_list_item {
+.buttonspacer {
+    background: transparent;
+    width: 1%;
+    border: none;
+}
+
+.topright_button,
+.topleft_button,
+.bottomleft_button {
+    font-size: clamp(15px, 5vmin, 30px);
+}
+
+.image_button {
+    display: inline-block;
+    padding: 0;
+    height: 3vw;
+    width: 3vw;
+    min-width: 35px;
+    min-height: 35px;
+    max-width: 40px;
+    max-height: 40px;
+}
+
+.image_button .ui-button-text {
+    padding: inherit !important;
+}
+
+.image_button svg:hover {
+    filter: brightness(.7);
+    position: relative;
+    top: 1px;
+    left: 1px;
+}
+
+.image_button img,
+.image_button svg {
+    width: 3vw;
+    height: 3vw;
+    min-width: 20px;
+    min-height: 20px;
+    max-width: 28px;
+    max-height: 28px;
+    vertical-align: middle;
+    margin: auto;
+}
+
+svg {
+    background: initial !important;
+}
+
+
+/* ============================================
+   Keypad Buttons
+   ============================================ */
+
+.keypad_button {
     border: 1px solid silver;
     background-color: whitesmoke;
     padding: 10px;
     margin: 5px;
+    float: left;
 }
 
-.button:hover {
-    opacity: .8;
+.keypad_button_big {
+    border: 1px solid silver;
+    background-color: whitesmoke;
+    width: 75px;
+    height: 75px;
+    margin: 5px;
 }
 
-.button:active {
-    background: 0 silver;
+.keypad_buttons {
+    font-size: 20px;
 }
 
-.noaction:hover {
-    opacity: 1;
-    cursor: auto;
+.alphabet_filter .keypad_buttons {
+    font-size: clamp(10px, 3vmin, 15px);
 }
+
+.alphabet_label {
+    display: inline-block;
+    width: 80px;
+    font-size: clamp(12px, 3vmin, 15px);
+}
+
+.admin_menu .keypad_buttons {
+    font-size: clamp(7px, 4vmin, 22px);
+    margin: 2px;
+}
+
+
+/* ============================================
+   Tags & Notes
+   ============================================ */
 
 .tag {
     border: 1px solid silver;
@@ -494,87 +715,134 @@ h3 {
     margin: 2px;
 }
 
-.keypad_button {
-    border: 1px solid silver;
-    background-color: whitesmoke;
+
+/* ============================================
+   Notifications
+   ============================================ */
+
+.notifytab {
+    background: yellow;
+    border-radius: 10px 10px 0 0;
+    display: inline-flex;
+    font-size: 2em;
+    align-items: center;
+    justify-content: center;
     padding: 10px;
-    margin: 5px;
-    float: left;
 }
 
-.keypad_button_big {
-    border: 1px solid silver;
-    background-color: whitesmoke;
-    width: 75px;
-    height: 75px;
-    margin: 5px;
+.notify {
+    display: flex;
+    padding: 5px;
+    gap: 20px;
+    font-size: 2em;
+    color: black;
+    font-weight: bold;
+    background: yellow;
+    border-radius: 50px;
+    align-items: center;
+    justify-content: center;
 }
 
-.list_box.eventbutton {
-    width: initial;
-    color: white;
+.notify_tagonly {
+    position: absolute;
+    right: 2px;
+    top: 0px;
+}
+
+.notify_tagonly .tag {
+    border-radius: 0px;
+    margin: 1px;
+    font-size: .85em;
+    border-radius: 0 0 5px 5px;
+}
+
+
+/* ============================================
+   Info Boxes & Action Bars
+   ============================================ */
+
+.infobox {
+    border-top: 2px solid black;
+    height: calc(50% - 20px);
+}
+
+.info_action-bar {
     text-align: center;
-    font-size: 20px;
-    padding: 10px;
-}
-
-.buttoncontainer {
-    width: 49%;
-    border: none;
-}
-
-.buttonspacer {
-    background: transparent;
-    width: 1%;
-    border: none;
-}
-
-.big_button {
-    font-size: clamp(30px, 6vmin, 40px) !important;
-    padding: .4em 1em !important;
+    white-space: nowrap;
     margin: 10px;
-    font-weight: bold !important;
+    z-index: 0;
 }
 
-.big_button.signinout {
-    margin: auto 0;
+
+/* ============================================
+   Child / Slider Items
+   ============================================ */
+
+.slider-item {
+    width: 25vw;
+    height: 25vw;
+    max-width: 136px;
+    max-height: 136px;
+    min-width: 80px;
+    min-height: 80px;
+    border: none;
+    margin: 2px;
+    background-color: whitesmoke;
 }
 
-.expected-today {
-    background-color: #d8a610;
+.child.slider-item {
+    border-radius: 10px;
 }
 
-.big_confirm button {
-    padding: 10px 20px;
+.child .ui-button-text {
+    padding: 0;
 }
 
-.bb_middle {
-    margin-top: -75px
-}
-
-.selected_button {
-    background: 0 #485060 !important;
+.slider-item-text {
+    top: inherit !important;
     color: white;
+    text-shadow: #2C2C2C 1px 1px 3px;
     font-weight: bold;
+    position: relative;
 }
 
-button.selected_button:hover {
-    color: silver;
-    font-weight: bold;
+.child_wrapper {
+    background: white;
+    display: inline-block;
+    padding: 2px;
+    margin: 4px;
+    border: none;
 }
 
-.upload-button {
-    background: 0 grey;
+.child_count {
+    text-align: center;
+    background: none;
+    color: lightGrey;
+    white-space: normal;
+    flex: 1;
+    text-shadow: black 1px 1px 3px;
+}
+
+.show_enrolled,
+.enrolled_count {
+    width: 100%;
+    white-space: normal;
+    line-height: 17px;
+    text-align: center;
+    background: none;
     color: white;
+    text-shadow: black 1px 1px 3px;
 }
 
-.upload-button:hover {
-    background: 0 silver;
+.enroll_data {
+    right: unset;
+    padding: 5px;
 }
 
-.upload-button:active {
-    background: 0 darkgrey;
-}
+
+/* ============================================
+   Blank / Checked Pic States
+   ============================================ */
 
 .blank_pic::before {
     font: var(--fa-font-solid);
@@ -618,127 +886,38 @@ button.selected_button:hover {
     color: yellow;
 }
 
-.checkinoutsplit {
-    display:flex;
-    flex: 1;
-    gap: 5px;
-}
 
-.loadingscreen {
-    background-image: url('../images/loading.gif');
-    background-repeat: no-repeat;
-    background-position: center;
-    background-color: rgba(0, 204, 255, 0.5);
-    opacity: 0.6;
-    filter: alpha(opacity=60);
-    /* For IE8 and earlier */
-    height: 100%;
-    width: 100%;
-    position: absolute;
-    left: 0;
-    top: 0;
-    z-index: 99999;
-}
+/* ============================================
+   Image Wrapper & Caption
+   ============================================ */
 
-/*Absolute positions*/
-
-.top-left {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 100;
-}
-
-.top-center {
-    position: absolute;
-    top: 0;
-    width: 100%;
-    text-align: center;
-    z-index: 1;
-}
-
-.top-right {
-    position: absolute;
-    top: 0;
-    right: 0;
-    z-index: 100;
-}
-
-.middle-left {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    z-index: 100;
-    text-align: center;
-}
-
-.middle-center {
-    width: 100%;
-    text-align: center;
-    z-index: 1;
-    display: flex;
-    flex: 1;
-    justify-content: center;
-    flex-wrap: wrap;
-    align-items: center;
-}
-
-.middle-right {
-    position: absolute;
-    top: 50%;
-    right: 0;
-    z-index: 100;
-    text-align: center;
-}
-
-.bottom-left {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    z-index: 100;
-}
-
-.bottom-center {
-    width: 100% !important;
-    text-align: center;
-    z-index: 1;
-}
-
-.bottom-right {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    z-index: 100;
-}
-
-.center {
-    text-align: center;
-}
-
-.inactiveaccount {
-    display: none;
-}
-
-.visible {
-    display: inherit;
-}
-
-.hidden {
-    display: none;
-}
-
-.cube {
-    width: 10px;
-    height: 10px;
+.image_wrapper {
     display: inline-block;
-    margin: 1px;
-    border: 1px solid silver;
+    padding: 10px 2px;
+    min-height: 250px;
+    min-width: 250px;
+    width: 100%;
+    position: relative;
 }
 
-.report-cubes-container {
-    display: inline-block;
-    text-align: left;
-    width: 80px;
+.image_caption {
+    position: absolute;
+    bottom: 0px;
+    width: 98%;
+}
+
+
+/* ============================================
+   Scroll Pane & Custom Scrollbar
+   ============================================ */
+
+.scroll-pane {
+    position: relative;
+}
+
+.scroll-pane .list_buttons {
+    zoom: 90%;
+    margin-left: 4px;
 }
 
 .scroll-content {
@@ -755,12 +934,8 @@ button.selected_button:hover {
     flex-wrap: wrap;
 }
 
-.scroll-content .scroll-pane>.scroll-content {
+.scroll-content .scroll-pane > .scroll-content {
     padding: 0px;
-}
-
-.scroll-pane {
-    position: relative;
 }
 
 .slider-wrap {
@@ -794,7 +969,7 @@ button.selected_button:hover {
 }
 
 .ui-slider-handle img {
-    border: none
+    border: none;
 }
 
 .scrollbar-top {
@@ -810,6 +985,31 @@ button.selected_button:hover {
 .scrollbar-grip {
     position: absolute;
     top: 50%;
+}
+
+
+/* ============================================
+   Selectable Lists (jQuery UI)
+   ============================================ */
+
+.selectable {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    width: 400%;
+}
+
+.selectable li {
+    margin: 3px;
+    padding: 15px;
+    font-size: 1em;
+    font-weight: bold;
+    height: 18px;
+}
+
+.selectable li:hover {
+    background-color: whitesmoke;
+    cursor: pointer;
 }
 
 .selectable .ui-selecting {
@@ -848,11 +1048,6 @@ li.ui-widget-content.ui-selectee.ui-selected {
     color: white;
 }
 
-.ui-keyboard-input {
-    width: 80%;
-    background: white !important;
-}
-
 .list_of_contacts li {
     height: auto !important;
     display: flex;
@@ -867,31 +1062,53 @@ li.ui-widget-content.ui-selectee.ui-selected {
     background: initial !important;
 }
 
-.selectable {
+
+/* ============================================
+   Sortable List
+   ============================================ */
+
+#sortable {
     list-style-type: none;
     margin: 0;
     padding: 0;
-    width: 400%;
 }
 
-.selectable li {
-    margin: 3px;
-    padding: 15px;
-    font-size: 1em;
-    font-weight: bold;
+#sortable li {
+    margin: 0 3px 3px 3px;
+    padding: 0.4em;
+    font-size: 10px;
+    padding-left: 1.5em;
     height: 18px;
 }
 
-.selectable li:hover {
-    background-color: whitesmoke;
-    cursor: pointer;
+#sortable li span {
+    position: absolute;
+    margin-left: -1.3em;
 }
 
-.invoice_week, .invoice_payments, .invoice_bills {
-    padding: 5px;
+
+/* ============================================
+   Report Cubes
+   ============================================ */
+
+.cube {
+    width: 10px;
+    height: 10px;
+    display: inline-block;
+    margin: 1px;
+    border: 1px solid silver;
 }
 
-/* calendar */
+.report-cubes-container {
+    display: inline-block;
+    text-align: left;
+    width: 80px;
+}
+
+
+/* ============================================
+   Calendar
+   ============================================ */
 
 table.calendar {
     border-left: 1px solid #999;
@@ -944,6 +1161,18 @@ td.calendar-day-head {
     border-right: 1px solid #999;
 }
 
+td.calendar-day,
+td.calendar-day-np {
+    font-size: 9px;
+    word-wrap: break-word;
+    vertical-align: top;
+    padding: 5px;
+    padding-top: 0px;
+    border-bottom: 1px solid #999;
+    border-right: 1px solid #999;
+    height: 80px;
+}
+
 div.day-number {
     background: #999;
     padding: 5px;
@@ -971,19 +1200,6 @@ div.day-add a {
     color: white;
 }
 
-/* shared */
-
-td.calendar-day, td.calendar-day-np {
-    font-size: 9px;
-    word-wrap: break-word;
-    vertical-align: top;
-    padding: 5px;
-    padding-top: 0px;
-    border-bottom: 1px solid #999;
-    border-right: 1px solid #999;
-    height: 80px;
-}
-
 .dayheader {
     display: flex;
     justify-content: flex-end;
@@ -994,6 +1210,11 @@ td.calendar-day, td.calendar-day-np {
     margin-bottom: 10px;
 }
 
+
+/* ============================================
+   Forms & Inputs
+   ============================================ */
+
 .fields {
     padding: .4em;
 }
@@ -1003,103 +1224,37 @@ td.calendar-day, td.calendar-day-np {
     padding: 0.4em;
 }
 
-.image_button .ui-button-text {
-    padding: inherit !important;
+.ui-keyboard-input {
+    width: 80%;
+    background: white !important;
 }
 
-.image_button {
-    display: inline-block;
-    padding: 0;
-    height: 3vw;
-    width: 3vw;
-    min-width: 35px;
-    min-height: 35px;
-    max-width: 40px;
-    max-height: 40px;
+.cid.keyboard input {
+    width: 85% !important;
+    font-size: 18px;
+    margin: 0px 0px 0px 25px;
+    background-color: white;
 }
 
-.image_button svg:hover {
-    filter: brightness(.7);
-    position: relative;
-    top: 1px;
-    left: 1px;
+.draggable {
+    cursor: move;
 }
 
-svg {
-    background: initial !important;
+
+/* ============================================
+   Check-in / Sign-in UI
+   ============================================ */
+
+.checkinoutsplit {
+    display: flex;
+    flex: 1;
+    gap: 5px;
 }
 
-.image_button img, .image_button svg {
-    width: 3vw;
-    height: 3vw;
-    min-width: 20px;
-    min-height: 20px;
-    max-width: 28px;
-    max-height: 28px;
-    vertical-align: middle;
-    margin: auto;
-}
-
-#sortable {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-}
-
-#sortable li {
-    margin: 0 3px 3px 3px;
-    padding: 0.4em;
-    font-size: 10px;
-    padding-left: 1.5em;
-    height: 18px;
-}
-
-#sortable li span {
-    position: absolute;
-    margin-left: -1.3em;
-}
-
-#clock .digits div.zero .d1, #clock .digits div.zero .d3, #clock .digits div.zero .d4, #clock .digits div.zero .d5, #clock .digits div.zero .d6, #clock .digits div.zero .d7 {
-    opacity: 1;
-}
-
-.container_list.expanded {
-    width: 0px !important;
-}
-
-.container_info.expanded, .container_actions.expanded {
-    width: 99% !important;
-}
-
-.balance_good {
-    color: darkseagreen;
-    text-decoration: none;
-}
-
-.balance_bad {
-    color: red;
-    font-weight: bold;
-    text-decoration: none;
-}
-
-.topright_button {
-    font-size: clamp(15px, 5vmin, 30px);
-}
-
-.topleft_button {
-    font-size: clamp(15px, 5vmin, 30px);
-}
-
-.bottomleft_button {
-    font-size: clamp(15px, 5vmin, 30px);
-}
-
-.small_spacer {
-    height: 5vh;
-}
-
-.keypad_buttons {
-    font-size: 20px;
+.signintopbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
 }
 
 .go_home {
@@ -1112,19 +1267,9 @@ svg {
     font-size: clamp(7px, 4vmin, 22px);
 }
 
-.alphabet_filter .keypad_buttons {
-    font-size: clamp(10px, 3vmin, 15px);
-}
-
-.alphabet_label {
-    display: inline-block;
-    width: 80px;
-    font-size: clamp(12px, 3vmin, 15px);
-}
-
-.admin_menu .keypad_buttons {
-    font-size: clamp(7px, 4vmin, 22px);
-    margin: 2px;
+.topcornerbuttons,
+.topcornerbuttons button {
+    width: 190px;
 }
 
 .select_buttons_div {
@@ -1157,96 +1302,21 @@ svg {
     text-shadow: black 0px 0px 10px;
 }
 
-.cid.keyboard input {
-    width:85% !important;
-    font-size: 18px;
-    margin:0px 0px 0px 25px;
-    background-color:white;
-}
-
-.child_count {
-    text-align: center;
-    background: none;
-    color: lightGrey;
-    white-space: normal;
-    flex: 1;
-    text-shadow: black 1px 1px 3px;
-}
-
-.show_enrolled, .enrolled_count {
-    width: 100%;
-    white-space: normal;
-    line-height: 17px;
-    text-align: center;
-    background: none;
-    color: white;
-    text-shadow: black 1px 1px 3px;
-}
-
-.enroll_data {
-    right: unset;
-    padding: 5px;
-}
-
-.billing_info {
-    padding: 8px;
-    right: unset;
-    background-color: #00000088;
-}
-
 .contact_select_at_checkout {
-    width: 60%
+    width: 60%;
 }
 
-.primary_contact, .emergency_contact {
+.primary_contact,
+.emergency_contact {
     display: inline-flex;
     gap: 10px;
     align-items: center;
 }
 
-.show_mobile, .show_tablet {
-    display: none;
-}
 
-.list_box_item_full .list_title {
-    font-size: clamp(15px, 3vmin, 25px);
-}
-
-.list_title.leftselector {
-    white-space: normal !important;
-    display: flex;
-}
-
-.invoice_week div, .invoice_payments div, .invoice_bills div {
-    white-space: normal;
-}
-
-.week_receipt {
-    margin: 5px;
-    vertical-align: top;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.week_receipt span {
-    display: inline-block;
-    margin: 0 10px;
-}
-
-.refresh_timecard img {
-    height: 15px;
-    width: 15px;
-}
-
-.refresh_timecard {
-    text-align: center;
-    display: block;
-}
-
-.refresh_timecard:hover {
-    cursor: pointer;
-}
+/* ============================================
+   Employee / Timecard
+   ============================================ */
 
 .employee_wrapper {
     display: inline-block;
@@ -1273,6 +1343,20 @@ svg {
     display: block;
 }
 
+.refresh_timecard {
+    text-align: center;
+    display: block;
+}
+
+.refresh_timecard img {
+    height: 15px;
+    width: 15px;
+}
+
+.refresh_timecard:hover {
+    cursor: pointer;
+}
+
 .paystub {
     text-align: center;
     background-color: lightgrey;
@@ -1282,20 +1366,101 @@ svg {
     border: 1px solid grey;
 }
 
-.flexsection {
-    flex: 1;
-    width: 100%;
-    box-sizing: border-box;
-}
-.flexsection_open {
-    rotate: 90deg;
-}
-.flexsection_contents {
-    width: 100%;
-    box-sizing: border-box;
-}
-/* tablet devices (tablets, 850px and down) */
 
+/* ============================================
+   Billing / Invoice
+   ============================================ */
+
+.billing_info {
+    padding: 8px;
+    right: unset;
+    background-color: #00000088;
+}
+
+.invoice_week,
+.invoice_payments,
+.invoice_bills {
+    padding: 5px;
+}
+
+.invoice_week div,
+.invoice_payments div,
+.invoice_bills div {
+    white-space: normal;
+}
+
+.week_receipt {
+    margin: 5px;
+    vertical-align: top;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.week_receipt span {
+    display: inline-block;
+    margin: 0 10px;
+}
+
+
+/* ============================================
+   Loading Screen
+   ============================================ */
+
+.loadingscreen {
+    background-image: url('../images/loading.gif');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: rgba(0, 204, 255, 0.5);
+    opacity: 0.6;
+    filter: alpha(opacity=60); /* For IE8 and earlier */
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 99999;
+}
+
+
+/* ============================================
+   Clock Digits
+   ============================================ */
+
+#clock .digits div.zero .d1,
+#clock .digits div.zero .d3,
+#clock .digits div.zero .d4,
+#clock .digits div.zero .d5,
+#clock .digits div.zero .d6,
+#clock .digits div.zero .d7 {
+    opacity: 1;
+}
+
+
+/* ============================================
+   CSS Migration: neutralize float/height when grid admin is active
+   ============================================ */
+
+.admin_main_layout.layout-grid-admin > .container_list {
+    float: none;
+    width: auto;
+    height: auto;
+}
+
+.admin_main_layout.layout-grid-admin > .container_info {
+    height: auto;
+}
+
+.admin_main_layout.layout-grid-admin > .container_list.expanded {
+    width: 0 !important;
+}
+
+
+/* ============================================
+   Media Queries
+   ============================================ */
+
+/* Tablets / medium screens (850px and down) */
 @media only screen and (max-width: 850px) {
     .main_account_actions {
         width: 100%;
@@ -1303,6 +1468,7 @@ svg {
         white-space: pre-wrap;
         text-align: center;
     }
+
     .enroll_data {
         display: block;
         text-align: center;
@@ -1311,103 +1477,122 @@ svg {
         left: initial;
         text-align: center;
     }
+
     .show_enrolled {
         width: 100%;
     }
+
     .calendar-day-head .abb_full {
         display: none;
     }
+
     .calendar-day-head .abb_half {
         display: inline;
     }
+
     .calendar-day-head .abb_min {
         display: none;
     }
+
     .container_list.scroll-pane {
         width: 45%;
     }
+
     .hide_tablet {
         display: none !important;
     }
+
     .show_tablet {
         display: initial;
     }
 }
 
-/* Very large phones (phones, 700px and down) */
-
+/* Large phones (700px and down) */
 @media only screen and (max-width: 700px) {
     .admin_display .container_list:first-of-type {
         width: 100%;
         height: 28vh;
     }
-}
 
-/* Large phones (phones, 600px and down) */
-
-@media only screen and (max-width: 600px) {
-    .admin_display .container_list:first-of-type {
-        width: 100%;
-        height: 28vh;
-    }
-    .employee_button, .admin_button, .topleft_button {
+    .employee_button,
+    .admin_button,
+    .topleft_button {
         zoom: 1;
     }
+
     #clock {
         display: none;
     }
+
     .big_button {
         min-width: initial;
         min-height: initial;
     }
+
     .big_button.signinout {
         margin: 10px !important;
     }
+
     .billing_info {
         padding: 2px;
     }
+
     .mylogo {
         height: 25%;
         margin: auto;
     }
+
     .small_spacer {
         height: 8vmax;
     }
+
     .alphabet_filter {
         visibility: hidden;
         height: 6.5vmax;
     }
-    .select_buttons, .submit_buttons {
+
+    .select_buttons,
+    .submit_buttons {
         font-size: clamp(15px, 4vmin, 20px);
         margin: 2px;
     }
+
     .admin_menu .keypad_buttons {
         margin: 2px;
     }
+
     .contact_select_at_checkout {
         width: 30%;
     }
+
     .child_wrapper .child.noaction {
-           display: block !important;
+        display: block !important;
     }
+
     .child_wrapper .child:not(.noaction) {
         zoom: .7;
     }
+
     .child.noaction {
         display: none;
     }
+
     .list_links {
         width: 90vw;
     }
+
     .list_title {
         padding: 3px;
     }
+
     .list_box_item_left.list_title {
         padding: 10px 10px 0px;
     }
+
     .scroll-pane .list_buttons {
         zoom: 80%;
     }
+
     .list_box_item_right {
         display: block;
         width: 100%;
@@ -1415,113 +1600,118 @@ svg {
         right: initial;
         text-align: center;
     }
-    .account_name, .employee_name {
+
+    .account_name,
+    .employee_name {
         width: 100%;
         display: block;
     }
+
     .child_count {
         display: block;
         width: 100%;
     }
+
     .main_account_actions {
         width: 100%;
         display: block;
         white-space: pre-wrap;
     }
+
     .calendar-day-head .abb_full {
         display: none;
     }
+
     .calendar-day-head .abb_half {
         display: none;
     }
+
     .calendar-day-head .abb_min {
         display: inline;
     }
+
     .selectable li {
         padding: 10px;
     }
+
     .selectable .ui-selected {
         background-size: 10px;
     }
-    .primary_contact, .emergency_contact {
+
+    .primary_contact,
+    .emergency_contact {
         display: none;
     }
+
     .selectable .ui-selectee {
         white-space: normal;
         font-size: .7em;
     }
+
     .optional_questions {
-        width: calc(35% - 20px)
+        width: calc(35% - 20px);
     }
+
     .contact_headers {
         width: calc(60% - 20px);
     }
+
     .container_list.scroll-pane {
         width: 30%;
     }
-    .hide_mobile, .hide_tablet {
+
+    .hide_mobile,
+    .hide_tablet {
         display: none !important;
     }
+
     .show_mobile {
         display: initial;
     }
+
     .ui-button {
         padding: 6px;
     }
+
     .document_list_item .list_box {
         padding: 3px;
     }
+
     .document_list_item td {
         display: flex;
         width: 100%;
         white-space: normal;
     }
-    .invoice_week, .invoice_payments, .invoice_bills {
+
+    .invoice_week,
+    .invoice_payments,
+    .invoice_bills {
         padding: 3px !important;
         font-size: .9em !important;
     }
-    .invoice_week span, .invoice_payments span, .invoice_bills span {
+
+    .invoice_week span,
+    .invoice_payments span,
+    .invoice_bills span {
         float: none !important;
     }
+
     .calendar td {
         display: table;
         width: 99%;
     }
-    .calendar-day-head, .calendar-day-np {
+
+    .calendar-day-head,
+    .calendar-day-np {
         display: none !important;
     }
+
     table.calendar {
         border: none;
     }
 }
 
-/* Extra small devices (phones, 360px and down) */
-
-@media only screen and (max-width: 300px) {
-    .ui-dialog {
-        width: 100% !important;
-        zoom: 1 !important;
-        left: 0 !important;
-        top: 0 !important;
-    }
-}
-
-/* Extra small devices (phones, 290px and down) */
-
-@media only screen and (max-width: 300px) and (max-height: 530px) {
-    .keypad_button_big {
-        width: 60px;
-        height: 60px;
-    }
-}
-
-@media only screen and (max-width: 360px) {
-    .keypad_button_big {
-        width: 75px;
-        height: 75px;
-    }
-}
-
+/* Short height (530px and down) */
 @media only screen and (max-height: 530px) {
     .keypad_button_big {
         width: 60px;
@@ -1529,15 +1719,89 @@ svg {
     }
 }
 
-/* ---- CSS migration: neutralize float/height when grid admin is active ---- */
-.admin_main_layout.layout-grid-admin > .container_list {
-    float: none;
-    width: auto;
-    height: auto;
+/* Extra small phones + short height */
+@media only screen and (max-width: 300px) and (max-height: 530px) {
+    .keypad_button_big {
+        width: 60px;
+        height: 60px;
+    }
 }
-.admin_main_layout.layout-grid-admin > .container_info {
-    height: auto;
+
+/* Narrow + short screens */
+@media only screen and (max-width: 540px) and (max-height: 345px) {
+    .topcornerbuttons,
+    .topcornerbuttons button {
+        width: 95px;
+    }
+
+    .mylogo {
+        display: none;
+    }
 }
-.admin_main_layout.layout-grid-admin > .container_list.expanded {
-    width: 0 !important;
+
+@media only screen and (max-width: 480px) and (max-height: 370px) {
+    .topcornerbuttons,
+    .topcornerbuttons button {
+        width: 95px;
+    }
+}
+
+@media only screen and (max-width: 480px) {
+    .topcornerbuttons,
+    .topcornerbuttons button {
+        width: 120px;
+    }
+}
+
+@media only screen and (max-width: 480px) and (max-height: 420px) {
+    .big_button.signinout {
+        font-size: 23px !important;
+    }
+}
+
+@media only screen and (max-width: 360px) {
+    .topcornerbuttons,
+    .topcornerbuttons button {
+        width: 95px;
+    }
+
+    .keypad_button_big {
+        width: 75px;
+        height: 75px;
+    }
+}
+
+/* Very short height */
+@media only screen and (max-height: 345px) {
+    #clock {
+        display: none;
+    }
+
+    .display_level {
+        gap: 5px;
+    }
+
+    .mylogo {
+        margin: 5px 0;
+    }
+
+    .signintopbar {
+        position: absolute;
+        width: calc(100vw - 10px);
+        z-index: 100;
+    }
+
+    .middle-center {
+        align-content: flex-end;
+    }
+}
+
+/* Extra small devices (300px and down) */
+@media only screen and (max-width: 300px) {
+    .ui-dialog {
+        width: 100% !important;
+        zoom: 1 !important;
+        left: 0 !important;
+        top: 0 !important;
+    }
 }

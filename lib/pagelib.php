@@ -336,7 +336,7 @@ function get_numpad($aid = "\'\'", $admin = "false", $type = "\'\'", $display = 
     return '
     <div id="' . $id . '" title="' . $admin_text . '" style="display:none;text-align:center;padding:.5em .5em;">
         <form onsubmit="return false;">
-            <label for="password">Password</label>
+            <label for="' . $id . '_password">Password</label>
             <input autocomplete="off" size="4" maxlength="4" type="password" disabled name="' . $id . '_password" id="' . $id . '_password" value="" class="text ui-widget-content ui-corner-all" style="text-align: center;font-size:3em;width:225px;max-width: 85vw;box-sizing: border-box;padding:0px 10px;" />
             <button type="button" onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">1</span></button>
             <button type="button" onclick="' . $buttonaction . '" class="keypad_button_big ui-corner-all" ><span class="keypad">2</span></button>

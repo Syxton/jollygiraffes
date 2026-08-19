@@ -121,7 +121,7 @@ function refresh_all() {
         $(".scroll-pane").sbscroller("refresh");
         smart_scrollbars();
     },
-    50);
+    100);
 }
 
 function refresh_tags_editor() {
@@ -283,7 +283,8 @@ function numpad(id) {
     var thisdialog = $('#' + id);
     $('#' + id).dialog({
         height: 555,
-        width: 290,
+        maxheight: 100,
+        width: 295,
         resizable: false,
         draggable: false,
         modal: true,

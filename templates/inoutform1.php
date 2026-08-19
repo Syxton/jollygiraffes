@@ -2,7 +2,7 @@
 <input type="hidden" id="askme" value="1" />
 <?php echo $alphabet; ?>
 <div style="clear:both;"></div>
-<div class="container_main scroll-pane ui-corner-all fill_height_middle layout-flex">
+<div class="container_main scroll-pane ui-corner-all layout-flex">
     <?php echo $children; ?>
 </div>
 <div class="bottom center ui-corner-all">

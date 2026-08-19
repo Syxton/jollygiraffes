@@ -139,6 +139,7 @@ h3 {
 }
 
 .container_main {
+    flex: 1;
     border: 2px solid silver;
     background: 0 #325;
 }
@@ -267,13 +268,25 @@ h3 {
     background-color: #00000029 !important;
 }
 
+.notifytab {
+    background: yellow;
+    border-radius: 10px 10px 0 0;
+    display:inline-flex;
+    font-size:2em;
+    align-items:center;
+    justify-content:center;
+    padding:10px;
+}
+
 .notify {
     display: flex;
     padding: 5px;
+    gap: 20px;
     font-size: 2em;
     color: black;
     font-weight: bold;
     background: yellow;
+    border-radius: 50px;
     align-items: center;
     justify-content: center;
 }
@@ -662,7 +675,11 @@ button.selected_button:hover {
     width: 100%;
     text-align: center;
     z-index: 1;
-    height: 40%;
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .middle-right {
@@ -1446,11 +1463,6 @@ svg {
     .ui-button {
         padding: 6px;
     }
-    .keypad_button_big {
-        width: 50px;
-        height: auto;
-        aspect-ratio: 1 / 1;
-    }
     .document_list_item .list_box {
         padding: 3px;
     }
@@ -1480,7 +1492,7 @@ svg {
 
 /* Extra small devices (phones, 360px and down) */
 
-@media only screen and (max-width: 360px) {
+@media only screen and (max-width: 300px) {
     .ui-dialog {
         width: 100% !important;
         zoom: 1 !important;
@@ -1491,13 +1503,26 @@ svg {
 
 /* Extra small devices (phones, 290px and down) */
 
-@media only screen and (max-width: 290px) {
+@media only screen and (max-width: 300px) and (max-height: 530px) {
     .keypad_button_big {
-        width: 55px;
-        height: 55px;
+        width: 60px;
+        height: 60px;
     }
 }
 
+@media only screen and (max-width: 360px) {
+    .keypad_button_big {
+        width: 75px;
+        height: 75px;
+    }
+}
+
+@media only screen and (max-height: 530px) {
+    .keypad_button_big {
+        width: 60px;
+        height: 60px;
+    }
+}
 
 /* ---- CSS migration: neutralize float/height when grid admin is active ---- */
 .admin_main_layout.layout-grid-admin > .container_list {

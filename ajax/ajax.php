@@ -429,6 +429,7 @@ function check_in_out($chids, $cid, $type, $time = false) {
                     $notified[] = $child["aid"];
                 }
                 $notify .= get_notifications($pid, $chid["value"], false, true);
+                echo $notify;
             }
         }
     }
@@ -439,18 +440,26 @@ function check_in_out($chids, $cid, $type, $time = false) {
 
     $wait = empty($notify) ? "6000" : "15000"; // if there are notifications, give them more time to read
 
-    $returnme .= $bday . '<div class="heading" style="margin:0px 10px;"><h1>Checked ' . ucwords($type) . ' on ' . $readabletime . ' by ' . $contact . '</h1>' . $remaining_balance . '</div>
-                 <div class="container_main scroll-pane ui-corner-all fill_height_middle layout-flex">' . $content . '</div>';
+    $returnme .= $bday . '
+    <div class="heading" style="margin:0px 10px;">
+        <h1>
+            Checked ' . ucwords($type) . ' on ' . $readabletime . ' by ' . $contact . '
+        </h1>
+        ' . $remaining_balance . '
+    </div>
+    <div class="container_main scroll-pane ui-corner-all layout-flex">
+    ' . $content . '
+    </div>';
 
     if ($type == "out" && !empty($notify)) {
         $returnme .= '
             <div class="bottom center ui-corner-all">
-                <span style="display:inline-flex;font-size:2em;align-items:center;justify-content:center;padding:10px;">
+                <div class="notifytab">
                     ' . icon("circle-exclamation") . '
                     <span style="padding-left: 10px;">
                         <strong>Attention</strong>
                     </span>
-                </span>
+                </div>
                 ' . $notify . '
             </div>';
     }
@@ -472,8 +481,9 @@ function get_notifications($pid, $chid = false, $aid = false, $separate = false,
         $aid = get_db_field("aid", "children", "chid = ||chid||", ["chid" => $chid]);
     }
 
-    $daykey = date("Ynj", get_timestamp($CFG->timezone));
     $offset = get_offset($CFG->servertz);
+    $daykey = date("Ynj", get_timestamp($CFG->timezone) + $offset);
+
     $vars = ["pid" => $pid, "chid" => $chid, "aid" => $aid, "daykey" => $daykey, "offset" => $offset];
 
     if (empty($separate)) { // any combine notifications?
@@ -3100,7 +3110,19 @@ function get_documents_list($return = false, $aid = null, $chid = null, $cid = n
             function(){});';
 
             $identifier = time() . "documents_" . $document["did"];
-            $tag        = get_db_row("SELECT * FROM documents_tags WHERE tag='" . $document["tag"] . "'");
+            $tag        = get_db_row("SELECT * FROM documents_tags WHERE tag = ||tag||", false, ["tag" => $document["tag"]]);
+            if (!$tag) { // If no tag is found, set some defaults.
+                $tag = [
+                    'textcolor' => 'silver',
+                    'title' => $document['tag'],
+                    'color' => 'black',
+                ];
+            }
+
+            if (empty($document["description"])) {
+                $document["description"] = $document["filename"];
+            }
+
             $returnme .= get_form("attach_doc", [
                 "did"         => $document["did"],
                 "chid"        => $chid,
@@ -3544,7 +3566,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
     if ($accounts = get_db_result("SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid = ||pid||)) ORDER BY name", ["pid" => $pid])) {
         $i = 0;
         while ($account = fetch_row($accounts)) {
-            $kid_count       = get_db_count("SELECT * FROM children WHERE aid='" . $account["aid"] . "' AND deleted='0'");
+            $kid_count       = get_db_count("SELECT * FROM children WHERE aid = ||aid|| AND deleted = '0'", ["aid" => $account["aid"]]);
             $selected_class  = $aid && $aid == $account["aid"] || ($pid && !$aid && $i == 0) ? "selected_button" : "";
             $aid             = $selected_class == "selected_button" ? $account["aid"] : $aid;
             $account_balance = account_balance($pid, $account["aid"], true);
@@ -4376,7 +4398,7 @@ function view_required_notes_form($pid = false, $evid = false) {
                                 }
                             } ); $(\'#sortable\').disableSelection(); }
             });}, function(){})">Delete</button>';
-            $question_type = get_db_row("SELECT nid FROM notes WHERE rnid='" . $event["rnid"] . "'") ? '<input class="fields" type="hidden" name="question_type" id="question_type" value="' . $event["question_type"] . '" />' . $event["question_type"] : make_select_from_object("question_type", get_note_type_array(), "id", "name", "fields", $event["question_type"]);
+            $question_type = get_db_row("SELECT nid FROM notes WHERE rnid = ||rnid||", false, ["rnid" => $event["rnid"]]) ? '<input class="fields" type="hidden" name="question_type" id="question_type" value="' . $event["question_type"] . '" />' . $event["question_type"] : make_select_from_object("question_type", get_note_type_array(), "id", "name", "fields", $event["question_type"]);
             $notes_list .= '<li id="' . $event["rnid"] . '" class="ui-state-default"><input class="fields" type="hidden" name="rnid" value="' . $event["rnid"] . '" /><span class="draggable ui-icon ui-icon-arrowthick-2-n-s"></span>&nbsp;&nbsp;Title: <input class="fields" type="text" name="title" id="title" value="' . $event["title"] . '" />&nbsp;&nbsp;Type: ' . $question_type . '<span style="float:right;position: initial;">' . $delete . ' ' . $save . '</span></li>';
         }
         $notes_list .= '</ul>';

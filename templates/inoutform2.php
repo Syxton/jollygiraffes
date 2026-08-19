@@ -1,14 +1,14 @@
 <?php echo $numpads; ?>
 <?php echo go_home_button(); ?>
 <div class="checkinoutsplit">
-    <div class="list_of_children container_main scroll-pane ui-corner-all fill_height_middle contact_select_at_checkout layout-flex">
+    <div class="list_of_children container_main scroll-pane ui-corner-all contact_select_at_checkout layout-flex">
         <?php echo $children; ?>
     </div>
     <div style="display:flex;flex-direction:column;">
         <div class="contact_headers">
             Who is checking them <?php echo $type; ?>?
         </div>
-        <div class="list_of_contacts container_main scroll-pane ui-corner-all fill_height_middle layout-flex">
+        <div class="list_of_contacts container_main scroll-pane ui-corner-all layout-flex">
             <?php echo $contacts; ?>
         </div>
     </div>

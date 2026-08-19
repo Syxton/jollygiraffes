@@ -701,7 +701,7 @@ switch ($report) {
         $sql_vars["aid"] = $aid;
         $SQL = "SELECT * FROM billing_payments WHERE pid = ||pid|| AND aid = ||aid|| $timesql ORDER BY timelog,payid";
         if ($payments = get_db_result($SQL, $sql_vars)) {
-            $totalpaid = get_db_field("SUM(payment)", "billing_payments", "pid='$pid' AND aid='$aid' $timesql");
+            $totalpaid = get_db_field("SUM(payment)", "billing_payments", "pid = ||pid|| AND aid = ||aid|| $timesql", $sql_vars);
             $totalpaid = empty($totalpaid) ? "0.00" : $totalpaid;
             $returnme .= '<div style="font-size:16px;"><strong>Payments</strong></div>
                             <div style="padding: 5px;">';
@@ -734,7 +734,7 @@ switch ($report) {
                         </div>
                     </div>';
             }
-            $totalowed = get_db_field("SUM(owed)", "billing", "pid='$pid' AND aid='$aid' $timesql2");
+            $totalowed = get_db_field("SUM(owed)", "billing", "pid = ||pid|| AND aid = ||aid|| $timesql2", $sql_vars);
             $totalowed = empty($totalowed) ? "0.00" : $totalowed;
             $balance   = $totalowed - $totalpaid;
             $returnme .= '
@@ -1047,10 +1047,11 @@ switch ($report) {
             $balance = [];
             $totalpaid = $totalowed = $totalwages = $totalexpenses = $totaldonations = 0;
             while ($week = fetch_row($weeks)) {
-                $paid = get_db_field("SUM(payment)", "billing_payments", "pid='$id' AND aid > 0 AND payment > 0 AND timelog >= " . $week["fromdate"] . " AND timelog < " . $week["todate"]);
-                $fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$id' AND aid > 0 AND payment < 0 AND timelog >= " . $week["fromdate"] . " AND timelog < " . $week["todate"]));
-                $donations = get_db_field("SUM(payment)", "billing_payments", "pid='$id' AND aid = 0 AND payment > 0 AND timelog >= " . $week["fromdate"] . " AND timelog < " . $week["todate"]);
-                $expenses = abs(get_db_field("SUM(payment)", "billing_payments", "pid='$id' AND aid = 0 AND payment < 0 AND timelog >= " . $week["fromdate"] . " AND timelog < " . $week["todate"]));
+                $week_vars = ["id" => $id, "wfrom" => $week["fromdate"], "wto" => $week["todate"]];
+                $paid = get_db_field("SUM(payment)", "billing_payments", "pid = ||id|| AND aid > 0 AND payment > 0 AND timelog >= ||wfrom|| AND timelog < ||wto||", $week_vars);
+                $fee = abs(get_db_field("SUM(payment)", "billing_payments", "pid = ||id|| AND aid > 0 AND payment < 0 AND timelog >= ||wfrom|| AND timelog < ||wto||", $week_vars));
+                $donations = get_db_field("SUM(payment)", "billing_payments", "pid = ||id|| AND aid = 0 AND payment > 0 AND timelog >= ||wfrom|| AND timelog < ||wto||", $week_vars);
+                $expenses = abs(get_db_field("SUM(payment)", "billing_payments", "pid = ||id|| AND aid = 0 AND payment < 0 AND timelog >= ||wfrom|| AND timelog < ||wto||", $week_vars));
                 $wages = get_wages_for_week($week["fromdate"]);
 
                 $totalpaid += $paid;

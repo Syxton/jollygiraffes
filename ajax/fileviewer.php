@@ -41,9 +41,7 @@ if (!empty($did)) {
 // same as status_can_access_document treats it - activities aren't tied to one family.
 
 $document = get_db_row("SELECT * FROM documents WHERE did='$did'");
-$returnme = '<div style="left: 47.5%;position: fixed;display: block;top: 0;z-index: 100;"><button onclick="$(\'.printthis\').print();">PRINT</button></div><div id="printthis" class="printthis" style="text-align:center;position:absolute;">';
-
-$returnme .= '<script type="text/javascript">';
+$returnme = '<div style="left: 47.5%;position: fixed;display: block;top: 0;z-index: 100;"><button onclick="$(".printthis").print();">PRINT</button></div><div id="printthis" class="printthis" style="text-align:center;position:absolute;">';
 
 if (!empty($did)) {
     $documents = get_db_result("SELECT * FROM documents WHERE did='$did'");
@@ -72,34 +70,33 @@ if (!empty($did)) {
     }
 }
 
+$returnme .= '<script type="text/javascript">';
 if ($documents) {
     while ($document = fetch_row($documents)) {
         $returnme .= '
         $(function () {
           var img = new Image();
-
           // wrap our new image in jQuery, then:
           $(img)
             // once the image has loaded, execute this code
-            .load(function () {
+            .on("load", function () {
               // set the image hidden by default
-              $(this).hide();
-              $(this).addClass(\'doc\');
-              // with the holding div #loader, apply:
-              $(\'#printthis\').append(\'<div id="doc_' . $document["did"] . '" class="image_wrapper ui-corner-all"></div><br /><br />\');
-              $(\'#doc_' . $document["did"] . '\').append(this);
-              $(\'#doc_' . $document["did"] . '\').append(\'<div class="image_caption ui-corner-all">' . $document["description"] . '</div>\');
-              // fade our image in to create a nice effect
-              $(this).fadeIn(500,function(){ resize_modal(); });
-            })
+              $(this).css("display", "none");
+              $(this).addClass("doc");
 
-            // if there was an error loading the image, react accordingly
-            .error(function () {
-              // notify the user that the image could not be loaded
+              // with the holding div #loader, apply:
+              $("#printthis").append(\'<div id="doc_' . $document["did"] . '" class="image_wrapper ui-corner-all"></div><br /><br />\');
+              $("#doc_' . $document["did"] . '").append(this);
+              $("#doc_' . $document["did"] . '").append(\'<div class="image_caption ui-corner-all">' . $document["description"] . '</div>\');
+              // fade our image in to create a nice effect
+              $(this).fadeIn(500, function(){ resize_modal(); });
+            }).on("error", function () {
+                // notify the user that the image could not be loaded
+                alert("The image could not be loaded.");
             })
 
             // *finally*, set the src attribute of the new image to our image
-            .attr(\'src\', \'' . $CFG->fileserveurl . "?did=" . (int) $document["did"] . '\');
+            .attr("src", "' . $CFG->fileserveurl . '?did=' . (int) $document["did"] . '");
         });
         ';
     }

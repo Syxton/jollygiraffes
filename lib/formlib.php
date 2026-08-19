@@ -643,11 +643,11 @@ function get_form($formname, $vars = null, $identifier = "") {
             $fields .= empty($vars["param1value"]) ? "" : '<input type="hidden" name="param1value" class="fields param1value" value="' . $vars["param1value"] . '" />';
 
             $form = '<div id="avatar' . $identifier . '" title="Change Picture" style="display:none;">
-                    <form class="uploader' . $identifier . '" name="avatar_form' . $identifier . '">
+                    <form class="uploaderavatar' . $identifier . '" name="avatar_form' . $identifier . '">
                         ' . $fields . '
                         <input type="file" class="fields" name="afile" id="afile" accept="image/*"/ value="Upload File" />
                         <input type="hidden" name="tag" class="fields tag" value="avatar" />
-                        <button class="bottom-right" type="button" onclick="uploader(\'' . $identifier . '\',function(data) { if(data != \'false\'){ $(\'#avatar' . $identifier . '\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } },$(\'#' . $formname . $identifier . ' .fields\').serializeArray())">Save</button>
+                        <button class="bottom-right" type="button" onclick="uploader(\'avatar' . $identifier . '\',function(data) { if(data != \'false\'){ $(\'#avatar' . $identifier . '\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } },$(\'#' . $formname . $identifier . ' .fields\').serializeArray())">Save</button>
                         <br /><br />Progress:<br />
                         <div class="progress ui-corner-all" style="display:inline-div;background:red;width:0px;text-align:center;color:grey;">0%</div>
                     </form>
@@ -681,7 +681,7 @@ function get_form($formname, $vars = null, $identifier = "") {
             }
 
             $form = '<div id="attach_doc' . $identifier . '" title="' . $title . '" style="display:none;">
-                    <form name="' . $formname . '_form' . $identifier . '">
+                    <form class="uploaderattach_doc' . $identifier . '" name="' . $formname . '_form' . $identifier . '">
                         ' . $fields . '
                         <input class="fields" type="file" name="afile" id="afile" accept="image/*"/ value="Upload File" />
                         <table style="width:100%">
@@ -703,7 +703,7 @@ function get_form($formname, $vars = null, $identifier = "") {
                                 </td>
                             </tr>
                         </table>
-                        <button class="bottom-right" type="button" onclick="uploader(\'a' . $identifier . '\',function(data) { if(data != \'false\'){ $(\'#attach_doc' . $identifier . '\').dialog(\'close\'); $(\'#' . $display . '\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } },$(\'#' . $formname . $identifier . ' .fields\').serializeArray())">Save</button>
+                        <button class="bottom-right" type="button" onclick="uploader(\'attach_doc' . $identifier . '\',function(data) { if(data != \'false\'){ $(\'#attach_doc' . $identifier . '\').dialog(\'close\'); $(\'#' . $display . '\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } },$(\'#' . $formname . $identifier . ' .fields\').serializeArray())">Save</button>
                         <br /><br />Progress:<br />
                         <div class="progress ui-corner-all" style="display:inline-div;background:red;width:0px;text-align:center;color:grey;">0%</div>
                     </form>

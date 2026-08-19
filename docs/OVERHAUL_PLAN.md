@@ -127,22 +127,35 @@ changed blind.
   `trigger_error()`-based flow to match, checked against the actual
   error page templates.
 
-### Phase 3 — CSS/JS full rollout
-- Work through the 15-file checklist in `docs/CSS_MIGRATION.md`,
-  verifying each page on a real narrow viewport as you go.
-- Once complete, delete `fill_height_width()`/`fill_height_width_once()`
-  and the old class names from templates.
-- Do a second pass over the remaining `!important`/`position: absolute`
-  rules not tied to `.fill_*` (there are more of these than the ones
-  driven by JS — they're a separate but related cleanup).
+### Phase 3 — CSS/JS full rollout — **done**
+- All 15 files on the `docs/CSS_MIGRATION.md` checklist now carry
+  `.layout-flex`/`.layout-flex-col`/`.layout-split-row` alongside (and,
+  for the split-panel region, replacing) the old `calc(50vw...)`/
+  `calc(70%...)` rules.
+- `fill_height_width()`/`fill_height_width_once()` and their
+  `$(window).resize()` call sites have been removed from
+  `scripts/script.js`; layout is now entirely CSS-driven.
+- **Not yet done:** the second pass over `!important`/`position: absolute`
+  rules *not* tied to `.fill_*` — these are a separate, larger cleanup
+  (there are more of them than the JS-driven ones) and haven't been
+  started.
+- **Needs verification:** none of this has been visually checked on a
+  real narrow viewport in this session (no staging server available) —
+  do that before considering Phase 3 fully closed.
 
-### Phase 4 — SQL-injection retrofit (in progress)
-- Started on highest-risk paths: check-in/out flow, payment + account
-  savers in `ajax/ajax.php`; balance helpers + transactional invoice
-  writes in `lib/billinglib.php`. See `docs/DB_MIGRATION.md` for the
-  completed list and remaining work.
-- Next: remaining form savers in `ajax/ajax.php`, then `ajax/reports.php`,
-  then the rest of billinglib and other ajax tab files.
+### Phase 4 — SQL-injection retrofit — **done** for `ajax/ajax.php`,
+`lib/billinglib.php`, `ajax/reports.php`, and the remaining `ajax/*tab.php`
+files
+- `ajax/ajax.php`, `lib/billinglib.php`, `ajax/reports.php`: 0 remaining
+  string-interpolated `get_db_*`/`execute_db_*` call sites (a handful were
+  missed in earlier passes — see `docs/DB_MIGRATION.md` for exactly which
+  ones and how they were fixed).
+- `childrentab.php`, `contactstab.php`, `employeestab.php`,
+  `programtab.php`: scanned, none build SQL directly.
+- **Still to do:** smoke-test reports + billing invoice generation against
+  a real database — several of the fixes in this pass changed a
+  three-argument `get_db_field()` call to four arguments, and that
+  path hasn't been exercised live.
 
 ### Phase 5 — optional: split `ajax/ajax.php` and adopt structured templating
 - Split the 4,089-line single-file router along the lines it already

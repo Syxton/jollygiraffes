@@ -133,7 +133,15 @@ surfaces. `get_db_count()` now also accepts an optional `$vars` array.
 Also: `find_var_type(null)` returns `'s'` so PHP null binds as SQL NULL.
 
 **`ajax/ajax.php` status:** **0 remaining** string-interpolated `get_db_*` /
-`execute_db_*` call sites (verified by scan).
+`execute_db_*` call sites (verified by scan; three sites missed in the
+previous pass — `add_edit_program()`'s tag lookup, the account-selector's
+`kid_count` in `get_account_selector()`, and the required-notes
+`question_type` lookup — were converted to parameterized calls in this
+pass). The two `$tagtype`/`$table`-interpolated `DELETE`/`SELECT`
+statements in `add_edit_tag()`/`delete_tag()` are intentional and safe:
+the table-name fragment is checked against a hardcoded `$allowed` whitelist
+before use, and the `tag` value itself is passed as a `||tag||` bound
+parameter.
 
 **`lib/billinglib.php` status:** **fully converted** (0 remaining user-interpolated sites).
 
@@ -144,15 +152,32 @@ Also: `find_var_type(null)` returns `'s'` so PHP null binds as SQL NULL.
 - `create_invoices()` — deletes, account/child loops, employee first-in
 - `get_enrollment_method()`
 
-**`ajax/reports.php` status:** converted — `$type` column whitelist, date-range
-tokens (`||t_from||`/`||t_to||`), report-switch queries + invoice/timeline loops,
+**`ajax/reports.php` status:** **fully converted** (0 remaining
+user-interpolated sites) — `$type` column whitelist, date-range tokens
+(`||t_from||`/`||t_to||`), report-switch queries + invoice/timeline loops,
 employee payroll, attendance-throughout-day, note_entry helpers. `$sql_vars`
-passed to `get_db_result($SQL, $sql_vars)`.
+passed to `get_db_result($SQL, $sql_vars)`. Six `get_db_field()` calls in the
+`invoice_between` and `program_per_program_cash_flow` report branches were
+left interpolated in the previous pass (payments/owed totals keyed on
+`$pid`/`$aid`/`$id` plus a `$timesql`/`$timesql2` fragment, and the weekly
+payroll sums keyed on `$id` + `$week["fromdate"]`/`["todate"]`) — these have
+now been converted to bound `||token||` parameters in this pass, consistent
+with the `get_db_result()` calls immediately next to them that were already
+parameterized.
+
+**Other `ajax/*.php` tab files** (`childrentab.php`, `contactstab.php`,
+`employeestab.php`, `programtab.php`) — scanned, **0** interpolated
+`get_db_*`/`execute_db_sql` call sites found; no SQL is built directly in
+these files.
 
 ### Still to do (recommended order)
 
-1. Other `ajax/*.php` tab files if they build SQL directly (likely thin).
-2. Smoke-test reports + billing invoice generation on staging.
+1. Smoke-test reports + billing invoice generation on staging (the
+   `get_db_field()` conversions above change three-argument calls to
+   four-argument calls — behavior should be identical, but hasn't been
+   run against a live database in this session).
+2. `status.php` / `ajax/status_ajax.php` / `lib/status_lib.php` remain
+   explicitly out of scope per direction (status area is new).
 
 ### Safe migration pattern
 

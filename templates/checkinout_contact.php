@@ -9,9 +9,9 @@
         <?php echo $contact["first"]; ?> <?php echo $contact["last"]; ?> - <?php echo $contact["relation"]; ?></span>
     </span>
     <span class="emergency_contact">
-        <?php echo empty($contact["emergency"]) ? "" : icon('circle-exclamation'); ?>
+        <?php echo empty($contact["emergency"]) ? "" : icon('circle-exclamation') . " Emergency Contact"; ?>
     </span>
     <span class="primary_contact">
-        <?php echo empty($contact["primary_address"]) ? "" : icon('star'); ?>
+        <?php echo empty($contact["primary_address"]) ? "" : icon('star') . " Primary Contact"; ?>
     </span>
 </li>

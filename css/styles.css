@@ -691,6 +691,9 @@ button.selected_button:hover {
 }
 
 .bottom-left {
+    position: absolute;
+    bottom: 0;
+    left: 0;
     z-index: 100;
 }
 
@@ -1195,8 +1198,9 @@ svg {
 }
 
 .primary_contact, .emergency_contact {
-    float: right;
-    background: initial !important;
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
 }
 
 .show_mobile, .show_tablet {

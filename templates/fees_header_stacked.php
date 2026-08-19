@@ -6,7 +6,7 @@
         <td class="hide_mobile">
             Fees
         </td>
-        <td style="width:100%;text-align:right">
+        <td style="width:100px;text-align:right">
             <strong>Total Fees: </strong>$<?php echo number_format($amount, 2); ?>
         </td>
     </tr>

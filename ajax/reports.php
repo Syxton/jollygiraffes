@@ -555,7 +555,9 @@ switch ($report) {
 
                     $totalpaid = get_db_field("SUM(payment)", "billing_payments", "pid = ||pid|| AND aid = ||aid|| AND payment >= 0 AND timelog >= ||from|| AND timelog <= ||to||", $bv);
                     $totalpaid = empty($totalpaid) ? "0.00" : $totalpaid;
-                    $totalfee = abs(get_db_field("SUM(payment)", "billing_payments", "pid = ||pid|| AND aid = ||aid|| AND payment < 0 AND timelog >= ||from|| AND timelog <= ||to||", $bv));
+                    if ($totalfee = get_db_field("SUM(payment)", "billing_payments", "pid = ||pid|| AND aid = ||aid|| AND payment < 0 AND timelog >= ||from|| AND timelog <= ||to||", $bv)) {
+                        $totalfee = abs($totalfee);
+                    }
                     $totalfee = empty($totalfee) ? "0.00" : $totalfee;
                     $total_owed = get_db_field("SUM(owed)", "billing", "pid = ||pid|| AND aid = ||aid|| AND fromdate >= ||from|| AND fromdate <= ||to||", $bv);
                     $total_owed += $totalfee;

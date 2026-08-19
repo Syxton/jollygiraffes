@@ -2680,7 +2680,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
                         $transactions .= from_template("billing_flexsection_layout.php", [
                             "class" => "invoice_week",
-                            "style" => "",
+                            "style" => "flex-direction: column;",
                             "header" => from_template("billing_header_stacked.php", [
                                 "weekof" => $invoice["fromdate"],
                                 "amount" => $invoice["owed"],
@@ -2743,6 +2743,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                 $header = from_template("payment_or_fees_header_timeline.php", [
                                     "type"   => ($result["amount"] >= 0 ? "Payment" : "Fee"),
                                     "amount" => $result["amount"],
+                                    "time" => $result["timelog"],
                                 ]);
 
                                 $content = from_template("payment_receipt_layout.php", [
@@ -2785,6 +2786,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                 $header = from_template("payment_or_fees_header_timeline.php", [
                                     "type"   => ($result["amount"] >= 0 ? "Payment" : "Fee"),
                                     "amount" => $result["amount"],
+                                    "time" => $result["timelog"],
                                 ]);
 
                                 $content = from_template("payment_receipt_layout.php", [
@@ -2828,7 +2830,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
                             $transactions .= from_template("billing_flexsection_layout.php", [
                                 "class" => "invoice_week",
-                                "style" => "padding: 5px;color: white;",
+                                "style" => "padding: 5px;color: white;flex-direction: column;",
                                 "header" => from_template("billing_header_stacked.php", [
                                     "weekof" => $result["fromdate"],
                                     "amount" => $result["amount"],
@@ -2879,7 +2881,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
             if (get_db_field("payahead", "programs", "pid = ||pid||", ["pid" => $pid])) { // if prepaid
                 $transactions .= from_template("billing_flexsection_layout.php", [
                     "class" => "invoice_week",
-                    "style" => "padding: 5px;color: white; background: green;",
+                    "style" => "padding: 5px;color: white; background: green;flex-direction: column;",
                     "header" => from_template("next_header_stacked.php", [
                         "amount" => week_balance($pid, $account["aid"], true, true),
                     ]),

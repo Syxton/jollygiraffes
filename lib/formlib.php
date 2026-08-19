@@ -610,7 +610,7 @@ function get_form($formname, $vars = null, $identifier = "") {
                             <tr><td><label for="first">First</label></td><td><input class="fields autocapitalizefirst" type="input" name="first" id="first" value="' . $first . '" /></td></tr>
                             <tr><td><label for="last">Last</label></td><td><input class="fields autocapitalizefirst" type="input" name="last" id="last" value="' . $last . '" /></td></tr>
                             <tr><td><label for="relation">Relation</label></td><td><input class="fields autocapitalizefirst" type="input" name="relation" id="relation" value="' . $relation . '" /></td></tr>
-                            <tr><td><label for="primary_address">Primary Address</label></td><td><select class="fields" name="primary_address"><option value="0">No</option><option value="1" ' . $primary_address . '>Yes</option></select></td></tr>
+                            <tr><td><label for="primary_address">Primary Contact</label></td><td><select class="fields" name="primary_address"><option value="0">No</option><option value="1" ' . $primary_address . '>Yes</option></select></td></tr>
                             <tr><td><label for="home_address">Home Address</label></td><td><textarea style="height:60px;" class="fields" name="home_address" id="home_address" >' . $home_address . '</textarea></td></tr>
                             <tr><td><label for="phone1">Phone 1</label></td><td><input class="fields" type="input" name="phone1" id="phone1" value="' . $phone1 . '" /></td></tr>
                             <tr><td><label for="phone2">Phone 2</label></td><td><input class="fields" type="input" name="phone2" id="phone2" value="' . $phone2 . '" /></td></tr>

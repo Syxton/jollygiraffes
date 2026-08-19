@@ -9,7 +9,7 @@
                 <?php echo date('m/d/Y', $weekof); ?>
             </span>
         </td>
-        <td style="width:100%;text-align:right">
+        <td style="width:100px;text-align:right">
             <strong>Bill: </strong>
             $<?php echo number_format($amount, 2); ?>
         </td>

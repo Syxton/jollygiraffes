@@ -92,13 +92,15 @@ if (!isset($STATUSLIB)) {
     // activity in status_activity - presence of a row means it happened.
     // Don't rename existing keys once you have data.
     $GLOBALS['STATUS_ACTIVITIES'] = [
-        'books'              => ['label' => 'Books',              'emoji' => '📚'],
-        'outdoor_playground' => ['label' => 'Outdoor Playground', 'emoji' => '🛝'],
-        'indoor_playground'  => ['label' => 'Indoor Play',        'emoji' => '🏠'],
+        'belly_time'         => ['label' => 'Belly Time',         'emoji' => '🦭'],
         'art'                => ['label' => 'Art',                'emoji' => '🎨'],
+        'books'              => ['label' => 'Books',              'emoji' => '📚'],
+        'free_play'          => ['label' => 'Free Play',          'emoji' => '🪀'],
+        'indoor_playground'  => ['label' => 'Indoor Play',        'emoji' => '🏠'],
+        'outdoor_playground' => ['label' => 'Outdoor Playground', 'emoji' => '🛝'],
+        'learning'           => ['label' => 'Learning',           'emoji' => '🎓'],
         'pretend_play'       => ['label' => 'Pretend Play',       'emoji' => '🎭'],
         'sensory'            => ['label' => 'Sensory',            'emoji' => '🖐️'],
-        'belly_time'         => ['label' => 'Belly Time',         'emoji' => '🦭'],
         'videos'             => ['label' => 'Videos',             'emoji' => '📺'],
     ];
 

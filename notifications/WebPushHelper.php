@@ -2,7 +2,11 @@
 if (!isset($CFG)) {
     include_once('../config.php');
 }
+if (!isset($DBLIB)) {
+    include_once $CFG->dirroot . '/lib/dblib.php';
+}
 require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/notification_lib.php';
 
 use Minishlink\WebPush\WebPush;
 use Minishlink\WebPush\Subscription;
@@ -11,12 +15,11 @@ use GuzzleHttp\Client;
 class WebPushHelper
 {
     private WebPush $webPush;
-    private string $subscriptionsFile;
 
-    public function __construct(string $subscriptionsFile = 'subscriptions.json')
+    public function __construct()
     {
         global $CFG;
-        $vapid = json_decode($CFG->vapid, true);
+        $vapid = notifications_get_vapid_keys();
 
         $client = new Client([
             // optional: timeout, proxy, etc.
@@ -30,40 +33,24 @@ class WebPushHelper
                 'privateKey' => $vapid['privateKey'],
             ],
         ], [], $client);
-
-        $this->subscriptionsFile = $subscriptionsFile;
-
-        if (!file_exists($this->subscriptionsFile)) {
-            file_put_contents($this->subscriptionsFile, '[]');
-        }
     }
 
-    /** Save a new subscription (or update existing) */
-    public function saveSubscription(array $subscription): void
+    /** Save a new subscription (or update existing) under its identifier */
+    public function saveSubscription(string $identifier, array $subscription): void
     {
-        $subs = $this->getSubscriptions();
-
-        // Avoid duplicates by endpoint
-        $subs = array_filter($subs, fn($s) => $s['endpoint'] !== $subscription['endpoint']);
-        $subs[] = $subscription;
-
-        file_put_contents($this->subscriptionsFile, json_encode(array_values($subs), JSON_PRETTY_PRINT));
+        notifications_set($identifier, $subscription);
     }
 
-    /** Remove a subscription */
-    public function removeSubscription(string $endpoint): void
+    /** Remove a subscription by identifier */
+    public function removeSubscription(string $identifier): void
     {
-        $subs = array_filter(
-            $this->getSubscriptions(),
-            fn($s) => $s['endpoint'] !== $endpoint
-        );
-        file_put_contents($this->subscriptionsFile, json_encode(array_values($subs), JSON_PRETTY_PRINT));
+        notifications_delete($identifier);
     }
 
-    /** Get all stored subscriptions */
+    /** Get all stored subscriptions, keyed by identifier */
     public function getSubscriptions(): array
     {
-        return json_decode(file_get_contents($this->subscriptionsFile), true) ?: [];
+        return notifications_all_subscriptions();
     }
 
     /**
@@ -79,23 +66,24 @@ class WebPushHelper
 
         $reports = [];
 
-        $targets = $subscription ? [$subscription] : $this->getSubscriptions();
+        $targets = $subscription ? ['_single' => $subscription] : $this->getSubscriptions();
 
-        foreach ($targets as $sub) {
+        foreach ($targets as $identifier => $sub) {
             $report = $this->webPush->sendOneNotification(
                 Subscription::create($sub),
                 $payload
             );
 
             $reports[] = [
-                'endpoint' => $sub['endpoint'],
-                'success'  => $report->isSuccess(),
-                'reason'   => $report->getReason(),
+                'identifier' => $identifier,
+                'endpoint'   => $sub['endpoint'],
+                'success'    => $report->isSuccess(),
+                'reason'     => $report->getReason(),
             ];
 
             // Automatically clean up expired/invalid subscriptions
-            if ($report->isSubscriptionExpired()) {
-                $this->removeSubscription($sub['endpoint']);
+            if ($report->isSubscriptionExpired() && $identifier !== '_single') {
+                $this->removeSubscription($identifier);
             }
         }
 

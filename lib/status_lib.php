@@ -25,6 +25,10 @@
 * Depends on lib/dblib.php and lib/timelib.php (loaded via lib/header.php).
 ***************************************************************************/
 
+if (!isset($NOTIFICATIONLIB)) {
+    require_once(dirname(__FILE__) . '/../notifications/notification_lib.php');
+}
+
 if (!isset($STATUSLIB)) {
     $STATUSLIB = true;
 
@@ -318,6 +322,72 @@ if (!isset($STATUSLIB)) {
         }
 
         status_sync_family_access();
+
+        // Web Push: creates the notifications table (identifier/contents)
+        // on first run and seeds the site's VAPID keypair under
+        // identifier='SITE'. See notifications/notification_lib.php.
+        notifications_migrate();
+    }
+
+    // -----------------------------------------------------------------
+    // Web Push notifications (opt-in, from the parent status view)
+    // -----------------------------------------------------------------
+
+    // Each browser/device subscription gets its own identifier - a hash
+    // of the PushSubscription endpoint, which the push service guarantees
+    // is unique per device registration. This means one family with
+    // several devices (parent's phone + tablet, etc.) gets a separate row
+    // per device instead of the newest subscribe overwriting the last.
+    //
+    // The subscription's contents also carry the owning `aid` so a family
+    // can still be looked up later (e.g. to push a notification to
+    // everyone on their account, or to let them clear all their devices).
+    function status_push_identifier($endpoint) {
+        return hash('sha256', $endpoint);
+    }
+
+    // Stores/replaces this device's PushSubscription. $subscription is the
+    // parsed PushSubscription object the browser handed back from
+    // pushManager.subscribe() (endpoint + keys).
+    function status_push_subscribe($aid, $subscription) {
+        if (empty($subscription['endpoint'])) {
+            return ["success" => false, "message" => "Invalid subscription."];
+        }
+        $subscription['aid'] = intval($aid);
+        $identifier = status_push_identifier($subscription['endpoint']);
+        notifications_set($identifier, $subscription);
+        return ["success" => true];
+    }
+
+    // Removes this device's subscription. Requires the endpoint so only
+    // that one device is affected (not every device on the account), and
+    // checks the stored aid so one account can't delete another
+    // account's subscription by guessing/replaying an endpoint.
+    function status_push_unsubscribe($aid, $endpoint) {
+        if (empty($endpoint)) {
+            return ["success" => false, "message" => "Invalid subscription."];
+        }
+        $identifier = status_push_identifier($endpoint);
+        $existing = notifications_get($identifier);
+        if (!$existing || intval($existing['aid']) !== intval($aid)) {
+            return ["success" => false, "message" => "Subscription not found."];
+        }
+        notifications_delete($identifier);
+        return ["success" => true];
+    }
+
+    // All device subscriptions belonging to one account - useful for
+    // pushing to every device a family has enabled, or for a "notifications
+    // on this account" management view.
+    function status_push_subscriptions_for_account($aid) {
+        $aid = intval($aid);
+        $matches = [];
+        foreach (notifications_all_subscriptions() as $identifier => $subscription) {
+            if (isset($subscription['aid']) && intval($subscription['aid']) === $aid) {
+                $matches[$identifier] = $subscription;
+            }
+        }
+        return $matches;
     }
 
     // -----------------------------------------------------------------

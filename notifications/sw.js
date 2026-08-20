@@ -3,7 +3,9 @@ self.addEventListener('push', event => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: data.icon || '/icon-192.png',
+      icon: data.icon || '/images/icons/apple-icon.png',
+      badge: '/images/icons/badge.png',
+      vibrate: [100, 50, 100],
       data: { url: data.url || '/' }
     })
   );

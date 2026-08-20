@@ -7,12 +7,18 @@ header('Access-Control-Allow-Headers: Content-Type');
 if (!isset($CFG)) {
     include_once('../config.php');
 }
+if (!isset($DBLIB)) {
+    include_once $CFG->dirroot . '/lib/dblib.php';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
+require_once 'notification_lib.php';
 require 'WebPushHelper.php';
+
+notifications_migrate();
 
 $push = new WebPushHelper();
 
@@ -20,7 +26,12 @@ $action = $_GET['action'] ?? '';
 
 switch ($action) {
 
-    // Frontend calls this after user grants permission
+    // Frontend calls this after user grants permission. This generic
+    // endpoint has no session/family context, so subscriptions made here
+    // are keyed by a hash of their own endpoint (one row per browser).
+    // The parent status page instead calls status_ajax.php's
+    // push_subscribe action, which keys by family identifier - see
+    // status_push_identifier() in lib/status_lib.php.
     case 'subscribe':
         $data = json_decode(file_get_contents('php://input'), true);
         if (!$data || empty($data['endpoint'])) {
@@ -28,7 +39,7 @@ switch ($action) {
             echo json_encode(['error' => 'Invalid subscription']);
             exit;
         }
-        $push->saveSubscription($data);
+        $push->saveSubscription(hash('sha256', $data['endpoint']), $data);
         echo json_encode(['success' => true]);
         break;
 
@@ -36,7 +47,7 @@ switch ($action) {
     case 'unsubscribe':
         $data = json_decode(file_get_contents('php://input'), true);
         if (!empty($data['endpoint'])) {
-            $push->removeSubscription($data['endpoint']);
+            $push->removeSubscription(hash('sha256', $data['endpoint']));
         }
         echo json_encode(['success' => true]);
         break;
@@ -62,7 +73,7 @@ switch ($action) {
 
     // Return the public VAPID key for the frontend
     case 'vapidPublicKey':
-        $vapid = json_decode($CFG->vapid, true);
+        $vapid = notifications_get_vapid_keys();
         echo json_encode(['publicKey' => $vapid['publicKey']]);
         break;
 

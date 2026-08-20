@@ -83,6 +83,7 @@ $sitename = htmlspecialchars($CFG->sitename);
                     <div class="sticky-child-avatar" id="parent_sticky_avatar"></div>
                     <div class="sticky-child-name" id="parent_sticky_name"></div>
                 </div>
+                <button class="link-button" id="parent_notifications_btn" style="display:none;">🔔 Enable Notifications</button>
                 <button class="link-button" id="parent_logout">Log out</button>
             </header>
         </div>

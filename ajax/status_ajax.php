@@ -524,6 +524,34 @@ switch ($action) {
         status_json($result);
         break;
 
+    // Public VAPID key the frontend needs before it can call
+    // pushManager.subscribe(). Requires a logged-in session (parent or
+    // admin/staff), same as the rest of the status app.
+    case 'push_vapid_key':
+        status_require_auth();
+        $vapid = notifications_get_vapid_keys();
+        status_json(["success" => true, "publicKey" => $vapid["publicKey"]]);
+        break;
+
+    // Called after the browser hands back a PushSubscription from
+    // pushManager.subscribe(). Stored under a hash of the current
+    // session's family link - see status_push_identifier().
+    case 'push_subscribe':
+        status_require_auth();
+        $aid = status_current_aid();
+        $subscription = json_decode(isset($_POST['subscription']) ? $_POST['subscription'] : '', true);
+        if (!is_array($subscription)) {
+            status_json(["success" => false, "message" => "Invalid subscription."]);
+        }
+        status_json(status_push_subscribe($aid, $subscription));
+        break;
+
+    case 'push_unsubscribe':
+        status_require_auth();
+        $endpoint = isset($_POST['endpoint']) ? $_POST['endpoint'] : '';
+        status_json(status_push_unsubscribe(status_current_aid(), $endpoint));
+        break;
+
     default:
         status_json(["success" => false, "message" => "Unknown action."]);
 }

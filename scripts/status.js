@@ -494,6 +494,7 @@
         showScreen('screen_parent');
         fetchDayParent(); // establishes state.todayDaykey / state.daykey
         bindParentNav();
+        initNotificationsButton();
     }
 
     function renderChildTabs() {
@@ -2300,30 +2301,99 @@
 
     // ------------------------------------------------------------------
     // Notifications Front End
+    //
+    // Opt-in only, from the parent status view. Each device gets its own
+    // PushSubscription, keyed server-side by a hash of that subscription's
+    // endpoint (see status_push_identifier() in lib/status_lib.php), so
+    // enabling notifications on a new device doesn't affect any other
+    // device already subscribed on the same family account.
     // ------------------------------------------------------------------
     function urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const raw = window.atob(base64);
-        return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+        var padding = '='.repeat((4 - base64String.length % 4) % 4);
+        var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        var raw = window.atob(base64);
+        var output = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; ++i) {
+            output[i] = raw.charCodeAt(i);
+        }
+        return output;
+    }
+
+    function pushSupported() {
+        return 'serviceWorker' in navigator && 'PushManager' in window;
+    }
+
+    async function subscribeToPush() {
+        var reg = await navigator.serviceWorker.register('notifications/sw.js');
+        var keyRes = await post('push_vapid_key', {});
+        if (!keyRes.success) {
+            throw new Error(keyRes.message || 'Could not fetch the notification key.');
         }
 
-        async function subscribe() {
-        const reg = await navigator.serviceWorker.register('/sw.js');
-        const { publicKey } = await fetch('/api.php?action=vapidPublicKey').then(r => r.json());
-
-        const sub = await reg.pushManager.subscribe({
+        var sub = await reg.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(publicKey)
+            applicationServerKey: urlBase64ToUint8Array(keyRes.publicKey)
         });
 
-        await fetch('/api.php?action=subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(sub)
-        });
+        var saveRes = await post('push_subscribe', { subscription: JSON.stringify(sub) });
+        if (!saveRes.success) {
+            throw new Error(saveRes.message || 'Could not save the subscription.');
+        }
+    }
 
-        console.log('Subscribed!');
+    function setNotificationsBtnState(state) {
+        var btn = document.getElementById('parent_notifications_btn');
+        if (!btn) { return; }
+        if (state === 'enabled') {
+            btn.textContent = '🔔 Notifications On';
+            btn.disabled = true;
+        } else if (state === 'blocked') {
+            btn.textContent = '🔕 Notifications Blocked';
+            btn.disabled = true;
+        } else {
+            btn.textContent = '🔔 Enable Notifications';
+            btn.disabled = false;
+        }
+    }
+
+    var notificationsBtnBound = false;
+    function initNotificationsButton() {
+        var btn = document.getElementById('parent_notifications_btn');
+        if (!btn || !pushSupported()) { return; }
+
+        btn.style.display = '';
+
+        if (window.Notification && Notification.permission === 'denied') {
+            setNotificationsBtnState('blocked');
+        } else {
+            setNotificationsBtnState('default');
+            // Permission can be 'granted' without this device actually
+            // having a live subscription (e.g. it was lost/expired) - so
+            // only claim "enabled" once we've confirmed a subscription is
+            // still registered, rather than trusting permission alone.
+            navigator.serviceWorker.getRegistration('notifications/sw.js').then(function (reg) {
+                return reg ? reg.pushManager.getSubscription() : null;
+            }).then(function (sub) {
+                if (sub) { setNotificationsBtnState('enabled'); }
+            }).catch(function () { /* leave default state */ });
+        }
+
+        if (notificationsBtnBound) { return; }
+        notificationsBtnBound = true;
+        btn.addEventListener('click', function () {
+            btn.disabled = true;
+            btn.textContent = 'Enabling…';
+            subscribeToPush().then(function () {
+                setNotificationsBtnState('enabled');
+            }).catch(function (err) {
+                if (window.Notification && Notification.permission === 'denied') {
+                    setNotificationsBtnState('blocked');
+                } else {
+                    setNotificationsBtnState('default');
+                    alert(err.message || 'Could not enable notifications.');
+                }
+            });
+        });
     }
 
     // ------------------------------------------------------------------

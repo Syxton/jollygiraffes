@@ -161,6 +161,55 @@ html, body {
     opacity: 0.7;
 }
 
+/* ---------- Parent hamburger menu ---------- */
+.parent-menu-wrap {
+    position: relative;
+}
+.hamburger-btn {
+    background: none;
+    border: none;
+    color: #22282E;
+    font-size: 18px;
+    padding: 8px 12px;
+    line-height: 1;
+}
+.parent-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    border: 1px solid #E7EAEC;
+    padding: 6px;
+    z-index: 20;
+}
+.parent-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #22282E;
+    text-align: left;
+}
+.parent-menu-item:active { background: #F1F3F5; }
+.parent-menu-item i { width: 18px; text-align: center; color: #7A828A; }
+.parent-menu-item[disabled] { color: #ADB5BD; opacity: 0.8; }
+.parent-menu-item-danger { color: #E03131; }
+.parent-menu-item-danger i { color: #E03131; }
+.parent-menu-divider {
+    height: 1px;
+    background: #EDEFF1;
+    margin: 4px 6px;
+}
+
 /* Sticky child identity bar - sits right under the topbar, in the same
    sticky stack, so it scrolls away only when leaving the whole page,
    not when scrolling down within the day's timeline. Keeps the

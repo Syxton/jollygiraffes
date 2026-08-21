@@ -483,7 +483,7 @@
     function startParent() {
         state.previewMode = false;
         document.getElementById('preview_banner').style.display = 'none';
-        document.getElementById('parent_logout').style.display = '';
+        document.getElementById('parent_menu_wrap').style.display = '';
         if (!state.children.length) {
             showScreen('screen_parent');
             document.getElementById('parent_child_tabs').innerHTML = '<p class="muted" style="padding:12px 16px;">No children found on this account.</p>';
@@ -523,7 +523,23 @@
         document.getElementById('day_next').addEventListener('click', function () { shiftDay(1); });
         document.getElementById('day_label').addEventListener('click', openDatePicker);
         document.getElementById('parent_logout').addEventListener('click', function () {
+            closeParentMenu();
             if (state.previewMode) { exitParentPreview(); } else { logout(); }
+        });
+
+        document.getElementById('parent_menu_btn').addEventListener('click', function (e) {
+            e.stopPropagation();
+            toggleParentMenu();
+        });
+        document.getElementById('parent_change_pin_btn').addEventListener('click', function () {
+            closeParentMenu();
+            openChangePinPanel();
+        });
+        document.addEventListener('click', function (e) {
+            var wrap = document.getElementById('parent_menu_wrap');
+            if (wrap && wrap.style.display !== 'none' && !wrap.contains(e.target)) {
+                closeParentMenu();
+            }
         });
 
         var swipeArea = document.getElementById('swipe_area');
@@ -539,6 +555,26 @@
             }
             touchStartX = null;
         }, { passive: true });
+    }
+
+    function closeParentMenu() {
+        var dropdown = document.getElementById('parent_menu_dropdown');
+        var btn = document.getElementById('parent_menu_btn');
+        if (!dropdown || !btn) { return; }
+        dropdown.style.display = 'none';
+        btn.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleParentMenu() {
+        var dropdown = document.getElementById('parent_menu_dropdown');
+        var btn = document.getElementById('parent_menu_btn');
+        var isOpen = dropdown.style.display !== 'none';
+        if (isOpen) {
+            closeParentMenu();
+        } else {
+            dropdown.style.display = '';
+            btn.setAttribute('aria-expanded', 'true');
+        }
     }
 
     var MIN_DAYS_BACK = 90;
@@ -1002,7 +1038,8 @@
         state.adminPreviewChid = state.chid;
         document.getElementById('parent_child_tabs').innerHTML = '';
         document.getElementById('preview_banner').style.display = '';
-        document.getElementById('parent_logout').style.display = 'none';
+        closeParentMenu();
+        document.getElementById('parent_menu_wrap').style.display = 'none';
         state.daykey = null;
         state.todayDaykey = null;
         showScreen('screen_parent');
@@ -1013,7 +1050,7 @@
     function exitParentPreview() {
         state.previewMode = false;
         document.getElementById('preview_banner').style.display = 'none';
-        document.getElementById('parent_logout').style.display = '';
+        document.getElementById('parent_menu_wrap').style.display = '';
         state.chid = state.adminPreviewChid || state.chid;
         document.getElementById('admin_child_select').value = state.chid;
         showScreen('screen_admin');
@@ -2468,13 +2505,13 @@
         if (!btn) { return; }
         btn.dataset.notifState = state;
         if (state === 'enabled') {
-            btn.innerHTML = '<i style="color:yellow;filter: drop-shadow(0 0 1px black);" class="fa-solid fa-bell"></i>';
+            btn.innerHTML = '<i style="color:#F4C430;" class="fa-solid fa-bell"></i><span>Disable Notifications</span>';
             btn.disabled = false;          // was true — now tappable to turn off
         } else if (state === 'blocked') {
-            btn.innerHTML = '<i style="color:red;filter: drop-shadow(0 0 1px black);" class="fa-solid fa-bell"></i>';
+            btn.innerHTML = '<i style="color:#E03131;" class="fa-solid fa-bell"></i><span>Notifications Blocked</span>';
             btn.disabled = true;
         } else {
-            btn.innerHTML = '<i style="color:grey;filter: drop-shadow(0 0 1px black);" class="fa-solid fa-bell"></i>';
+            btn.innerHTML = '<i style="color:#7A828A;" class="fa-solid fa-bell"></i><span>Enable Notifications</span>';
             btn.disabled = false;
         }
     }
@@ -2533,6 +2570,182 @@
                 });
             }
         });
+    }
+
+    // ------------------------------------------------------------------
+    // Change PIN panel (parent) - reuses the same numpad/pin-dots UI as
+    // the login screen, in three steps: current PIN, new PIN, confirm.
+    // ------------------------------------------------------------------
+    var pinChangeState = null;
+
+    var PIN_STEP_INFO = {
+        current: { title: 'Current PIN', hint: 'Enter your current 4-digit PIN.' },
+        next:    { title: 'New PIN', hint: 'Choose a new 4-digit PIN.' },
+        confirm: { title: 'Confirm New PIN', hint: 'Re-enter the new PIN to confirm.' }
+    };
+
+    function openChangePinPanel() {
+        pinChangeState = { step: 'current', current: '', next: '', confirm: '' };
+        renderPinChangePanel();
+        document.getElementById('pin_panel_overlay').style.display = '';
+    }
+
+    function closeChangePinPanel() {
+        document.getElementById('pin_panel_overlay').style.display = 'none';
+        pinChangeState = null;
+    }
+
+    function pinChangeFieldForStep() {
+        if (pinChangeState.step === 'current') { return 'current'; }
+        if (pinChangeState.step === 'next') { return 'next'; }
+        return 'confirm';
+    }
+
+    function renderPinChangePanel(errorMsg) {
+        var panel = document.getElementById('pin_panel');
+        panel.innerHTML = '';
+        if (!pinChangeState) { return; }
+
+        var header = document.createElement('div');
+        header.className = 'potty-panel-header';
+        var titleSpan = document.createElement('span');
+        titleSpan.textContent = PIN_STEP_INFO[pinChangeState.step].title;
+        header.appendChild(titleSpan);
+        var cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'link-button';
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.addEventListener('click', closeChangePinPanel);
+        header.appendChild(cancelBtn);
+        panel.appendChild(header);
+
+        var hint = document.createElement('p');
+        hint.className = 'muted';
+        hint.style.textAlign = 'center';
+        hint.style.marginTop = '0';
+        hint.textContent = PIN_STEP_INFO[pinChangeState.step].hint;
+        panel.appendChild(hint);
+
+        var value = pinChangeState[pinChangeFieldForStep()];
+
+        var dotsWrap = document.createElement('div');
+        dotsWrap.className = 'pin-display';
+        for (var i = 0; i < 4; i++) {
+            var dot = document.createElement('div');
+            dot.className = 'dot' + (i < value.length ? ' filled' : '');
+            dotsWrap.appendChild(dot);
+        }
+        panel.appendChild(dotsWrap);
+
+        var err = document.createElement('div');
+        err.className = 'login-error';
+        err.textContent = errorMsg || '';
+        panel.appendChild(err);
+
+        var numpad = document.createElement('div');
+        numpad.className = 'numpad';
+        var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '\u232B'];
+        keys.forEach(function (k) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = k;
+            if (k === 'C') { btn.className = 'numpad-clear'; }
+            if (k === '\u232B') { btn.className = 'numpad-back'; }
+            btn.addEventListener('click', function () { handlePinChangeKey(k); });
+            numpad.appendChild(btn);
+        });
+        panel.appendChild(numpad);
+    }
+
+    function handlePinChangeKey(k) {
+        if (!pinChangeState) { return; }
+        var field = pinChangeFieldForStep();
+        if (k === 'C') {
+            pinChangeState[field] = '';
+            renderPinChangePanel();
+            return;
+        }
+        if (k === '\u232B') {
+            pinChangeState[field] = pinChangeState[field].slice(0, -1);
+            renderPinChangePanel();
+            return;
+        }
+        if (pinChangeState[field].length >= 4) { return; }
+        pinChangeState[field] += k;
+        renderPinChangePanel();
+        if (pinChangeState[field].length === 4) {
+            advancePinChange();
+        }
+    }
+
+    function advancePinChange() {
+        if (pinChangeState.step === 'current') {
+            pinChangeState.step = 'next';
+            renderPinChangePanel();
+            return;
+        }
+        if (pinChangeState.step === 'next') {
+            pinChangeState.step = 'confirm';
+            renderPinChangePanel();
+            return;
+        }
+        // step === 'confirm'
+        if (pinChangeState.confirm !== pinChangeState.next) {
+            pinChangeState.confirm = '';
+            renderPinChangePanel('PINs don\u2019t match. Try again.');
+            return;
+        }
+        submitPinChange();
+    }
+
+    function submitPinChange() {
+        var current = pinChangeState.current;
+        var next = pinChangeState.next;
+        var panel = document.getElementById('pin_panel');
+        panel.style.opacity = '0.6';
+        post('change_pin', { current_pin: current, new_pin: next }).then(function (res) {
+            panel.style.opacity = '';
+            if (!pinChangeState) { return; } // panel was cancelled mid-request
+            if (!res.success) {
+                pinChangeState = { step: 'current', current: '', next: '', confirm: '' };
+                renderPinChangePanel(res.message || 'Something went wrong.');
+                return;
+            }
+            showPinChangeSuccess();
+        }).catch(function () {
+            panel.style.opacity = '';
+            if (!pinChangeState) { return; }
+            pinChangeState = { step: 'current', current: '', next: '', confirm: '' };
+            renderPinChangePanel('Something went wrong. Please try again.');
+        });
+    }
+
+    function showPinChangeSuccess() {
+        var panel = document.getElementById('pin_panel');
+        panel.innerHTML = '';
+
+        var header = document.createElement('div');
+        header.className = 'potty-panel-header';
+        var titleSpan = document.createElement('span');
+        titleSpan.textContent = 'PIN Updated';
+        header.appendChild(titleSpan);
+        panel.appendChild(header);
+
+        var msg = document.createElement('p');
+        msg.className = 'muted';
+        msg.style.textAlign = 'center';
+        msg.textContent = 'Your PIN has been changed. Use it next time you log in.';
+        panel.appendChild(msg);
+
+        var footer = document.createElement('div');
+        footer.className = 'potty-panel-footer';
+        var doneBtn = document.createElement('button');
+        doneBtn.type = 'button';
+        doneBtn.className = 'primary-button';
+        doneBtn.textContent = 'Done';
+        doneBtn.addEventListener('click', closeChangePinPanel);
+        footer.appendChild(doneBtn);
+        panel.appendChild(footer);
     }
 
     // ------------------------------------------------------------------

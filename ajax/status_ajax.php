@@ -514,6 +514,14 @@ switch ($action) {
         status_json(["success" => true, "day" => $day]);
         break;
 
+    case 'change_pin':
+        status_require_auth();
+        $current_pin = isset($_POST['current_pin']) ? $_POST['current_pin'] : '';
+        $new_pin     = isset($_POST['new_pin']) ? $_POST['new_pin'] : '';
+        $result = status_change_pin($current_pin, $new_pin);
+        status_json($result);
+        break;
+
     case 'get_links':
         status_require_admin();
         status_json(["success" => true, "families" => status_all_family_links()]);

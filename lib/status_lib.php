@@ -689,6 +689,36 @@ if (!isset($STATUSLIB)) {
         return ["success" => true];
     }
 
+    // Lets a logged-in account (parent or admin) change the 4-digit PIN
+    // used to log in here and at the check-in/out kiosk. Requires the
+    // current PIN to match before writing the new one.
+    function status_change_pin($current_pin, $new_pin) {
+        $aid = status_current_aid();
+        if (!$aid) {
+            return ["success" => false, "message" => "Please log in again."];
+        }
+        if (status_too_many_attempts()) {
+            return ["success" => false, "message" => "Too many attempts. Please wait a minute and try again."];
+        }
+
+        $current_pin = preg_replace('/[^0-9]/', '', (string) $current_pin);
+        $new_pin     = preg_replace('/[^0-9]/', '', (string) $new_pin);
+
+        if (strlen($new_pin) != 4) {
+            return ["success" => false, "message" => "New PIN must be exactly 4 digits."];
+        }
+
+        $account = get_db_row("SELECT * FROM accounts WHERE aid='" . intval($aid) . "' AND deleted=0 AND password='" . dbescape($current_pin) . "'");
+        if (!$account) {
+            status_register_failed_attempt();
+            return ["success" => false, "message" => "Current PIN is incorrect."];
+        }
+
+        status_register_success();
+        execute_db_sql("UPDATE accounts SET password='" . dbescape($new_pin) . "' WHERE aid='" . intval($aid) . "'");
+        return ["success" => true];
+    }
+
     function status_logout() {
         status_start_session();
         $_SESSION['status_role'] = null;

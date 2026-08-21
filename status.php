@@ -31,7 +31,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <script data-search-pseudo-elements defer
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026082102">
+    <link rel="stylesheet" href="css/status.css?version=2026082103">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -83,8 +83,23 @@ $sitename = htmlspecialchars($CFG->sitename);
                     <div class="sticky-child-avatar" id="parent_sticky_avatar"></div>
                     <div class="sticky-child-name" id="parent_sticky_name"></div>
                 </div>
-                <button class="link-button" id="parent_notifications_btn" style="display:none;">🔔 Enable Notifications</button>
-                <button class="link-button" id="parent_logout">Log out</button>
+                <div class="parent-menu-wrap" id="parent_menu_wrap">
+                    <button type="button" class="hamburger-btn" id="parent_menu_btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="parent-menu-dropdown" id="parent_menu_dropdown" style="display:none;">
+                        <button type="button" class="parent-menu-item" id="parent_notifications_btn" style="display:none;">
+                            <i class="fa-solid fa-bell"></i><span>Enable Notifications</span>
+                        </button>
+                        <button type="button" class="parent-menu-item" id="parent_change_pin_btn">
+                            <i class="fa-solid fa-key"></i><span>Change PIN</span>
+                        </button>
+                        <div class="parent-menu-divider"></div>
+                        <button type="button" class="parent-menu-item parent-menu-item-danger" id="parent_logout">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i><span>Log out</span>
+                        </button>
+                    </div>
+                </div>
             </header>
         </div>
 
@@ -282,6 +297,11 @@ $sitename = htmlspecialchars($CFG->sitename);
         <div class="potty-panel" id="date_picker_panel"></div>
     </div>
 
+    <!-- CHANGE PIN panel (parent) - populated/shown by JS -->
+    <div id="pin_panel_overlay" class="potty-panel-overlay" style="display:none;">
+        <div class="potty-panel" id="pin_panel"></div>
+    </div>
+
     <!-- FAMILY LINKS PANEL (admin) -->
     <div id="screen_links" class="status-screen" style="display:none;">
         <header class="topbar">
@@ -294,6 +314,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js?version=2026082102"></script>
+<script src="scripts/status.js?version=2026082103"></script>
 </body>
 </html>

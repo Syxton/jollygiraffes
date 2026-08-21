@@ -692,13 +692,21 @@
         // Notify notes are pulled out and pinned above everything else -
         // they're the notes staff specifically flagged to catch a
         // parent's eye, not just another moment in the day.
+        // When a note is the free-text side of an incident (events.nid),
+        // show the incident chip instead - same chip as the timeline,
+        // with emoji, type color, and attachment thumbnails.
         var notifyNotes = day.notes.filter(function (n) { return n.notify; });
         var notifyCard = document.getElementById('parent_notify_card');
         notifyCard.style.display = notifyNotes.length ? '' : 'none';
         var notifyWrap = document.getElementById('parent_notify_notes');
         notifyWrap.innerHTML = '';
         notifyNotes.forEach(function (n) {
-            notifyWrap.appendChild(buildParentNoteChip(n));
+            var inc = findIncidentByNid(day.incidents, n.nid);
+            if (inc) {
+                notifyWrap.appendChild(buildIncidentChip(inc, false));
+            } else {
+                notifyWrap.appendChild(buildParentNoteChip(n));
+            }
         });
 
         // Menu (Breakfast / Lunch / Dinner) - not a timestamped event, so
@@ -1249,6 +1257,14 @@
     function findByEvid(list, evid) {
         for (var i = 0; i < list.length; i++) {
             if (list[i].evid === evid) { return list[i]; }
+        }
+        return null;
+    }
+
+    function findIncidentByNid(list, nid) {
+        if (!nid) { return null; }
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].nid === nid) { return list[i]; }
         }
         return null;
     }

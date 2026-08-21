@@ -132,9 +132,19 @@ html, body {
     background-color: #f6f5f5;
     border-top: 1px solid #eeeeee;
 }
-#screen_parent .topbar-wrap .topbar {
+#screen_parent .topbar-wrap .topbar,
+#screen_admin .topbar-wrap .topbar {
     flex-direction: row;
     padding: 10px;
+    align-items: center;
+}
+#screen_admin .topbar-title {
+    padding-left: 0;
+    flex: 1;
+    min-width: 0;
+}
+#screen_admin .parent-menu-wrap {
+    flex-shrink: 0;
 }
 .topbar-child-info {
     display: flex;
@@ -1422,4 +1432,54 @@ button:active {
     background: #3D7EF7;
     color: #fff;
     font-weight: 700;
+}
+/* ---------- Add as App panel ---------- */
+.add-app-body {
+    padding: 4px 4px 12px;
+    text-align: left;
+}
+.add-app-intro {
+    margin: 0 0 14px;
+    font-size: 15px;
+    line-height: 1.4;
+}
+.add-app-steps {
+    margin: 0 0 14px;
+    padding-left: 22px;
+    font-size: 15px;
+    line-height: 1.55;
+}
+.add-app-steps li {
+    margin-bottom: 10px;
+}
+.add-app-steps i {
+    color: #3D7EF7;
+}
+.add-app-hint {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.4;
+}
+.add-app-platform {
+    margin-bottom: 18px;
+}
+.add-app-platform h4 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    font-weight: 600;
+}
+.add-app-done {
+    margin: 8px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #2B8A3E;
+    text-align: center;
+}
+.add-app-done i {
+    margin-right: 6px;
+}
+
+/* When launched as an installed app, optional body class hook */
+html.jg-running-as-app body {
+    /* reserved for future standalone-only tweaks */
 }

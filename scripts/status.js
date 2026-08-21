@@ -517,6 +517,129 @@
         });
     }
 
+    // ------------------------------------------------------------------
+    // Running-as-app detection + unified "Add as App" install guidance
+    // ------------------------------------------------------------------
+    // True when the page is already launched from the home screen (PWA /
+    // standalone), so we can hide the "Add as App" menu item.
+    function isRunningAsApp() {
+        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+            return true;
+        }
+        // iOS Safari (pre-display-mode support)
+        if (typeof navigator.standalone === 'boolean' && navigator.standalone) {
+            return true;
+        }
+        // Android TWA / chrome custom tabs sometimes set this referrer
+        if (document.referrer && document.referrer.indexOf('android-app://') === 0) {
+            return true;
+        }
+        return false;
+    }
+
+    function isIos() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent)
+            || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    function isAndroid() {
+        return /Android/i.test(navigator.userAgent);
+    }
+
+    // Chrome/Edge on Android (and some desktop browsers) fire this event
+    // when the site is installable. We keep the deferred prompt so the
+    // "Add as App" button can trigger a native install dialog when possible.
+    var deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        updateAddAppMenuVisibility();
+    });
+    window.addEventListener('appinstalled', function () {
+        deferredInstallPrompt = null;
+        updateAddAppMenuVisibility();
+    });
+
+    function updateAddAppMenuVisibility() {
+        var alreadyApp = isRunningAsApp();
+        ['parent_add_app_btn', 'admin_add_app_btn'].forEach(function (id) {
+            var btn = document.getElementById(id);
+            if (!btn) { return; }
+            btn.style.display = alreadyApp ? 'none' : '';
+        });
+        // Mark the document so CSS/other scripts can react if needed
+        if (alreadyApp) {
+            document.documentElement.classList.add('jg-running-as-app');
+        } else {
+            document.documentElement.classList.remove('jg-running-as-app');
+        }
+    }
+
+    function openAddAppPanel() {
+        closeParentMenu();
+        closeAdminMenu();
+
+        // Prefer the native install prompt when the browser supports it
+        if (deferredInstallPrompt) {
+            deferredInstallPrompt.prompt();
+            deferredInstallPrompt.userChoice.then(function () {
+                deferredInstallPrompt = null;
+                updateAddAppMenuVisibility();
+            });
+            return;
+        }
+
+        var body = document.getElementById('add_app_body');
+        var html = '';
+
+        if (isRunningAsApp()) {
+            html = '<p class="add-app-done"><i class="fa-solid fa-circle-check"></i> You\'re already using this as an app.</p>';
+        } else if (isIos()) {
+            html =
+                '<p class="add-app-intro">Add this page to your Home Screen so it opens like an app:</p>' +
+                '<ol class="add-app-steps">' +
+                '<li>Tap the <strong>Share</strong> button <i class="fa-solid fa-arrow-up-from-bracket"></i> at the bottom of Safari.</li>' +
+                '<li>Scroll and tap <strong>Add to Home Screen</strong> <i class="fa-solid fa-plus-square"></i>.</li>' +
+                '<li>Tap <strong>Add</strong> in the top right.</li>' +
+                '</ol>' +
+                '<p class="muted add-app-hint">Works in Safari. If you\'re in Chrome or another browser on iPhone, open this page in Safari first.</p>';
+        } else if (isAndroid()) {
+            html =
+                '<p class="add-app-intro">Add this page to your Home screen so it opens like an app:</p>' +
+                '<ol class="add-app-steps">' +
+                '<li>Tap the <strong>menu</strong> <i class="fa-solid fa-ellipsis-vertical"></i> in the top-right of Chrome.</li>' +
+                '<li>Tap <strong>Install app</strong> or <strong>Add to Home screen</strong>.</li>' +
+                '<li>Confirm with <strong>Install</strong> / <strong>Add</strong>.</li>' +
+                '</ol>' +
+                '<p class="muted add-app-hint">If you don\'t see Install app, use Add to Home screen — both put a shortcut on your home screen.</p>';
+        } else {
+            // Desktop / unknown: generic guidance covering both platforms
+            html =
+                '<p class="add-app-intro">Install this site as an app on your phone:</p>' +
+                '<div class="add-app-platform">' +
+                '<h4><i class="fa-brands fa-apple"></i> iPhone / iPad</h4>' +
+                '<ol class="add-app-steps">' +
+                '<li>Open this page in <strong>Safari</strong>.</li>' +
+                '<li>Tap Share <i class="fa-solid fa-arrow-up-from-bracket"></i> → <strong>Add to Home Screen</strong>.</li>' +
+                '</ol>' +
+                '</div>' +
+                '<div class="add-app-platform">' +
+                '<h4><i class="fa-brands fa-android"></i> Android</h4>' +
+                '<ol class="add-app-steps">' +
+                '<li>Open this page in <strong>Chrome</strong>.</li>' +
+                '<li>Tap menu <i class="fa-solid fa-ellipsis-vertical"></i> → <strong>Install app</strong> or <strong>Add to Home screen</strong>.</li>' +
+                '</ol>' +
+                '</div>';
+        }
+
+        body.innerHTML = html;
+        document.getElementById('add_app_overlay').style.display = '';
+    }
+
+    function closeAddAppPanel() {
+        document.getElementById('add_app_overlay').style.display = 'none';
+    }
+
     // ==================================================================
     // PARENT VIEW
     // ==================================================================
@@ -575,11 +698,8 @@
             closeParentMenu();
             openChangePinPanel();
         });
-        document.addEventListener('click', function (e) {
-            var wrap = document.getElementById('parent_menu_wrap');
-            if (wrap && wrap.style.display !== 'none' && !wrap.contains(e.target)) {
-                closeParentMenu();
-            }
+        document.getElementById('parent_add_app_btn').addEventListener('click', function () {
+            openAddAppPanel();
         });
 
         var swipeArea = document.getElementById('swipe_area');
@@ -595,6 +715,8 @@
             }
             touchStartX = null;
         }, { passive: true });
+
+        updateAddAppMenuVisibility();
     }
 
     function closeParentMenu() {
@@ -612,6 +734,31 @@
         if (isOpen) {
             closeParentMenu();
         } else {
+            closeAdminMenu();
+            updateAddAppMenuVisibility();
+            dropdown.style.display = '';
+            btn.setAttribute('aria-expanded', 'true');
+        }
+    }
+
+    function closeAdminMenu() {
+        var dropdown = document.getElementById('admin_menu_dropdown');
+        var btn = document.getElementById('admin_menu_btn');
+        if (!dropdown || !btn) { return; }
+        dropdown.style.display = 'none';
+        btn.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleAdminMenu() {
+        var dropdown = document.getElementById('admin_menu_dropdown');
+        var btn = document.getElementById('admin_menu_btn');
+        if (!dropdown || !btn) { return; }
+        var isOpen = dropdown.style.display !== 'none';
+        if (isOpen) {
+            closeAdminMenu();
+        } else {
+            closeParentMenu();
+            updateAddAppMenuVisibility();
             dropdown.style.display = '';
             btn.setAttribute('aria-expanded', 'true');
         }
@@ -1788,13 +1935,34 @@
             stopEditingNote();
             fetchDayAdmin();
         });
-        document.getElementById('admin_logout').addEventListener('click', logout);
-        document.getElementById('admin_preview_btn').addEventListener('click', enterParentPreview);
+        document.getElementById('admin_menu_btn').addEventListener('click', function (e) {
+            e.stopPropagation();
+            toggleAdminMenu();
+        });
+        document.getElementById('admin_logout').addEventListener('click', function () {
+            closeAdminMenu();
+            logout();
+        });
+        document.getElementById('admin_preview_btn').addEventListener('click', function () {
+            closeAdminMenu();
+            enterParentPreview();
+        });
         document.getElementById('exit_preview_btn').addEventListener('click', exitParentPreview);
-        document.getElementById('admin_links_btn').addEventListener('click', openLinksPanel);
+        document.getElementById('admin_links_btn').addEventListener('click', function () {
+            closeAdminMenu();
+            openLinksPanel();
+        });
+        document.getElementById('admin_add_app_btn').addEventListener('click', function () {
+            openAddAppPanel();
+        });
         document.getElementById('links_back_btn').addEventListener('click', function () {
             showScreen('screen_admin');
         });
+        document.getElementById('add_app_close').addEventListener('click', closeAddAppPanel);
+        document.getElementById('add_app_overlay').addEventListener('click', function (e) {
+            if (e.target === this) { closeAddAppPanel(); }
+        });
+        updateAddAppMenuVisibility();
 
         renderNoteTagSelect();
         document.getElementById('note_editing_cancel').addEventListener('click', stopEditingNote);
@@ -2879,5 +3047,18 @@
     }
 
     // ------------------------------------------------------------------
+    // Close hamburger menus when tapping outside
+    document.addEventListener('click', function (e) {
+        var parentWrap = document.getElementById('parent_menu_wrap');
+        if (parentWrap && parentWrap.style.display !== 'none' && !parentWrap.contains(e.target)) {
+            closeParentMenu();
+        }
+        var adminWrap = document.getElementById('admin_menu_wrap');
+        if (adminWrap && !adminWrap.contains(e.target)) {
+            closeAdminMenu();
+        }
+    });
+
+    updateAddAppMenuVisibility();
     checkSession();
 })();

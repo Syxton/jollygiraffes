@@ -25,13 +25,18 @@ $sitename = htmlspecialchars($CFG->sitename);
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#3D7EF7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="JG Status">
 <title>Daily Status - <?php echo $sitename; ?></title>
     <!-- Font Awesome -->
     <script data-search-pseudo-elements defer
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026082104">
+    <link rel="stylesheet" href="css/status.css?version=2026082105">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -53,7 +58,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <link rel="icon" type="image/png" sizes="32x32" href="<?php echo $CFG->wwwroot ?>/images/icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="96x96" href="<?php echo $CFG->wwwroot ?>/images/icons/favicon-96x96.png">
     <link rel="icon" type="image/png" sizes="16x16" href="<?php echo $CFG->wwwroot ?>/images/icons/favicon-16x16.png">
-    <link rel="manifest" href="<?php echo $CFG->wwwroot ?>/manifest.json">
+    <link rel="manifest" href="<?php echo $CFG->wwwroot ?>/manifest-status.json">
 </head>
 <body>
 
@@ -93,6 +98,9 @@ $sitename = htmlspecialchars($CFG->sitename);
                         </button>
                         <button type="button" class="parent-menu-item" id="parent_change_pin_btn">
                             <i class="fa-solid fa-key"></i><span>Change PIN</span>
+                        </button>
+                        <button type="button" class="parent-menu-item" id="parent_add_app_btn">
+                            <i class="fa-solid fa-mobile-screen-button"></i><span>Add as App</span>
                         </button>
                         <div class="parent-menu-divider"></div>
                         <button type="button" class="parent-menu-item parent-menu-item-danger" id="parent_logout">
@@ -156,10 +164,25 @@ $sitename = htmlspecialchars($CFG->sitename);
                         </div>
                     </div>
                 </div>
-                <div class="admin-links">
-                    <button class="link-button" id="admin_preview_btn"><i class="fa-solid fa-person-pregnant"></i>&nbsp;Parent View</button>
-                    <button class="link-button" id="admin_links_btn">Family Links</button>
-                    <button class="link-button" id="admin_logout">Log out</button>
+                <div class="parent-menu-wrap" id="admin_menu_wrap">
+                    <button type="button" class="hamburger-btn" id="admin_menu_btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="parent-menu-dropdown" id="admin_menu_dropdown" style="display:none;">
+                        <button type="button" class="parent-menu-item" id="admin_preview_btn">
+                            <i class="fa-solid fa-person-pregnant"></i><span>Parent View</span>
+                        </button>
+                        <button type="button" class="parent-menu-item" id="admin_links_btn">
+                            <i class="fa-solid fa-link"></i><span>Family Links</span>
+                        </button>
+                        <button type="button" class="parent-menu-item" id="admin_add_app_btn">
+                            <i class="fa-solid fa-mobile-screen-button"></i><span>Add as App</span>
+                        </button>
+                        <div class="parent-menu-divider"></div>
+                        <button type="button" class="parent-menu-item parent-menu-item-danger" id="admin_logout">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i><span>Log out</span>
+                        </button>
+                    </div>
                 </div>
             </header>
         </div>
@@ -312,8 +335,19 @@ $sitename = htmlspecialchars($CFG->sitename);
         <div id="links_list" class="links-list"></div>
     </div>
 
+    <!-- ADD AS APP panel - unified iOS + Android instructions -->
+    <div id="add_app_overlay" class="potty-panel-overlay" style="display:none;">
+        <div class="potty-panel" id="add_app_panel">
+            <div class="potty-panel-header">
+                <h3>Add as App</h3>
+                <button type="button" class="chip-icon-btn" id="add_app_close" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="add_app_body" class="add-app-body"></div>
+        </div>
+    </div>
+
 </div>
 
-<script src="scripts/status.js?version=2026082104"></script>
+<script src="scripts/status.js?version=2026082105"></script>
 </body>
 </html>

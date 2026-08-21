@@ -202,6 +202,46 @@
     }
 
     // ------------------------------------------------------------------
+    // Avatar rendering (parent + admin)
+    // The server hands back either a photo div or a `.blank_pic` marker
+    // div when the child has no photo on file. For the blank case, swap
+    // in a colored initials bubble instead of a bare placeholder icon -
+    // color is a deterministic hash of the name, so a given child always
+    // gets the same color across screens/devices.
+    // ------------------------------------------------------------------
+    var AVATAR_COLORS = ['#F76707', '#1971C2', '#37B24D', '#AE3EC9', '#E8590C', '#0CA678', '#F08C00', '#5C7CFA', '#E64980', '#20C997'];
+
+    function avatarColorForName(name) {
+        var str = (name || '').trim();
+        var hash = 0;
+        for (var i = 0; i < str.length; i++) {
+            hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+        }
+        return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+    }
+
+    function avatarInitialsForName(name) {
+        var parts = (name || '').trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) { return '?'; }
+        var first = parts[0].charAt(0);
+        var last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+        return (first + last).toUpperCase();
+    }
+
+    function renderAvatar(el, avatarHtml, name) {
+        if (!el) { return; }
+        el.innerHTML = avatarHtml;
+        if (el.querySelector('.blank_pic')) {
+            el.innerHTML = '';
+            var bubble = document.createElement('div');
+            bubble.className = 'avatar-initials';
+            bubble.style.background = avatarColorForName(name);
+            bubble.textContent = avatarInitialsForName(name);
+            el.appendChild(bubble);
+        }
+    }
+
+    // ------------------------------------------------------------------
     // Shared helpers
     // ------------------------------------------------------------------
     function escapeHtml(str) {
@@ -717,11 +757,11 @@
         // Sticky child bar (stays visible while scrolling so it's always
         // clear whose day you're looking at)
         document.getElementById('parent_sticky_name').textContent = day.name;
-        document.getElementById('parent_sticky_avatar').innerHTML = day.avatar;
+        renderAvatar(document.getElementById('parent_sticky_avatar'), day.avatar, day.name);
 
         // Avatar
         var avatar = document.querySelector('#screen_parent #avatar');
-        avatar.innerHTML = day.avatar;
+        renderAvatar(avatar, day.avatar, day.name);
 
         document.getElementById('parent_naptime_notice_text').style.display = day.show_naptime_notice ? '' : 'none';
 
@@ -2293,11 +2333,11 @@
         // Sticky child bar (stays visible while scrolling so staff always
         // know which child's log they're editing)
         document.getElementById('admin_sticky_name').textContent = day.name;
-        document.getElementById('admin_sticky_avatar').innerHTML = day.avatar;
+        renderAvatar(document.getElementById('admin_sticky_avatar'), day.avatar, day.name);
 
         // Avatar
         var avatar = document.querySelector('#screen_admin #avatar');
-        avatar.innerHTML = day.avatar;
+        renderAvatar(avatar, day.avatar, day.name);
 
         // Mood timeline (recent taps today) - editable/deletable
         var moodWrap = document.getElementById('admin_mood_timeline');

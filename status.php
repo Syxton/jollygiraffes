@@ -31,7 +31,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <script data-search-pseudo-elements defer
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026082103">
+    <link rel="stylesheet" href="css/status.css?version=2026082104">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -156,7 +156,7 @@ $sitename = htmlspecialchars($CFG->sitename);
                         </div>
                     </div>
                 </div>
-                <div>
+                <div class="admin-links">
                     <button class="link-button" id="admin_preview_btn"><i class="fa-solid fa-person-pregnant"></i>&nbsp;Parent View</button>
                     <button class="link-button" id="admin_links_btn">Family Links</button>
                     <button class="link-button" id="admin_logout">Log out</button>
@@ -314,6 +314,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js?version=2026082103"></script>
+<script src="scripts/status.js?version=2026082104"></script>
 </body>
 </html>

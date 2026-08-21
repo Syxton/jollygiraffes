@@ -128,8 +128,8 @@ if (!isset($STATUSLIB)) {
         'inc_bit'     => ['label' => 'Bit Someone',     'emoji' => '😬', 'color' => '#c62a2a', 'default_note' => 'Bit another child.',            'note_tag' => 'behavior'],
         'inc_gotbit'  => ['label' => 'Bitten',          'emoji' => '😫', 'color' => '#c65bbd', 'default_note' => 'Was bitten by another child.',  'note_tag' => 'Injury'],
         'inc_booboo'  => ['label' => 'Boo Boo',         'emoji' => '🤕', 'color' => '#926969', 'default_note' => 'Had a minor boo-boo.',          'note_tag' => 'Injury'],
-        'inc_bandaid' => ['label' => 'Band-Aid',        'emoji' => '🩹', 'color' => '#6f5dff', 'default_note' => 'Needed a band-aid.',            'note_tag' => 'Injury'],
-        'inc_sick'    => ['label' => 'Sick',            'emoji' => '🤢', 'color' => '#8cea84', 'default_note' => 'Got sick',                      'note_tag' => 'Injury'],
+        'inc_bandaid' => ['label' => 'Band-Aid',        'emoji' => '🩹', 'color' => '#6f5dff', 'default_note' => 'Needed a band-aid.',            'note_tag' => 'Medical'],
+        'inc_sick'    => ['label' => 'Sick',            'emoji' => '🤢', 'color' => '#8cea84', 'default_note' => 'Got sick',                      'note_tag' => 'Medical'],
     ];
 
     // Naptime: shown 1pm-3pm for children over this age. Duration
@@ -394,24 +394,45 @@ if (!isset($STATUSLIB)) {
         return $matches;
     }
 
+    // Parent-facing status page URL for one account, e.g.
+    // https://site.example/status.php?c=Smith - same form as the "Copy Link"
+    // control on the admin Family Links screen. Used as the default click
+    // target for push notifications so parents land on their report, not
+    // the site root.
+    function status_parent_url($aid) {
+        global $CFG;
+        $aid = intval($aid);
+        $code = get_db_field("link_code", "accounts", "aid='$aid'");
+        if (empty($code)) {
+            $code = status_ensure_link_code($aid);
+        }
+        $base = rtrim($CFG->wwwroot, '/') . '/status.php';
+        if (empty($code)) {
+            return $base;
+        }
+        return $base . '?c=' . rawurlencode($code);
+    }
+
     // Sends a push notification to every device a family has enabled
     // notifications on. Does nothing if they have none subscribed, and
     // never throws - a misconfigured/unreachable push service should
     // never block the admin action (saving a photo, logging an incident)
     // that triggered it.
+    // $url defaults to that family's parent status link so a notification
+    // tap opens their daily report rather than the site root.
     function status_push_notify_family($aid, $title, $body, $url = null) {
         global $CFG;
         $subscriptions = status_push_subscriptions_for_account($aid);
         if (empty($subscriptions)) {
             return;
         }
+        if ($url === null || $url === '') {
+            $url = status_parent_url($aid);
+        }
         try {
             require_once($CFG->dirroot . '/notifications/WebPushHelper.php');
             $push = new WebPushHelper();
-            $payload = ["title" => $title, "body" => $body];
-            if ($url) {
-                $payload["url"] = $url;
-            }
+            $payload = ["title" => $title, "body" => $body, "url" => $url];
             $push->sendToSubscriptions($subscriptions, $payload);
         } catch (\Throwable $e) {
             error_log('status_push_notify_family: ' . $e->getMessage());
@@ -1238,7 +1259,7 @@ if (!isset($STATUSLIB)) {
     // Incidents Quick Report - one-tap create. Creates a notes row (notify=1,
     // tag behavior/Injury) and an events row that references it via nid.
     // Attachments still hang off the event (documents.evid).
-    function status_add_incident($chid, $type) {
+    function status_add_incident($chid, $type, $note = null, $hour = false, $minute = 0) {
         global $CFG, $STATUS_INCIDENT_TYPES;
         if (!isset($STATUS_INCIDENT_TYPES[$type])) {
             return false;
@@ -1248,9 +1269,17 @@ if (!isset($STATUSLIB)) {
         }
         $chid = intval($chid);
         $aid  = intval(get_db_field("aid", "children", "chid='$chid'"));
-        $time = get_timestamp();
+        // Optional time from the draft editor; fall back to "now".
+        if ($hour !== false && $hour !== null && $hour !== '') {
+            $time = status_resolve_timelog($hour, $minute);
+        } else {
+            $time = get_timestamp();
+        }
         $day  = status_daykey($time);
-        $note_text = $STATUS_INCIDENT_TYPES[$type]['default_note'];
+        // Optional note from the draft editor; fall back to the type default.
+        $note_text = ($note !== null && $note !== '')
+            ? $note
+            : $STATUS_INCIDENT_TYPES[$type]['default_note'];
         $tag_title = status_incident_note_tag_title($type);
         $tag = make_or_get_tag($tag_title, 'notes');
         // Single-day parent notify for incidents

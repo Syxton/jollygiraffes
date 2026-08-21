@@ -6,7 +6,7 @@ self.addEventListener('push', event => {
       icon: data.icon || '/images/icons/apple-icon.png',
       badge: '/images/icons/badge.png',
       vibrate: [100, 50, 100],
-      data: { url: data.url || '/' }
+      data: { url: data.url || '/status.php' }
     })
   );
 });

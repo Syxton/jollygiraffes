@@ -200,7 +200,10 @@ switch ($action) {
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         $type   = isset($_POST['type']) ? $_POST['type'] : '';
-        $result = status_add_incident($chid, $type);
+        $note   = array_key_exists('note', $_POST) ? $_POST['note'] : null;
+        $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
+        $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
+        $result = status_add_incident($chid, $type, $note, $hour, $minute);
         status_json($result ? ["success" => true, "day" => $result['day'], "evid" => $result['evid']] : ["success" => false, "message" => "Couldn't log that."]);
         break;
 

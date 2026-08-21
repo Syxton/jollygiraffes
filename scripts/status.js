@@ -1209,8 +1209,9 @@
     }
 
     // ------------------------------------------------------------------
-    // Incidents Quick Report - one tap creates the entry (pre-filled note)
-    // and opens the editor immediately for extra detail + attachments.
+    // Incidents Quick Report - one tap opens the editor as a draft
+    // (pre-filled note). The incident is only created (and the family
+    // notified) when Save is pressed; Cancel discards with no DB write.
     // ------------------------------------------------------------------
     function renderIncidentButtons() {
         var wrap = document.getElementById('incident_buttons');
@@ -1224,13 +1225,21 @@
             btn.title = info.label;
             btn.innerHTML = info.emoji + '<div>' + info.label + '</div>';
             btn.addEventListener('click', function () {
-                post('add_incident', { chid: state.chid, type: key }).then(function (res) {
-                    if (res.success) {
-                        flashExpandCard('incidents', 'incidents_card_toggle', 'admin_incidents_history');
-                        renderAdminDay(res.day);
-                        var entry = findByEvid(res.day.incidents, res.evid);
-                        if (entry) { openIncidentPanel(entry); }
-                    }
+                // Open editor as a draft - nothing is written to the DB
+                // (and no push notification is sent) until Save is pressed.
+                var now = new Date();
+                var hm = String(now.getHours()).padStart(2, '0') + ':' +
+                    String(now.getMinutes()).padStart(2, '0');
+                openIncidentPanel({
+                    evid: null,
+                    type: key,
+                    note: info.default_note || '',
+                    hm: hm,
+                    time: hm,
+                    emoji: info.emoji,
+                    label: info.label,
+                    color: info.color,
+                    attachments: []
                 });
             });
             wrap.appendChild(btn);
@@ -1277,6 +1286,10 @@
 
     var incidentPanelState = null;
 
+    function isIncidentDraft() {
+        return !incidentPanelState || !incidentPanelState.evid;
+    }
+
     function openIncidentPanel(entry) {
         incidentPanelState = JSON.parse(JSON.stringify(entry));
         document.getElementById('incident_panel_overlay').style.display = '';
@@ -1288,8 +1301,11 @@
         incidentPanelState = null;
     }
 
+    // Persist field changes for an already-created incident (edit mode).
+    // Drafts are not written until the Save button is pressed.
     function saveIncidentPanelState() {
         var inc = incidentPanelState;
+        if (!inc || !inc.evid) { return; }
         var parts = (inc.hm || '00:00').split(':');
         post('edit_incident', {
             chid: state.chid, evid: inc.evid, type: inc.type, note: inc.note,
@@ -1305,16 +1321,54 @@
         });
     }
 
+    // Create a brand-new incident from the draft panel, then close (or
+    // switch into edit mode so attachments can be added).
+    function createIncidentFromPanel() {
+        var inc = incidentPanelState;
+        if (!inc || inc.evid) { return; }
+        var parts = (inc.hm || '00:00').split(':');
+        var saveBtn = document.querySelector('#incident_panel [data-role="save"]');
+        if (saveBtn) { saveBtn.disabled = true; }
+        post('add_incident', {
+            chid: state.chid,
+            type: inc.type,
+            note: inc.note,
+            hour: parts[0],
+            minute: parts[1]
+        }).then(function (res) {
+            if (saveBtn) { saveBtn.disabled = false; }
+            if (!res.success) {
+                alert(res.message || "Couldn't save that incident.");
+                return;
+            }
+            flashExpandCard('incidents', 'incidents_card_toggle', 'admin_incidents_history');
+            renderAdminDay(res.day);
+            var entry = findByEvid(res.day.incidents, res.evid);
+            if (entry) {
+                // Stay open in edit mode so staff can still attach photos.
+                incidentPanelState = entry;
+                renderIncidentPanel();
+            } else {
+                closeIncidentPanel();
+            }
+        }).catch(function () {
+            if (saveBtn) { saveBtn.disabled = false; }
+        });
+    }
+
     function renderIncidentPanel() {
         var panel = document.getElementById('incident_panel');
         var inc = incidentPanelState;
-        var info = state.incidentTypes[inc.type];
+        var info = state.incidentTypes[inc.type] || {};
+        var isDraft = !inc.evid;
 
         var html = '<div class="potty-panel-header">' +
-            '<span class="emoji">' + info.emoji + '</span><span>' + escapeHtml(info.label) + '</span>' +
-            '<label class="potty-attach-icon-btn" title="Add Photo"><i class="fa-solid fa-camera"></i>&nbsp;Attach' +
-            '<input type="file" data-role="file" accept="image/*,.pdf" multiple style="display:none;"></label>' +
-            '</div>';
+            '<span class="emoji">' + (info.emoji || '') + '</span><span>' + escapeHtml(info.label || '') + '</span>';
+        if (!isDraft) {
+            html += '<label class="potty-attach-icon-btn" title="Add Photo"><i class="fa-solid fa-camera"></i>&nbsp;Attach' +
+                '<input type="file" data-role="file" accept="image/*,.pdf" multiple style="display:none;"></label>';
+        }
+        html += '</div>';
 
         html += '<div class="potty-type-switch">';
         Object.keys(state.incidentTypes).forEach(function (key) {
@@ -1329,14 +1383,34 @@
         html += '<textarea class="app-textarea" data-role="note" rows="3" placeholder="What happened?"></textarea>';
 
         html += '<div class="potty-attachments" data-role="attachments"></div>';
+        if (isDraft) {
+            html += '<p class="potty-draft-hint" style="font-size:12px;opacity:0.75;margin:4px 0 0;">' +
+                'Not saved yet. Press Save to create this report (and notify the family). ' +
+                'You can add photos after saving.</p>';
+        }
 
-        html += '<div class="potty-panel-footer">' +
-            '<button type="button" class="primary-button" data-role="close">\ud83d\udcbe Save</button>' +
+        html += '<div class="potty-panel-footer" style="display:flex;gap:8px;justify-content:flex-end;">' +
+            '<button type="button" class="secondary-button" data-role="cancel">Cancel</button>' +
+            '<button type="button" class="primary-button" data-role="save">\ud83d\udcbe Save</button>' +
             '</div>';
 
         panel.innerHTML = html;
 
-        panel.querySelector('[data-role="close"]').addEventListener('click', closeIncidentPanel);
+        panel.querySelector('[data-role="cancel"]').addEventListener('click', function () {
+            // Draft: discard with no DB write. Existing: just close (edits
+            // already auto-saved on field change).
+            closeIncidentPanel();
+        });
+
+        panel.querySelector('[data-role="save"]').addEventListener('click', function () {
+            if (isDraft) {
+                createIncidentFromPanel();
+            } else {
+                // Final save of any pending field values, then close.
+                saveIncidentPanelState();
+                closeIncidentPanel();
+            }
+        });
 
         panel.querySelectorAll('.potty-type-btn').forEach(function (btn) {
             btn.addEventListener('click', function () {
@@ -1348,7 +1422,12 @@
                     incidentPanelState.note = (state.incidentTypes[newType] || {}).default_note || '';
                 }
                 incidentPanelState.type = newType;
-                saveIncidentPanelState();
+                if (isDraft) {
+                    // Local-only for drafts; refresh the header/note display.
+                    renderIncidentPanel();
+                } else {
+                    saveIncidentPanelState();
+                }
             });
         });
 
@@ -1356,25 +1435,32 @@
         timeInput.value = inc.hm || '';
         timeInput.addEventListener('change', function (e) {
             incidentPanelState.hm = e.target.value;
-            saveIncidentPanelState();
+            if (!isDraft) { saveIncidentPanelState(); }
         });
 
         var noteInput = panel.querySelector('[data-role="note"]');
         noteInput.value = inc.note || '';
         noteInput.addEventListener('change', function (e) {
             incidentPanelState.note = e.target.value;
-            saveIncidentPanelState();
+            if (!isDraft) { saveIncidentPanelState(); }
+        });
+        // Keep draft note in sync as the user types so Save has the latest.
+        noteInput.addEventListener('input', function (e) {
+            incidentPanelState.note = e.target.value;
         });
 
         renderAttachmentGrid(panel.querySelector('[data-role="attachments"]'), incidentPanelState, function () { return incidentPanelState.evid; });
 
-        panel.querySelector('[data-role="file"]').addEventListener('change', function (e) {
-            uploadAttachments(e.target.files, incidentPanelState.evid, 'incident', incidentPanelState, function () {
-                renderAttachmentGrid(panel.querySelector('[data-role="attachments"]'), incidentPanelState, function () { return incidentPanelState.evid; });
-                fetchDayAdmin();
+        var fileInput = panel.querySelector('[data-role="file"]');
+        if (fileInput) {
+            fileInput.addEventListener('change', function (e) {
+                uploadAttachments(e.target.files, incidentPanelState.evid, 'incident', incidentPanelState, function () {
+                    renderAttachmentGrid(panel.querySelector('[data-role="attachments"]'), incidentPanelState, function () { return incidentPanelState.evid; });
+                    fetchDayAdmin();
+                });
+                e.target.value = '';
             });
-            e.target.value = '';
-        });
+        }
     }
 
     // ------------------------------------------------------------------

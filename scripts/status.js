@@ -2341,12 +2341,33 @@
         }
     }
 
+    async function unsubscribeFromPush() {
+        var reg = await navigator.serviceWorker.getRegistration('notifications/sw.js');
+        if (!reg) {
+            return; // nothing to unsubscribe
+        }
+        var sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+            return;
+        }
+
+        // Remove from the server first (keyed by this device's endpoint)
+        var saveRes = await post('push_unsubscribe', { endpoint: sub.endpoint });
+        if (!saveRes.success) {
+            throw new Error(saveRes.message || 'Could not remove the subscription.');
+        }
+
+        // Then drop the browser subscription
+        await sub.unsubscribe();
+    }
+
     function setNotificationsBtnState(state) {
         var btn = document.getElementById('parent_notifications_btn');
         if (!btn) { return; }
+        btn.dataset.notifState = state;
         if (state === 'enabled') {
             btn.textContent = '🔔 Notifications On';
-            btn.disabled = true;
+            btn.disabled = false;          // was true — now tappable to turn off
         } else if (state === 'blocked') {
             btn.textContent = '🔕 Notifications Blocked';
             btn.disabled = true;
@@ -2381,18 +2402,34 @@
         if (notificationsBtnBound) { return; }
         notificationsBtnBound = true;
         btn.addEventListener('click', function () {
+            var current = btn.dataset.notifState || 'default';
+            if (current === 'blocked') { return; }
+
             btn.disabled = true;
-            btn.textContent = 'Enabling…';
-            subscribeToPush().then(function () {
-                setNotificationsBtnState('enabled');
-            }).catch(function (err) {
-                if (window.Notification && Notification.permission === 'denied') {
-                    setNotificationsBtnState('blocked');
-                } else {
+
+            if (current === 'enabled') {
+                // Toggle OFF
+                btn.textContent = 'Disabling…';
+                unsubscribeFromPush().then(function () {
                     setNotificationsBtnState('default');
-                    alert(err.message || 'Could not enable notifications.');
-                }
-            });
+                }).catch(function (err) {
+                    setNotificationsBtnState('enabled');
+                    alert(err.message || 'Could not disable notifications.');
+                });
+            } else {
+                // Toggle ON
+                btn.textContent = 'Enabling…';
+                subscribeToPush().then(function () {
+                    setNotificationsBtnState('enabled');
+                }).catch(function (err) {
+                    if (window.Notification && Notification.permission === 'denied') {
+                        setNotificationsBtnState('blocked');
+                    } else {
+                        setNotificationsBtnState('default');
+                        alert(err.message || 'Could not enable notifications.');
+                    }
+                });
+            }
         });
     }
 

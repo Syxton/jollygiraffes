@@ -2468,13 +2468,13 @@
         if (!btn) { return; }
         btn.dataset.notifState = state;
         if (state === 'enabled') {
-            btn.textContent = '🔔 Notifications On';
+            btn.innerHTML = '<i style="color:yellow;filter: drop-shadow(0 0 1px black);" class="fa-solid fa-bell"></i>';
             btn.disabled = false;          // was true — now tappable to turn off
         } else if (state === 'blocked') {
-            btn.textContent = '🔕 Notifications Blocked';
+            btn.innerHTML = '<i style="color:red;filter: drop-shadow(0 0 1px black);" class="fa-solid fa-bell"></i>';
             btn.disabled = true;
         } else {
-            btn.textContent = '🔔 Enable Notifications';
+            btn.innerHTML = '<i style="color:grey;filter: drop-shadow(0 0 1px black);" class="fa-solid fa-bell"></i>';
             btn.disabled = false;
         }
     }

@@ -54,19 +54,37 @@ class WebPushHelper
     }
 
     /**
+     * Send a payload to a specific set of subscriptions, e.g. the result
+     * of status_push_subscriptions_for_account() - every device one
+     * particular family has enabled, rather than every subscription on
+     * the site.
+     * @param array $subscriptions  identifier => subscription array
+     * @param string|array $payload JSON string or array
+     */
+    public function sendToSubscriptions(array $subscriptions, $payload): array
+    {
+        return $this->dispatch($subscriptions, $payload);
+    }
+
+    /**
      * Send a notification to one or all subscriptions
      * @param string|array $payload  JSON string or array
      * @param array|null   $subscription  Single subscription or null = all
      */
     public function send($payload, ?array $subscription = null): array
     {
+        $targets = $subscription ? ['_single' => $subscription] : $this->getSubscriptions();
+        return $this->dispatch($targets, $payload);
+    }
+
+    /** @param array $targets identifier => subscription array */
+    private function dispatch(array $targets, $payload): array
+    {
         if (is_array($payload)) {
             $payload = json_encode($payload);
         }
 
         $reports = [];
-
-        $targets = $subscription ? ['_single' => $subscription] : $this->getSubscriptions();
 
         foreach ($targets as $identifier => $sub) {
             $report = $this->webPush->sendOneNotification(

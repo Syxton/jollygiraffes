@@ -114,6 +114,10 @@ if (!isset($STATUSLIB)) {
     $GLOBALS['STATUS_BOTTLE_MAX_MONTHS'] = 16;
     $GLOBALS['STATUS_BOTTLE_OUNCES']     = [1, 2, 3, 4, 5, 6, 7, 8];
 
+    // Extensions treated as a "photo" for push-notification purposes -
+    // an uploaded PDF attachment shouldn't trigger a "New Photo" alert.
+    $GLOBALS['STATUS_PHOTO_EXTENSIONS'] = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'];
+
     // Incidents Quick Report: one-tap injury/incident logging. Each type
     // has a default note staff can edit further; attachments reuse the
     // same events+documents linkage as Potty Time. The note text lives in
@@ -388,6 +392,54 @@ if (!isset($STATUSLIB)) {
             }
         }
         return $matches;
+    }
+
+    // Sends a push notification to every device a family has enabled
+    // notifications on. Does nothing if they have none subscribed, and
+    // never throws - a misconfigured/unreachable push service should
+    // never block the admin action (saving a photo, logging an incident)
+    // that triggered it.
+    function status_push_notify_family($aid, $title, $body, $url = null) {
+        global $CFG;
+        $subscriptions = status_push_subscriptions_for_account($aid);
+        if (empty($subscriptions)) {
+            return;
+        }
+        try {
+            require_once($CFG->dirroot . '/notifications/WebPushHelper.php');
+            $push = new WebPushHelper();
+            $payload = ["title" => $title, "body" => $body];
+            if ($url) {
+                $payload["url"] = $url;
+            }
+            $push->sendToSubscriptions($subscriptions, $payload);
+        } catch (\Throwable $e) {
+            error_log('status_push_notify_family: ' . $e->getMessage());
+        }
+    }
+
+    // A photo was saved on Potty Time or an Activity entry - let the
+    // family know. Skips non-image attachments (e.g. a PDF).
+    function status_push_notify_photo($aid, $chid, $filename) {
+        global $STATUS_PHOTO_EXTENSIONS;
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        if (!in_array($ext, $STATUS_PHOTO_EXTENSIONS)) {
+            return;
+        }
+        $first = get_db_field("first", "children", "chid='" . intval($chid) . "'");
+        $body = $first ? "$first has a new photo!" : "A new photo was added.";
+        status_push_notify_family($aid, "📸 New Photo", $body);
+    }
+
+    // A quick incident report was logged - let the family know right away.
+    function status_push_notify_incident($aid, $chid, $type) {
+        global $STATUS_INCIDENT_TYPES;
+        $info  = isset($STATUS_INCIDENT_TYPES[$type]) ? $STATUS_INCIDENT_TYPES[$type] : null;
+        $label = $info ? $info['label'] : 'Incident';
+        $emoji = $info ? $info['emoji'] : '⚠️';
+        $first = get_db_field("first", "children", "chid='" . intval($chid) . "'");
+        $body  = $first ? "$first: $label" : $label;
+        status_push_notify_family($aid, "$emoji Incident Report", $body);
     }
 
     // -----------------------------------------------------------------
@@ -1207,6 +1259,7 @@ if (!isset($STATUSLIB)) {
         $nid = intval($nid);
         $evid = execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, note, nid)
                                  VALUES (0,'" . dbescape($type) . "',0,'$chid','$aid','$day','$time','','$nid')");
+        status_push_notify_incident($aid, $chid, $type);
         return ["evid" => $evid, "nid" => $nid, "day" => status_get_day($chid, $day)];
     }
 
@@ -1402,6 +1455,7 @@ if (!isset($STATUSLIB)) {
         $time = get_timestamp();
         execute_db_sql("INSERT INTO documents (aid, chid, evid, tag, filename, description, timelog)
                          VALUES ('$aid','$chid','$evid','" . dbescape($tag) . "','" . dbescape($filename) . "','','$time')");
+        status_push_notify_photo($aid, $chid, $filename);
         return status_get_attachments($chid, $evid);
     }
 
@@ -1705,6 +1759,7 @@ if (!isset($STATUSLIB)) {
         $time = get_timestamp();
         execute_db_sql("INSERT INTO documents (aid, chid, arid, tag, filename, description, timelog)
                          VALUES ('$aid','$chid','$arid','activity','" . dbescape($filename) . "','','$time')");
+        status_push_notify_photo($aid, $chid, $filename);
         return status_get_activity_attachments($chid, $arid);
     }
 

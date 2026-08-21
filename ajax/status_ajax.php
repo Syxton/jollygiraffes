@@ -534,8 +534,9 @@ switch ($action) {
         break;
 
     // Called after the browser hands back a PushSubscription from
-    // pushManager.subscribe(). Stored under a hash of the current
-    // session's family link - see status_push_identifier().
+    // pushManager.subscribe(). Stored under a hash of this device's own
+    // subscription endpoint, tagged with the session's aid - see
+    // status_push_identifier() / status_push_subscribe().
     case 'push_subscribe':
         status_require_auth();
         $aid = status_current_aid();

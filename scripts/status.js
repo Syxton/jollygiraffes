@@ -201,8 +201,14 @@
         }).catch(initLogin);
     }
 
-    // Avatar (parent + admin): photo div or .blank_pic from server.
-    // For blank, show colored initials bubble (color = hash of name).
+    // ------------------------------------------------------------------
+    // Avatar rendering (parent + admin)
+    // The server hands back either a photo div or a `.blank_pic` marker
+    // div when the child has no photo on file. For the blank case, swap
+    // in a colored initials bubble instead of a bare placeholder icon -
+    // color is a deterministic hash of the name, so a given child always
+    // gets the same color across screens/devices.
+    // ------------------------------------------------------------------
     var AVATAR_COLORS = ['#F76707', '#1971C2', '#37B24D', '#AE3EC9', '#E8590C', '#0CA678', '#F08C00', '#5C7CFA', '#E64980', '#20C997'];
 
     function avatarColorForName(name) {
@@ -244,9 +250,24 @@
         return div.innerHTML;
     }
 
-    // Shared chip: time | emoji | label | spacer | badge | admin actions.
-    // opts: background, extraClass, time, emoji, label, extraText,
-    // attachments, note, buttons (admin {icon,title,onClick}).
+    // Shared chip layout used by mood/potty/bottle/nap/incident entries:
+    // time (left, larger) -> emoji -> status label -> spacer -> optional
+    // attachment badge -> optional action buttons (admin only), always in
+    // that order so every entry in a timeline reads the same way.
+    //
+    // opts:
+    //   background   - chip background color
+    //   extraClass   - extra class(es) on the outer chip element
+    //   time         - time string, shown first in a bold pill
+    //   emoji        - emoji string
+    //   label        - plain-text label (already unescaped; this function
+    //                  escapes it)
+    //   extraText    - optional plain text appended after label (e.g. potty
+    //                  emoji extras), also escaped
+    //   attachments  - optional array, renders the attachment badge
+    //   note         - optional plain-text note shown on its own line below
+    //   buttons      - optional array of {icon, title, onClick}, admin-only
+    //                  action buttons rendered after the attachment badge
     function buildStatusChip(opts) {
         var chip = document.createElement('div');
         chip.className = 'mood-chip' + (opts.extraClass ? ' ' + opts.extraClass : '');
@@ -366,13 +387,24 @@
         });
     }
 
-    // Admin cards collapse today's history behind "Today's entries (N)".
-    // Toggle only if history exists; choice sticks for the session.
+    // Admin cards collapse their "history" (the log of today's entries)
+    // behind a "Today's entries (N)" toggle that sits right where that
+    // history would otherwise appear, so the quick-log buttons stay put
+    // without a growing timeline pushing everything else down. The
+    // toggle itself only appears once there's something to show - an
+    // empty history has nothing to toggle. Defaults to collapsed;
+    // once the person taps it, that choice sticks for the rest of the
+    // session (re-renders after every log/edit shouldn't snap it back
+    // shut on them).
 
-    // Auto-recollapse timers by cardId; a second add restarts the clock.
+    // Timers for the auto-recollapse below, keyed by cardId, so a second
+    // add within the window restarts the clock instead of stacking timers.
     var cardCollapseTimers = {};
 
-    // Apply state.cardCollapsed[cardId] to a toggle/history pair with entries.
+    // Applies state.cardCollapsed[cardId] to a toggle/history pair that's
+    // already known to have entries - used both by applyCardCollapse
+    // below and by the auto-recollapse timer, which doesn't need to
+    // recheck the count since it's the one that just added an entry.
     function updateCardCollapseDisplay(cardId, toggleId, historyId) {
         var toggleBtn = document.getElementById(toggleId);
         var historyEl = document.getElementById(historyId);
@@ -384,8 +416,10 @@
         toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
     }
 
-    // On new log: expand history so the entry is visible, then auto-
-    // collapse after a pause. Manual toggle cancels the pending collapse.
+    // When something new gets logged, pop that card's history open (even
+    // if it was sitting collapsed) so the entry is visible, then quietly
+    // collapse it again after a pause. A manual toggle in the meantime
+    // cancels the pending auto-collapse rather than fighting the person.
     function flashExpandCard(cardId, toggleId, historyId) {
         if (cardCollapseTimers[cardId]) {
             clearTimeout(cardCollapseTimers[cardId]);
@@ -399,7 +433,9 @@
         }, 10000);
     }
 
-    // Hide toggle and empty history when count is zero.
+    // count is how many entries are logged for this card today. Hides
+    // the toggle entirely (and the empty history under it) when there
+    // are none.
     function applyCardCollapse(cardId, toggleId, historyId, count) {
         var toggleBtn = document.getElementById(toggleId);
         var historyEl = document.getElementById(historyId);
@@ -430,8 +466,11 @@
         updateCardCollapseDisplay(cardId, toggleId, historyId);
     }
 
-    // "Set rating for every kid without one today" (meals + naps).
-    // Inline with rating buttons; grey until selected; confirms first.
+    // Small icon button ("set this rating for every kid who doesn't have
+    // one yet today") shared by the meal-rating and nap-rating rows.
+    // Sits inline with the rating buttons instead of its own row, greys
+    // out until a rating is actually selected, and confirms before
+    // touching every child's record.
     function buildSetAllButton(ratingsInfo, getCurrent, actionName, extraParams, confirmLabel) {
         var btn = document.createElement('button');
         btn.type = 'button';
@@ -507,7 +546,9 @@
         return /Android/i.test(navigator.userAgent);
     }
 
-    // Keep deferred install prompt so "Add as App" can trigger native UI.
+    // Chrome/Edge on Android (and some desktop browsers) fire this event
+    // when the site is installable. We keep the deferred prompt so the
+    // "Add as App" button can trigger a native install dialog when possible.
     var deferredInstallPrompt = null;
     window.addEventListener('beforeinstallprompt', function (e) {
         e.preventDefault();
@@ -732,8 +773,18 @@
         fetchDayParent(next);
     }
 
-    // Custom calendar (parent view): in-app month grid instead of native
-    // date input. daykey = local midnight as UTC epoch; use UTC getters.
+    // ------------------------------------------------------------------
+    // Custom calendar date picker (parent view) - a native <input
+    // type="date"> renders inconsistently across mobile browsers, so this
+    // is a small in-app month grid instead: big tap targets, out-of-range
+    // days disabled, no OS-specific quirks.
+    //
+    // daykey is a server-side epoch that, per status_daykey()'s own
+    // convention, numerically represents local midnight as if it were
+    // UTC. Building/reading calendar dates with the UTC getters below
+    // (not local ones) keeps every calculation in that same convention,
+    // with no dependency on the browser's own timezone.
+    // ------------------------------------------------------------------
     function daykeyFromCalendarDate(year, month, day) {
         return Math.floor(Date.UTC(year, month, day) / 1000);
     }
@@ -861,8 +912,12 @@
 
         document.getElementById('parent_naptime_notice_text').style.display = day.show_naptime_notice ? '' : 'none';
 
-        // Notify notes pinned above other content. Incident-linked notes
-        // show as the incident chip (emoji, color, attachment thumbs).
+        // Notify notes are pulled out and pinned above everything else -
+        // they're the notes staff specifically flagged to catch a
+        // parent's eye, not just another moment in the day.
+        // When a note is the free-text side of an incident (events.nid),
+        // show the incident chip instead - same chip as the timeline,
+        // with emoji, type color, and attachment thumbnails.
         var notifyNotes = day.notes.filter(function (n) { return n.notify; });
         var notifyCard = document.getElementById('parent_notify_card');
         notifyCard.style.display = notifyNotes.length ? '' : 'none';
@@ -968,7 +1023,9 @@
         return item;
     }
 
-    // Per-day nap rating for older kids. Tap to set, tap again to clear.
+    // Simple per-day nap rating for kids 2+ (no individually logged naps
+    // for that group). Same tap-to-set / tap-again-to-clear pattern as
+    // the meal rating buttons.
     function renderNapRatingButtons(wrap, currentRating) {
         wrap.innerHTML = '';
         Object.keys(state.napRatings).forEach(function (key) {
@@ -1155,8 +1212,13 @@
         fetchDayAdmin();
     }
 
-    // Preview as Parent: read-only parent view for selected child (today).
-    // Same render path as parent screen; does not log out of admin.
+    // ------------------------------------------------------------------
+    // Preview as Parent - lets staff see the currently-selected child's
+    // status exactly as that child's parent would see it (read-only,
+    // same rendering code the parent screen uses), without logging out
+    // of the admin session. Always opens on today, since the admin view
+    // itself never looks at past days either.
+    // ------------------------------------------------------------------
     function enterParentPreview() {
         if (!state.chid) { return; }
         state.previewMode = true;
@@ -1243,7 +1305,10 @@
     }
 
     // Shared chip builder: read-only for parents, edit/delete for admin.
-    // Attachment badge opens a thumbnail viewer (full-size in new tab).
+    // A prominent, visually distinct badge button (not tiny inline text)
+    // showing an attachment count exists; tapping opens a viewer with all
+    // of them as thumbnails, each opening full-size in a new tab - works
+    // the same on desktop (click) and mobile (tap).
     function buildAttachmentBadge(attachments) {
         var badge = document.createElement('button');
         badge.type = 'button';
@@ -1476,8 +1541,8 @@
         incidentPanelState = null;
     }
 
-    // Persist field changes for an existing incident (edit mode).
-    // Drafts are not written until Save is pressed.
+    // Persist field changes for an already-created incident (edit mode).
+    // Drafts are not written until the Save button is pressed.
     function saveIncidentPanelState() {
         var inc = incidentPanelState;
         if (!inc || !inc.evid) { return; }
@@ -1572,7 +1637,8 @@
         panel.innerHTML = html;
 
         panel.querySelector('[data-role="cancel"]').addEventListener('click', function () {
-            // Draft: discard with no DB write. Existing: close (already saved).
+            // Draft: discard with no DB write. Existing: just close (edits
+            // already auto-saved on field change).
             closeIncidentPanel();
         });
 
@@ -1637,8 +1703,11 @@
         }
     }
 
-    // Potty Time panel after type tap or edit. pottyPanelState is the
-    // working copy; field changes save via edit_potty immediately.
+    // ------------------------------------------------------------------
+    // Potty Time entry panel - opened after a type tap or an edit (\u270e).
+    // pottyPanelState holds a working copy; each field change saves via
+    // edit_potty right away (no separate Save button needed).
+    // ------------------------------------------------------------------
     var pottyPanelState = null;
 
     function openPottyPanel(entry) {
@@ -1746,8 +1815,9 @@
         });
     }
 
-    // Shared attachment grid for Potty Time and Incident panels.
-    // Refreshes panelState.attachments in place after upload/delete.
+    // Shared by the Potty Time and Incident panels. $state is the panel's
+    // working entry object (must have an .attachments array); refreshes
+    // it in place after upload/delete and re-renders into $wrap.
     function renderAttachmentGrid(wrap, panelState, getEvid) {
         wrap.innerHTML = '';
         (panelState.attachments || []).forEach(function (a) {
@@ -1775,8 +1845,9 @@
         });
     }
 
-    // Upload files sequentially (camera or library). Tag with context
-    // ('potty' or 'incident') so they stay
+    // Uploads one or more files (camera or library - accept="image/*"
+    // with no "capture" attribute offers both on mobile) sequentially,
+    // tagging each with $context ('potty' or 'incident') so they stay
     // organized in the underlying documents table.
     function uploadAttachments(fileList, evid, context, panelState, onDone) {
         var files = Array.prototype.slice.call(fileList);
@@ -1971,8 +2042,11 @@
         });
     }
 
-    // Bottle ounces picker (1-8 oz). Used for add and edit; callback
-    // chooses which action to POST.
+    // ------------------------------------------------------------------
+    // Bottle ounces picker - quick-select popup, 1-8oz. Used both for
+    // adding a new bottle and for editing an existing entry's amount
+    // (the callback decides which action to POST).
+    // ------------------------------------------------------------------
     function openBottlePanel(onSelect) {
         var overlay = document.getElementById('bottle_panel_overlay');
         var panel = document.getElementById('bottle_panel');
@@ -1996,8 +2070,11 @@
         overlay.style.display = '';
     }
 
-    // Menu (Breakfast/Lunch/Dinner): admin panels with textarea,
-    // suggestions, and "Copy to Kids" scoped to that meal.
+    // ------------------------------------------------------------------
+    // Menu (Breakfast / Lunch / Dinner) - editable panels for admin, each
+    // with its own textarea, quick-fill suggestions, and "Copy to Kids"
+    // scoped to that one meal only.
+    // ------------------------------------------------------------------
     function renderMealCopyList(wrap, mealKey) {
         wrap.innerHTML = '';
         var others = state.children.filter(function (c) { return c.chid !== state.chid; });
@@ -2166,7 +2243,11 @@
         });
     }
 
-    // Activities: multi-select toggles plus "Copy to Kids" for today's set.
+    // ------------------------------------------------------------------
+    // Activities - multi-select toggle buttons (unlike mood/potty, more
+    // than one can be active at once) with a "Copy to Kids" panel that
+    // mirrors today's whole checked set onto other children.
+    // ------------------------------------------------------------------
     function renderActivitiesCopyList(wrap) {
         wrap.innerHTML = '';
         var others = state.children.filter(function (c) { return c.chid !== state.chid; });
@@ -2450,8 +2531,11 @@
         });
         applyCardCollapse('incidents', 'incidents_card_toggle', 'admin_incidents_history', day.incidents.length);
 
-        // Naptime card: notice 1-3pm for all; log buttons under age cutoff;
-        // history when present; simple rating (+ Set for All) at/above cutoff.
+        // Naptime - one consolidated card: notice text shows for every
+        // child 1-3pm, buttons only for kids under the age cutoff, history
+        // always shows below when there's any, and the simple rating
+        // (+ Set for All) shows for kids at/above the age cutoff instead.
+        // Card itself is hidden entirely when none of those apply.
         var naptimeCard = document.getElementById('admin_naptime_card');
         var noticeText = document.getElementById('admin_naptime_notice_text');
         var napBtnWrap = document.getElementById('naptime_buttons');
@@ -2562,8 +2646,15 @@
         renderQuickNoteButtons(day);
     }
 
-    // Notifications: opt-in on parent view. Per-device PushSubscription
-    // keyed by endpoint hash so devices stay independent per account.
+    // ------------------------------------------------------------------
+    // Notifications Front End
+    //
+    // Opt-in only, from the parent status view. Each device gets its own
+    // PushSubscription, keyed server-side by a hash of that subscription's
+    // endpoint (see status_push_identifier() in lib/status_lib.php), so
+    // enabling notifications on a new device doesn't affect any other
+    // device already subscribed on the same family account.
+    // ------------------------------------------------------------------
     function urlBase64ToUint8Array(base64String) {
         var padding = '='.repeat((4 - base64String.length % 4) % 4);
         var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');

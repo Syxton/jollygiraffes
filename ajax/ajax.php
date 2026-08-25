@@ -2823,7 +2823,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
                     $transactions .= from_template("billing_flexsection_layout.php", [
                         "class" => "invoice_bills",
-                        "style" => "background-color:darkRed;",
+                        "style" => "background-color:darkRed;flex-direction: column;",
                         "header" => from_template("fees_header_stacked.php", ["amount" => $total_fee]),
                         "contents" => $receipts,
                     ]);
@@ -2980,7 +2980,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
 
                                 $transactions .= from_template("billing_flexsection_layout.php", [
                                     "class" => "invoice_bills",
-                                    "style" => "background-color:darkRed;padding: 5px;color: white;",
+                                    "style" => "background-color:darkRed;flex-direction: column;padding: 5px;color: white;",
                                     "header" => $header,
                                     "contents" => $content,
                                 ]);
@@ -4388,17 +4388,37 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
     global $MYVARS;
     $aid      = $aid ? $aid : (empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"]);
     $recover  = $recover ? $recover : (empty($MYVARS->GET["recover"]) ? false : $MYVARS->GET["recover"]);
+    // When true, return every non-deleted account; default is only accounts with active enrollments.
+    $show_all = !empty($MYVARS->GET["show_all"]) && $MYVARS->GET["show_all"] !== "false" && $MYVARS->GET["show_all"] !== "0";
     $pid      = get_pid();
 
     $deleted = $recover ? "1" : "0";
     if ($deleted) {
         $SQL = "SELECT * FROM accounts WHERE admin = 0 AND (aid IN (SELECT aid FROM children WHERE deleted = ||deleted||) OR aid IN (SELECT aid FROM contacts WHERE deleted = ||deleted||) OR deleted = 1) ORDER BY name";
-    } else {
+        $sql_params = ["deleted" => $deleted];
+    } elseif ($show_all) {
+        // Full list (heavy when there are many accounts) — only when explicitly requested.
         $SQL = "SELECT * FROM accounts WHERE admin = 0 AND deleted = ||deleted|| ORDER BY name";
+        $sql_params = ["deleted" => $deleted];
+    } else {
+        // Default: only accounts that have at least one actively enrolled child in the current program.
+        $SQL = "SELECT * FROM accounts
+                WHERE admin = 0
+                AND deleted = 0
+                AND aid IN (
+                    SELECT aid FROM children
+                    WHERE deleted = 0
+                    AND chid IN (
+                        SELECT chid FROM enrollments
+                        WHERE pid = ||pid|| AND deleted = 0
+                    )
+                )
+                ORDER BY name";
+        $sql_params = ["pid" => $pid];
     }
 
     $accounts_list = '';
-    if ($accounts = get_db_result($SQL, ["deleted" => $deleted])) {
+    if ($accounts = get_db_result($SQL, $sql_params)) {
         while ($account = fetch_row($accounts)) {
             $kid_count = get_db_count("SELECT * FROM children WHERE aid = ||aid|| AND deleted = ||deleted||", ["aid" => $account["aid"], "deleted" => $deleted]);
             $active    = get_db_count("SELECT * FROM enrollments WHERE chid IN (SELECT chid FROM children WHERE aid = ||aid||) AND pid = ||pid|| AND deleted = ||deleted||", ["aid" => $account["aid"], "pid" => $pid, "deleted" => $deleted]) ? "activeaccount" : "inactiveaccount";
@@ -4411,7 +4431,8 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
 
             $deleted_param   = $recover ? 'recover: \'true\',' : '';
             $notifications   = get_notifications($pid, false, $account["aid"], true) ? 'background: darkred;' : '';
-            $override        = $recover ? "display:block;" : "";
+            // Override CSS hide of .inactiveaccount when showing all accounts or recovering deleted ones.
+            $override        = ($recover || $show_all) ? "display:block;" : "";
             $account_balance = account_balance($pid, $account["aid"], true);
             $balanceclass    = $account_balance <= 0 ? "balance_good" : "balance_bad";
 
@@ -4472,10 +4493,21 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
                   });">See Inactive</button>';
         }
 
+        // "Show Enrolled" checked = enrolled-only list (default, light query).
+        // Unchecked = full account list via a new AJAX request (show_all=1).
+        $checked_attr = $show_all ? '' : ' checked';
         $header .= '</div>
                         <div class="list_box_item_right enroll_data">
                             <div class="show_enrolled">
-                                Show Enrolled <input type="checkbox" checked onclick="if ($(this).prop(\'checked\')) { $(\'.inactiveaccount\').hide(); } else { $(\'.inactiveaccount\').show(); } $(\'.scroll-pane\').sbscroller(\'refresh\'); smart_scrollbars();" />
+                                Show Enrolled <input type="checkbox"' . $checked_attr . ' onclick="
+                                    var showAll = $(this).prop(\'checked\') ? \'0\' : \'1\';
+                                    $.ajax({
+                                        type: \'POST\',
+                                        url: \'ajax/ajax.php\',
+                                        data: { action: \'get_admin_accounts_form\', aid: \'\', show_all: showAll },
+                                        success: function(data) { $(\'#admin_display\').html(data); refresh_all(); }
+                                    });
+                                " />
                             </div>
                             <div class="enrolled_count">Enrolled:
                                 ' . get_db_count("SELECT * FROM enrollments WHERE pid = ||pid|| AND deleted = '0' AND chid IN (SELECT chid FROM children WHERE deleted = '0')", ["pid" => $pid]) . '

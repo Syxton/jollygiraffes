@@ -1505,12 +1505,14 @@ div.day-add a {
 .layout-split-row {
     display: flex;
     flex: 1;
-    align-items: center;
+    align-items: stretch;
 }
 
 .layout-split-row > * {
-    flex: 1 1 320px; /* wrap to full width once below ~320px each */
+    display: flex;
+    width: 150px;
     min-width: 0;
+    align-items: center;
 }
 
 /* Prevent the historical pattern of stacking multiple

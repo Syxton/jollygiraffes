@@ -352,6 +352,14 @@ smart_scrollbars();
 
 $(document).bind("ajaxSend", function() {
     $(".loadingscreen").show();
+    $(".loadingscreen").data("loadingStart", Date.now());
+
 }).bind("ajaxComplete", function() {
-    $(".loadingscreen").hide();
+    var start = $(".loadingscreen").data("loadingStart");
+    var elapsed = Date.now() - start;
+    var remaining = Math.max(500 - elapsed, 0);
+
+    setTimeout(function() {
+        $(".loadingscreen").hide();
+    }, remaining);
 });

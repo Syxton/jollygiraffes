@@ -1,29 +1,10 @@
 <?php
 
-/***************************************************************************
-* status_lib.php - Daily Status Report feature
-* -------------------------------------------------------------------------
-* Parent link: https://.../status?c=FAMILYCODE (PIN-protected, read only)
-* Admin/staff: https://.../status (admin PIN, edit view)
-*
-* Storage: reuses existing tables instead of adding parallel log tables.
-*   - `events` gains chid, aid, daykey, timelog, plus cream/peed/pooped for
-*     Potty Time. Moods, bottles, and Potty Time are all just rows here,
-*     distinguished by `tag`. Old 'in'/'out' definition rows are untouched
-*     (chid/aid/daykey stay 0, and every query here filters by a real chid).
-*     Old tally tags (diaper/potty_success/potty_accident/clothing_change)
-*     are dormant - left in place, no longer read or shown.
-*   - `notes` gains daykey, so status-page notes are scoped to a child+day.
-*     Only non-zero daykey rows are ever shown, so pre-existing notes are
-*     never exposed on the parent report.
-*   - `documents` gains evid, linking an attachment to one specific
-*     Potty Time entry rather than just to the child.
-*   - `accounts` gains link_code, for the shareable parent link.
-*   - `status_menu` is the one genuinely new table: per-child/day menu
-*     text, one row per meal (breakfast/lunch/dinner).
-*
-* Depends on lib/dblib.php and lib/timelib.php (loaded via lib/header.php).
-***************************************************************************/
+/**
+ * status_lib.php - Daily Status Report feature.
+ * Parent: /status?c=CODE (PIN, read-only). Admin: /status (admin PIN, edit).
+ * Reuses events/notes/documents/accounts; adds status_menu. Needs dblib+timelib.
+ */
 
 if (!isset($NOTIFICATIONLIB)) {
     require_once(dirname(__FILE__) . '/../notifications/notification_lib.php');
@@ -149,20 +130,37 @@ if (!isset($STATUSLIB)) {
         'restless'   => ['label' => 'Restless',   'emoji' => '😣'],
     ];
 
-    // -----------------------------------------------------------------
-    // Migration - creates/alters tables on first run. Safe to call every
-    // request. SHOW COLUMNS/INDEX return an empty-but-truthy result when
-    // nothing matches (unlike SELECT), so existence checks below go
-    // through information_schema instead.
-    // -----------------------------------------------------------------
+    /**
+     *
+     * True if $table has column $column (via information_schema).
+     *
+     *
+     * @param string $table  Database table name.
+     * @param string $column Column name.
+     */
     function status_column_exists($table, $column) {
         return (bool) get_db_row("SELECT column_name FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='" . dbescape($table) . "' AND column_name='" . dbescape($column) . "'");
     }
 
+    /**
+     *
+     * True if $table has index $indexname (via information_schema).
+     *
+     *
+     * @param string $table     Database table name.
+     * @param string $indexname Index name.
+     */
     function status_index_exists($table, $indexname) {
         return (bool) get_db_row("SELECT index_name FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='" . dbescape($table) . "' AND index_name='" . dbescape($indexname) . "'");
     }
 
+    /**
+     *
+     * Create or alter tables and columns used by the Daily Status feature.
+     * Safe to call on every request; no-ops when schema is already current.
+     *
+     *
+     */
     function status_migrate() {
 
         // events: log columns (chid/aid/daykey/timelog) plus Potty Time flags
@@ -333,26 +331,26 @@ if (!isset($STATUSLIB)) {
         notifications_migrate();
     }
 
-    // -----------------------------------------------------------------
-    // Web Push notifications (opt-in, from the parent status view)
-    // -----------------------------------------------------------------
-
-    // Each browser/device subscription gets its own identifier - a hash
-    // of the PushSubscription endpoint, which the push service guarantees
-    // is unique per device registration. This means one family with
-    // several devices (parent's phone + tablet, etc.) gets a separate row
-    // per device instead of the newest subscribe overwriting the last.
-    //
-    // The subscription's contents also carry the owning `aid` so a family
-    // can still be looked up later (e.g. to push a notification to
-    // everyone on their account, or to let them clear all their devices).
+    /**
+     *
+     * SHA-256 of a PushSubscription endpoint; unique per device registration.
+     *
+     *
+     * @param string $endpoint PushSubscription endpoint URL.
+     */
     function status_push_identifier($endpoint) {
         return hash('sha256', $endpoint);
     }
 
-    // Stores/replaces this device's PushSubscription. $subscription is the
-    // parsed PushSubscription object the browser handed back from
-    // pushManager.subscribe() (endpoint + keys).
+    /**
+     *
+     * Store or replace this device's PushSubscription (endpoint + keys).
+     * Associates the subscription with account $aid for later lookup.
+     *
+     *
+     * @param int   $aid          Account id.
+     * @param array $subscription Parsed PushSubscription (endpoint and keys).
+     */
     function status_push_subscribe($aid, $subscription) {
         if (empty($subscription['endpoint'])) {
             return ["success" => false, "message" => "Invalid subscription."];
@@ -363,10 +361,15 @@ if (!isset($STATUSLIB)) {
         return ["success" => true];
     }
 
-    // Removes this device's subscription. Requires the endpoint so only
-    // that one device is affected (not every device on the account), and
-    // checks the stored aid so one account can't delete another
-    // account's subscription by guessing/replaying an endpoint.
+    /**
+     *
+     * Remove this device's subscription by endpoint only.
+     * Checks stored aid so one account cannot delete another's subscription.
+     *
+     *
+     * @param int    $aid      Account id.
+     * @param string $endpoint PushSubscription endpoint URL.
+     */
     function status_push_unsubscribe($aid, $endpoint) {
         if (empty($endpoint)) {
             return ["success" => false, "message" => "Invalid subscription."];
@@ -380,9 +383,13 @@ if (!isset($STATUSLIB)) {
         return ["success" => true];
     }
 
-    // All device subscriptions belonging to one account - useful for
-    // pushing to every device a family has enabled, or for a "notifications
-    // on this account" management view.
+    /**
+     *
+     * All device subscriptions belonging to one account.
+     *
+     *
+     * @param int $aid Account id.
+     */
     function status_push_subscriptions_for_account($aid) {
         $aid = intval($aid);
         $matches = [];
@@ -394,11 +401,14 @@ if (!isset($STATUSLIB)) {
         return $matches;
     }
 
-    // Parent-facing status page URL for one account, e.g.
-    // https://site.example/status.php?c=Smith - same form as the "Copy Link"
-    // control on the admin Family Links screen. Used as the default click
-    // target for push notifications so parents land on their report, not
-    // the site root.
+    /**
+     *
+     * Parent-facing status page URL for one account.
+     * Same form as admin Family Links "Copy Link"; default push click target.
+     *
+     *
+     * @param int $aid Account id.
+     */
     function status_parent_url($aid) {
         global $CFG;
         $aid = intval($aid);
@@ -413,13 +423,18 @@ if (!isset($STATUSLIB)) {
         return $base . '?c=' . rawurlencode($code);
     }
 
-    // Sends a push notification to every device a family has enabled
-    // notifications on. Does nothing if they have none subscribed, and
-    // never throws - a misconfigured/unreachable push service should
-    // never block the admin action (saving a photo, logging an incident)
-    // that triggered it.
-    // $url defaults to that family's parent status link so a notification
-    // tap opens their daily report rather than the site root.
+    /**
+     *
+     * Send a push notification to every enabled device for a family.
+     * Never throws so a push failure cannot block the admin action.
+     * $url defaults to that family's parent status link.
+     *
+     *
+     * @param int         $aid   Account id.
+     * @param string      $title Notification title.
+     * @param string      $body  Notification body text.
+     * @param string|null $url   Click target URL; null uses the parent status link.
+     */
     function status_push_notify_family($aid, $title, $body, $url = null) {
         global $CFG;
         $subscriptions = status_push_subscriptions_for_account($aid);
@@ -439,8 +454,15 @@ if (!isset($STATUSLIB)) {
         }
     }
 
-    // A photo was saved on Potty Time or an Activity entry - let the
-    // family know. Skips non-image attachments (e.g. a PDF).
+    /**
+     *
+     * Notify family of a new photo on Potty Time or Activity (images only).
+     *
+     *
+     * @param int    $aid      Account id.
+     * @param int    $chid     Child id.
+     * @param string $filename Stored filename.
+     */
     function status_push_notify_photo($aid, $chid, $filename) {
         global $STATUS_PHOTO_EXTENSIONS;
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
@@ -452,7 +474,15 @@ if (!isset($STATUSLIB)) {
         status_push_notify_family($aid, "📸 New Photo", $body);
     }
 
-    // A quick incident report was logged - let the family know right away.
+    /**
+     *
+     * Notify family immediately when a quick incident is logged.
+     *
+     *
+     * @param int    $aid  Account id.
+     * @param int    $chid Child id.
+     * @param string $type Type key (mood, potty, incident, etc.).
+     */
     function status_push_notify_incident($aid, $chid, $type) {
         global $STATUS_INCIDENT_TYPES;
         $info  = isset($STATUS_INCIDENT_TYPES[$type]) ? $STATUS_INCIDENT_TYPES[$type] : null;
@@ -463,9 +493,14 @@ if (!isset($STATUSLIB)) {
         status_push_notify_family($aid, "$emoji Incident Report", $body);
     }
 
-    // -----------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------
+    /**
+     *
+     * Midnight in the configured timezone as a UTC epoch.
+     * Matches get_today() convention for day-scoped queries.
+     *
+     *
+     * @param int|false $timestamp Unix timestamp; false means now.
+     */
     function status_daykey($timestamp = false) {
         // Midnight in the configured timezone, matching get_today()'s convention.
         global $CFG;
@@ -477,12 +512,14 @@ if (!isset($STATUSLIB)) {
         return $utc->getTimestamp();
     }
 
-    // Falls back to "now" if $timelog is on a different day than today or
-    // more than a few minutes in the future. status_daykey() is in the
-    // same "shifted" convention display_time() uses (local wall-clock
-    // expressed as if it were UTC), so $timelog has to be shifted the
-    // same way before comparing against it - comparing raw UTC directly
-    // against $day would miscategorize evening times near local midnight.
+    /**
+     *
+     * Return $timelog if it falls on today and is not far in the future.
+     * Otherwise fall back to now. Uses status_daykey() for day comparison.
+     *
+     *
+     * @param int $timelog Stored event timestamp (app UTC convention).
+     */
     function status_clamp_timelog($timelog) {
         $now = get_timestamp();
         $timelog = intval($timelog);
@@ -500,11 +537,15 @@ if (!isset($STATUSLIB)) {
         return $timelog;
     }
 
-    // Converts a local HH:MM (today) to the raw UTC timelog this app
-    // stores. display_time()/get_offset() (timelib.php) show a time by
-    // adding the offset to the raw timestamp and formatting as if it were
-    // UTC, so building one from a chosen HH:MM has to subtract that offset
-    // back out.
+    /**
+     *
+     * Convert local HH:MM (today) to the raw UTC timelog this app stores.
+     * Subtracts display_time offset so values match formatted times.
+     *
+     *
+     * @param int|false $hour   Local hour, or false to use now.
+     * @param int|false $minute Local minute, or false to use now.
+     */
     function status_time_from_hm($hour, $minute) {
         $day = status_daykey();
         $offset = get_offset();
@@ -512,8 +553,14 @@ if (!isset($STATUSLIB)) {
         return status_clamp_timelog($day + $seconds - $offset);
     }
 
-    // Resolves the timelog for a timed event: a specific HH:MM if given,
-    // otherwise now.
+    /**
+     *
+     * Resolve optional hour/minute to a clamped UTC timelog (or now).
+     *
+     *
+     * @param int|false $hour   Local hour, or false to use now.
+     * @param int|false $minute Local minute, or false to use now.
+     */
     function status_resolve_timelog($hour = false, $minute = false) {
         if ($hour === false || $hour === null || $hour === '') {
             return get_timestamp();
@@ -521,14 +568,26 @@ if (!isset($STATUSLIB)) {
         return status_time_from_hm($hour, $minute);
     }
 
+    /**
+     *
+     * Slugify text for family link codes (alphanumeric and dashes).
+     *
+     *
+     * @param string $text Input text to slugify.
+     */
     function status_slugify($text) {
         $text = strtolower(trim((string) $text));
         $text = preg_replace('/[^a-z0-9]+/', '', $text);
         return $text;
     }
 
-    // Whether a child currently has a live (non-deleted) enrollment in a
-    // non-deleted program.
+    /**
+     *
+     * True if the child has a current enrollment record.
+     *
+     *
+     * @param int $chid Child id.
+     */
     function status_child_currently_enrolled($chid) {
         $chid = intval($chid);
         return (bool) get_db_count("
@@ -537,7 +596,13 @@ if (!isset($STATUSLIB)) {
              WHERE e.chid='$chid' AND e.deleted=0 AND p.deleted=0");
     }
 
-    // Whether a family account has at least one currently-enrolled child.
+    /**
+     *
+     * True if the account has any enrolled children.
+     *
+     *
+     * @param int $aid Account id.
+     */
     function status_account_has_enrolled_children($aid) {
         $aid = intval($aid);
         return (bool) get_db_count("
@@ -547,14 +612,23 @@ if (!isset($STATUSLIB)) {
              WHERE c.aid='$aid' AND c.deleted=0 AND e.deleted=0 AND p.deleted=0");
     }
 
+    /**
+     *
+     * Unguessable hash used when a family has no enrolled children.
+     *
+     *
+     */
     function status_generate_link_hash() {
         return bin2hex(random_bytes(16));
     }
 
-    // Keeps link_code/link_disabled in sync with current enrollment: a
-    // family with no enrolled children gets its link replaced with an
-    // unguessable hash and hidden from Family Links; one that regains an
-    // enrolled child gets a normal slug-based link back.
+    /**
+     *
+     * Sync link_code and link_disabled with current enrollment.
+     * No enrolled kids: unguessable hash and hide. Re-enrolled: normal slug link.
+     *
+     *
+     */
     function status_sync_family_access() {
         $SQL = "SELECT aid, link_disabled FROM accounts WHERE deleted=0 AND admin=0";
         if ($result = get_db_result($SQL)) {
@@ -572,6 +646,13 @@ if (!isset($STATUSLIB)) {
         }
     }
 
+    /**
+     *
+     * Ensure the account has a link_code; create from name if missing.
+     *
+     *
+     * @param int $aid Account id.
+     */
     function status_ensure_link_code($aid) {
         $existing = get_db_field("link_code", "accounts", "aid='" . intval($aid) . "'");
         if (!empty($existing)) {
@@ -590,6 +671,14 @@ if (!isset($STATUSLIB)) {
         return $code;
     }
 
+    /**
+     *
+     * Set or clear a family's shareable parent link code.
+     *
+     *
+     * @param int    $aid  Account id.
+     * @param string $code Family link code.
+     */
     function status_set_link_code($aid, $code) {
         $aid  = intval($aid);
         $code = status_slugify($code);
@@ -603,6 +692,13 @@ if (!isset($STATUSLIB)) {
         return ["success" => true, "link_code" => $code];
     }
 
+    /**
+     *
+     * Resolve a family link code to an account id, or false.
+     *
+     *
+     * @param string $code Family link code.
+     */
     function status_find_aid_by_code($code) {
         $code = status_slugify($code);
         if (!$code) {
@@ -612,9 +708,12 @@ if (!isset($STATUSLIB)) {
         return $row ? $row["aid"] : false;
     }
 
-    // -----------------------------------------------------------------
-    // Session / auth
-    // -----------------------------------------------------------------
+    /**
+     *
+     * Start the PHP session used by the status page auth flow.
+     *
+     *
+     */
     function status_start_session() {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             ini_set('session.save_path', realpath(dirname(__FILE__) . '/tmp'));
@@ -622,6 +721,12 @@ if (!isset($STATUSLIB)) {
         }
     }
 
+    /**
+     *
+     * True if PIN login attempts have exceeded the rate limit.
+     *
+     *
+     */
     function status_too_many_attempts() {
         status_start_session();
         $attempts = isset($_SESSION['status_attempts']) ? $_SESSION['status_attempts'] : 0;
@@ -635,17 +740,37 @@ if (!isset($STATUSLIB)) {
         return false;
     }
 
+    /**
+     *
+     * Record a failed PIN attempt for rate limiting.
+     *
+     *
+     */
     function status_register_failed_attempt() {
         status_start_session();
         $_SESSION['status_attempts'] = (isset($_SESSION['status_attempts']) ? $_SESSION['status_attempts'] : 0) + 1;
         $_SESSION['status_lastfail'] = time();
     }
 
+    /**
+     *
+     * Clear failed-attempt counters after a successful login.
+     *
+     *
+     */
     function status_register_success() {
         status_start_session();
         $_SESSION['status_attempts'] = 0;
     }
 
+    /**
+     *
+     * Parent login by link code and PIN. Sets session role and aid.
+     *
+     *
+     * @param string $code Family link code.
+     * @param string $pin  4-digit PIN.
+     */
     function status_login_parent($code, $pin) {
         if (status_too_many_attempts()) {
             return ["success" => false, "message" => "Too many attempts. Please wait a minute and try again."];
@@ -672,6 +797,13 @@ if (!isset($STATUSLIB)) {
         return ["success" => true];
     }
 
+    /**
+     *
+     * Admin login by admin PIN. Sets session role to admin.
+     *
+     *
+     * @param string $pin 4-digit PIN.
+     */
     function status_login_admin($pin) {
         if (status_too_many_attempts()) {
             return ["success" => false, "message" => "Too many attempts. Please wait a minute and try again."];
@@ -689,9 +821,15 @@ if (!isset($STATUSLIB)) {
         return ["success" => true];
     }
 
-    // Lets a logged-in account (parent or admin) change the 4-digit PIN
-    // used to log in here and at the check-in/out kiosk. Requires the
-    // current PIN to match before writing the new one.
+    /**
+     *
+     * Change the 4-digit PIN used for status login and the check-in kiosk.
+     * Requires the current PIN to match before writing the new one.
+     *
+     *
+     * @param string $current_pin Current 4-digit PIN.
+     * @param string $new_pin     New 4-digit PIN.
+     */
     function status_change_pin($current_pin, $new_pin) {
         $aid = status_current_aid();
         if (!$aid) {
@@ -719,6 +857,12 @@ if (!isset($STATUSLIB)) {
         return ["success" => true];
     }
 
+    /**
+     *
+     * Clear the status page session.
+     *
+     *
+     */
     function status_logout() {
         status_start_session();
         $_SESSION['status_role'] = null;
@@ -726,17 +870,35 @@ if (!isset($STATUSLIB)) {
         session_unset();
     }
 
+    /**
+     *
+     * Current session role: 'admin', 'parent', or null.
+     *
+     *
+     */
     function status_current_role() {
         status_start_session();
         return isset($_SESSION['status_role']) ? $_SESSION['status_role'] : false;
     }
 
+    /**
+     *
+     * Current session account id, or null if not logged in.
+     *
+     *
+     */
     function status_current_aid() {
         status_start_session();
         return isset($_SESSION['status_aid']) ? $_SESSION['status_aid'] : false;
     }
 
-    // Returns true if the currently logged-in session is allowed to view/edit this child.
+    /**
+     *
+     * True if the current session may view or edit this child.
+     *
+     *
+     * @param int $chid Child id.
+     */
     function status_can_access_child($chid) {
         $role = status_current_role();
         if ($role == 'admin') {
@@ -750,7 +912,13 @@ if (!isset($STATUSLIB)) {
         return false;
     }
 
-    // Returns true if the currently logged-in session is allowed to view/edit this account.
+    /**
+     *
+     * True if the current session may view or edit this account.
+     *
+     *
+     * @param int $aid Account id.
+     */
     function status_can_access_account($aid) {
         $role = status_current_role();
         if ($role == 'admin') {
@@ -762,7 +930,13 @@ if (!isset($STATUSLIB)) {
         return false;
     }
 
-    // Returns true if the currently logged-in session is allowed to view/edit this contact.
+    /**
+     *
+     * True if the current session may view or edit this contact.
+     *
+     *
+     * @param int $cid Contact id.
+     */
     function status_can_access_contact($cid) {
         $role = status_current_role();
         if ($role == 'admin') {
@@ -776,9 +950,14 @@ if (!isset($STATUSLIB)) {
         return false;
     }
 
-    // Returns true if the currently logged-in session is allowed to view a given `documents`
-    // row. Used by files.php (the authenticated file gateway) before it will stream anything
-    // off disk, so this is the single choke point that decides who can see an upload.
+    /**
+     *
+     * True if the current session may view this documents row.
+     * Used by files.php before streaming; single gate for uploads.
+     *
+     *
+     * @param array $document Documents table row.
+     */
     function status_can_access_document($document) {
         if (!status_current_role()) {
             return false; // not logged in at all
@@ -803,9 +982,14 @@ if (!isset($STATUSLIB)) {
         return false;
     }
 
-    // -----------------------------------------------------------------
-    // Age helpers (Bottles section only applies under a certain age)
-    // -----------------------------------------------------------------
+    /**
+     *
+     * Age in whole months as of $reference (or now if omitted).
+     *
+     *
+     * @param int       $birthdate Birth date as Unix timestamp.
+     * @param int|false $reference Reference timestamp for age; false means now.
+     */
     function status_age_months($birthdate, $reference = false) {
         $birthdate = intval($birthdate);
         if ($birthdate <= 0) {
@@ -823,23 +1007,40 @@ if (!isset($STATUSLIB)) {
         return ($diff->y * 12) + $diff->m;
     }
 
-    // Uses age as of $reference (not "now"), so a parent swiping through
-    // history still sees Bottles for days before their child aged out.
+    /**
+     *
+     * True if the child is young enough for bottle logging as of $reference.
+     *
+     *
+     * @param int       $birthdate Birth date as Unix timestamp.
+     * @param int|false $reference Reference timestamp for age; false means now.
+     */
     function status_eligible_for_bottles($birthdate, $reference = false) {
         global $STATUS_BOTTLE_MAX_MONTHS;
         $months = status_age_months($birthdate, $reference);
         return $months !== null && $months < $STATUS_BOTTLE_MAX_MONTHS;
     }
 
-    // Whether the child is young enough to have the nap-logging buttons
-    // (the 1pm-3pm notice itself shows for every child, regardless of age).
+    /**
+     *
+     * True if the child is young enough for nap-log buttons as of $reference.
+     *
+     *
+     * @param int       $birthdate Birth date as Unix timestamp.
+     * @param int|false $reference Reference timestamp for age; false means now.
+     */
     function status_eligible_for_naptime($birthdate, $reference = false) {
         global $STATUS_NAP_MAX_MONTHS;
         $months = status_age_months($birthdate, $reference);
         return $months !== null && $months < $STATUS_NAP_MAX_MONTHS;
     }
 
-    // Whether right now falls in the 1pm-3pm naptime window.
+    /**
+     *
+     * True if the current time falls in the 1pm–3pm nap window.
+     *
+     *
+     */
     function status_naptime_window_now() {
         global $CFG, $STATUS_NAP_WINDOW;
         $local = new DateTime('now', new DateTimeZone($CFG->timezone));
@@ -848,9 +1049,13 @@ if (!isset($STATUSLIB)) {
         return $hour >= $STATUS_NAP_WINDOW['start_hour'] && $hour < $STATUS_NAP_WINDOW['end_hour'];
     }
 
-    // -----------------------------------------------------------------
-    // Children / families
-    // -----------------------------------------------------------------
+    /**
+     *
+     * Children belonging to account $aid.
+     *
+     *
+     * @param int $aid Account id.
+     */
     function status_children_for_aid($aid) {
         $children = [];
         if ($result = get_db_result("SELECT * FROM children WHERE aid='" . intval($aid) . "' AND deleted=0 ORDER BY first,last")) {
@@ -861,6 +1066,12 @@ if (!isset($STATUSLIB)) {
         return $children;
     }
 
+    /**
+     *
+     * All currently enrolled children for the admin child list.
+     *
+     *
+     */
     function status_all_children() {
         global $CFG;
         if (!isset($PAGELIB)) {
@@ -887,6 +1098,12 @@ if (!isset($STATUSLIB)) {
         return $children;
     }
 
+    /**
+     *
+     * Family link codes for the admin Family Links panel.
+     *
+     *
+     */
     function status_all_family_links() {
         $families = [];
         $SQL = "SELECT * FROM accounts WHERE deleted=0 AND admin=0 AND link_disabled=0 ORDER BY name";
@@ -902,6 +1119,12 @@ if (!isset($STATUSLIB)) {
         return $families;
     }
 
+    /**
+     *
+     * Note category tags available when adding status notes.
+     *
+     *
+     */
     function status_notes_tags() {
         $tags = [];
         if ($result = get_db_result("SELECT * FROM notes_tags ORDER BY title")) {
@@ -917,7 +1140,14 @@ if (!isset($STATUSLIB)) {
         return $tags;
     }
 
-    // Attachments tied to one Potty Time entry (events.evid), not just the child.
+    /**
+     *
+     * Attachments linked to one Potty Time or incident entry (by evid).
+     *
+     *
+     * @param int $chid Child id.
+     * @param int $evid Event id (events.evid).
+     */
     function status_get_attachments($chid, $evid) {
         global $CFG;
         $chid = intval($chid);
@@ -935,9 +1165,15 @@ if (!isset($STATUSLIB)) {
         return $attachments;
     }
 
-    // -----------------------------------------------------------------
-    // Day data
-    // -----------------------------------------------------------------
+    /**
+     *
+     * Full day payload for one child: moods, potty, bottles, menu, notes,
+     * activities, incidents, naps, and related attachment metadata.
+     *
+     *
+     * @param int        $chid   Child id.
+     * @param bool|false $daykey Daykey.
+     */
     function status_get_day($chid, $daykey = false) {
         global $STATUS_MOODS, $STATUS_POTTY_TYPES, $STATUS_MEALS, $STATUS_ACTIVITIES, $STATUS_INCIDENT_TYPES, $STATUS_NAP_TAG, $CFG;
 
@@ -1159,10 +1395,14 @@ if (!isset($STATUSLIB)) {
         ];
     }
 
-    // -----------------------------------------------------------------
-    // Writes - all scoped to "today" (daykey defaults to now) since the
-    // status page only ever edits the current day.
-    // -----------------------------------------------------------------
+    /**
+     *
+     * Log a mood for the child today. Returns the updated day payload.
+     *
+     *
+     * @param int    $chid Child id.
+     * @param string $mood Mood tag key.
+     */
     function status_add_mood($chid, $mood) {
         global $STATUS_MOODS;
         if (!isset($STATUS_MOODS[$mood])) {
@@ -1176,8 +1416,20 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
-    // cream/peed/pooped are only ever stored for types that ask about them.
-    // Returns the new evid (so a photo can attach to it) plus the refreshed day.
+    /**
+     *
+     * Log a Potty Time entry with optional cream, peed, and pooped flags.
+     * Optional hour/minute set the entry time; otherwise uses now.
+     *
+     *
+     * @param int        $chid   Child id.
+     * @param string     $type   Type key (mood, potty, incident, etc.).
+     * @param int|false  $hour   Local hour, or false to use now.
+     * @param int|false  $minute Local minute, or false to use now.
+     * @param bool|false $cream  Whether cream was applied.
+     * @param bool|false $peed   Whether the child peed.
+     * @param bool|false $pooped Whether the child pooped.
+     */
     function status_add_potty($chid, $type, $hour = false, $minute = false, $cream = false, $peed = false, $pooped = false) {
         global $STATUS_POTTY_TYPES;
         if (!isset($STATUS_POTTY_TYPES[$type])) {
@@ -1196,7 +1448,20 @@ if (!isset($STATUSLIB)) {
         return ["evid" => $evid, "day" => status_get_day($chid, $day)];
     }
 
-    // Edits type/time/flags at once; only touches a row that's a Potty Time entry for this child.
+    /**
+     *
+     * Edit an existing Potty Time entry (type, time, and flags).
+     *
+     *
+     * @param int        $chid   Child id.
+     * @param int        $evid   Event id (events.evid).
+     * @param string     $type   Type key (mood, potty, incident, etc.).
+     * @param int|false  $hour   Local hour, or false to use now.
+     * @param int|false  $minute Local minute, or false to use now.
+     * @param bool|false $cream  Whether cream was applied.
+     * @param bool|false $peed   Whether the child peed.
+     * @param bool|false $pooped Whether the child pooped.
+     */
     function status_edit_potty($chid, $evid, $type, $hour, $minute, $cream, $peed, $pooped) {
         global $STATUS_POTTY_TYPES;
         if (!isset($STATUS_POTTY_TYPES[$type])) {
@@ -1219,6 +1484,14 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
+    /**
+     *
+     * Delete a Potty Time entry and any attachments on it.
+     *
+     *
+     * @param int $chid Child id.
+     * @param int $evid Event id (events.evid).
+     */
     function status_delete_potty($chid, $evid) {
         global $STATUS_POTTY_TYPES;
         $chid = intval($chid);
@@ -1237,7 +1510,13 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid);
     }
 
-    // Map incident type -> notes_tags title ("behavior" or "Injury").
+    /**
+     *
+     * notes_tags title to use when creating the linked incident note.
+     *
+     *
+     * @param string $type Type key (mood, potty, incident, etc.).
+     */
     function status_incident_note_tag_title($type) {
         global $STATUS_INCIDENT_TYPES;
         if (!isset($STATUS_INCIDENT_TYPES[$type])) {
@@ -1248,8 +1527,13 @@ if (!isset($STATUSLIB)) {
             : 'Injury';
     }
 
-    // One-time migration: rows that still store incident text in events.note
-    // get a notes row created and events.nid set. Safe to re-run.
+    /**
+     *
+     * One-time migration: move legacy events.note text into notes and set nid.
+     * Safe to re-run; only touches rows that still have note text and nid=0.
+     *
+     *
+     */
     function status_migrate_incident_notes() {
         global $CFG, $STATUS_INCIDENT_TYPES;
         if (!status_column_exists('events', 'nid')) {
@@ -1286,9 +1570,17 @@ if (!isset($STATUSLIB)) {
         }
     }
 
-    // Incidents Quick Report - one-tap create. Creates a notes row (notify=1,
-    // tag behavior/Injury) and an events row that references it via nid.
-    // Attachments still hang off the event (documents.evid).
+    /**
+     *
+     * Log a quick incident with optional note text and time.
+     *
+     *
+     * @param int       $chid   Child id.
+     * @param string    $type   Type key (mood, potty, incident, etc.).
+     * @param string    $note   Note text.
+     * @param int|false $hour   Local hour, or false to use now.
+     * @param int|false $minute Local minute, or false to use now.
+     */
     function status_add_incident($chid, $type, $note = null, $hour = false, $minute = 0) {
         global $CFG, $STATUS_INCIDENT_TYPES;
         if (!isset($STATUS_INCIDENT_TYPES[$type])) {
@@ -1322,6 +1614,18 @@ if (!isset($STATUSLIB)) {
         return ["evid" => $evid, "nid" => $nid, "day" => status_get_day($chid, $day)];
     }
 
+    /**
+     *
+     * Edit an existing incident (type, note, and time).
+     *
+     *
+     * @param int       $chid   Child id.
+     * @param int       $evid   Event id (events.evid).
+     * @param string    $type   Type key (mood, potty, incident, etc.).
+     * @param string    $note   Note text.
+     * @param int|false $hour   Local hour, or false to use now.
+     * @param int|false $minute Local minute, or false to use now.
+     */
     function status_edit_incident($chid, $evid, $type, $note, $hour, $minute) {
         global $CFG, $STATUS_INCIDENT_TYPES;
         if (!isset($STATUS_INCIDENT_TYPES[$type])) {
@@ -1358,6 +1662,14 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
+    /**
+     *
+     * Delete an incident event and its linked note and attachments.
+     *
+     *
+     * @param int $chid Child id.
+     * @param int $evid Event id (events.evid).
+     */
     function status_delete_incident($chid, $evid) {
         global $STATUS_INCIDENT_TYPES;
         $chid = intval($chid);
@@ -1380,8 +1692,14 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid);
     }
 
-    // Naptime - backdated single tap (the nap already ended, hence a
-    // duration button rather than a start/stop pair).
+    /**
+     *
+     * Log a nap of $minutes duration (entry is backdated from now).
+     *
+     *
+     * @param int $chid    Child id.
+     * @param int $minutes Duration in minutes.
+     */
     function status_add_nap($chid, $minutes) {
         global $STATUS_NAP_TAG, $STATUS_NAP_DURATIONS;
         if (!in_array(intval($minutes), $STATUS_NAP_DURATIONS)) {
@@ -1396,9 +1714,16 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
-    // Adjust the start time on an existing nap entry; leaves the logged
-    // duration (amount) alone, same pattern as status_edit_mood_time() /
-    // status_edit_bottle_time().
+    /**
+     *
+     * Edit the start time of an existing nap entry.
+     *
+     *
+     * @param int       $chid   Child id.
+     * @param int       $evid   Event id (events.evid).
+     * @param int|false $hour   Local hour, or false to use now.
+     * @param int|false $minute Local minute, or false to use now.
+     */
     function status_edit_nap_time($chid, $evid, $hour, $minute) {
         global $STATUS_NAP_TAG;
         $chid = intval($chid);
@@ -1412,6 +1737,14 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
+    /**
+     *
+     * Delete a nap entry.
+     *
+     *
+     * @param int $chid Child id.
+     * @param int $evid Event id (events.evid).
+     */
     function status_delete_nap($chid, $evid) {
         global $STATUS_NAP_TAG;
         $chid = intval($chid);
@@ -1420,9 +1753,14 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid);
     }
 
-    // Simple per-day nap rating for kids at/above STATUS_NAP_MAX_MONTHS
-    // (no individually logged nap entries for that group - see
-    // status_get_day's show_nap_rating flag). $rating = '' clears it.
+    /**
+     *
+     * Set the simple nap rating for one child for today.
+     *
+     *
+     * @param int    $chid   Child id.
+     * @param string $rating Rating key.
+     */
     function status_set_nap_rating($chid, $rating) {
         global $STATUS_NAP_RATINGS;
         if ($rating !== '' && !isset($STATUS_NAP_RATINGS[$rating])) {
@@ -1440,12 +1778,14 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
-    // "Set for all" - applies one rating to every enrolled child who's in
-    // the simple-nap-rating group (age >= STATUS_NAP_MAX_MONTHS) and
-    // doesn't already have a rating set for today. Kids with an existing
-    // rating, or still on logged nap entries, are left untouched - this
-    // fills gaps, it doesn't overwrite an earlier per-child choice.
-    // Returns the chids written.
+    /**
+     *
+     * Apply one nap rating to enrolled kids in the simple-rating age group
+     * who do not already have a rating today. Fills gaps only; returns chids written.
+     *
+     *
+     * @param string $rating Rating key.
+     */
     function status_set_nap_rating_for_all($rating) {
         global $STATUS_NAP_RATINGS;
         if ($rating !== '' && !isset($STATUS_NAP_RATINGS[$rating])) {
@@ -1479,7 +1819,16 @@ if (!isset($STATUSLIB)) {
         return $written;
     }
 
-    // Adjust the time on an existing mood entry; leaves the mood itself alone.
+    /**
+     *
+     * Edit the time on an existing mood entry.
+     *
+     *
+     * @param int       $chid   Child id.
+     * @param int       $evid   Event id (events.evid).
+     * @param int|false $hour   Local hour, or false to use now.
+     * @param int|false $minute Local minute, or false to use now.
+     */
     function status_edit_mood_time($chid, $evid, $hour, $minute) {
         global $STATUS_MOODS;
         $chid = intval($chid);
@@ -1494,6 +1843,16 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
+    /**
+     *
+     * Edit the time on an existing bottle entry.
+     *
+     *
+     * @param int       $chid   Child id.
+     * @param int       $evid   Event id (events.evid).
+     * @param int|false $hour   Local hour, or false to use now.
+     * @param int|false $minute Local minute, or false to use now.
+     */
     function status_edit_bottle_time($chid, $evid, $hour, $minute) {
         $chid = intval($chid);
         $evid = intval($evid);
@@ -1506,7 +1865,16 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
-    // Attachments (photos/files on a Potty Time entry)
+    /**
+     *
+     * Attach an uploaded file to a Potty Time or incident event.
+     *
+     *
+     * @param int    $chid     Child id.
+     * @param int    $evid     Event id (events.evid).
+     * @param string $filename Stored filename.
+     * @param string $tag      Tag or category key.
+     */
     function status_add_attachment($chid, $evid, $filename, $tag = 'attachment') {
         $chid = intval($chid);
         $evid = intval($evid);
@@ -1518,6 +1886,13 @@ if (!isset($STATUSLIB)) {
         return status_get_attachments($chid, $evid);
     }
 
+    /**
+     *
+     * Delete one documents row and remove its file from disk.
+     *
+     *
+     * @param array $row Database row.
+     */
     function status_delete_attachment_row($row) {
         global $CFG;
         $path = $CFG->userfilespath . "/children/" . $row["chid"] . "/" . $row["filename"];
@@ -1527,6 +1902,14 @@ if (!isset($STATUSLIB)) {
         execute_db_sql("DELETE FROM documents WHERE did='" . intval($row["did"]) . "'");
     }
 
+    /**
+     *
+     * Delete an attachment by did if the session may access it.
+     *
+     *
+     * @param int $chid Child id.
+     * @param int $did  Document id (documents.did).
+     */
     function status_delete_attachment($chid, $did) {
         $chid = intval($chid);
         $did  = intval($did);
@@ -1542,9 +1925,14 @@ if (!isset($STATUSLIB)) {
         return [];
     }
 
-    // "Need Diapers" / "Clothing Change" - pre-written notes tagged "Request".
-    // Need Diapers uses notify=2 (persist). If an active persist Need Diapers
-    // note already exists for the child, tapping again clears it (notify=0).
+    /**
+     *
+     * Create a quick-tap note (Request tag) for a predefined key.
+     *
+     *
+     * @param int    $chid Child id.
+     * @param string $key  Quick-note preset key.
+     */
     function status_quick_note($chid, $key) {
         global $CFG, $STATUS_QUICK_NOTES;
         if (!isset($STATUS_QUICK_NOTES[$key])) {
@@ -1573,8 +1961,15 @@ if (!isset($STATUSLIB)) {
         return status_add_note($chid, $tag, $info['text'], $notify_level);
     }
 
-    // Each meal (breakfast/lunch/dinner) has its own row, so saving one
-    // never touches the others for the same child/day.
+    /**
+     *
+     * Save menu text for one meal for one child for today.
+     *
+     *
+     * @param int    $chid Child id.
+     * @param string $meal Meal key (breakfast, lunch, dinner).
+     * @param string $menu Menu text.
+     */
     function status_save_menu($chid, $meal, $menu) {
         global $STATUS_MEALS;
         if (!isset($STATUS_MEALS[$meal])) {
@@ -1593,9 +1988,15 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
-    // Sets (or clears, with $rating = '') a child's rating of how a given
-    // meal went. Lives on the same status_menu row as the menu text, so
-    // rating one child never touches another child's rating.
+    /**
+     *
+     * Set the meal rating for one child and meal for today.
+     *
+     *
+     * @param int    $chid   Child id.
+     * @param string $meal   Meal key (breakfast, lunch, dinner).
+     * @param string $rating Rating key.
+     */
     function status_set_meal_rating($chid, $meal, $rating) {
         global $STATUS_MEALS, $STATUS_MEAL_RATINGS;
         if (!isset($STATUS_MEALS[$meal])) {
@@ -1617,12 +2018,15 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
-    // "Set for All" - applies one rating to every enrolled child for a
-    // given meal who doesn't already have a rating set for it today
-    // (meal ratings aren't age-scoped, unlike nap ratings). Kids with an
-    // existing rating are left alone - this fills gaps, it doesn't
-    // overwrite staff's earlier per-child choices. Never touches the menu
-    // text itself. Returns chids written.
+    /**
+     *
+     * Apply one meal rating to enrolled kids missing a rating for that meal today.
+     * Fills gaps only; does not change menu text. Returns chids written.
+     *
+     *
+     * @param string $meal   Meal key (breakfast, lunch, dinner).
+     * @param string $rating Rating key.
+     */
     function status_set_meal_rating_for_all($meal, $rating) {
         global $STATUS_MEALS, $STATUS_MEAL_RATINGS;
         if (!isset($STATUS_MEALS[$meal])) {
@@ -1657,7 +2061,15 @@ if (!isset($STATUSLIB)) {
         return $written;
     }
 
-    // Copies a menu to other kids, scoped to one meal only. Returns the chids written.
+    /**
+     *
+     * Copy menu text for a meal onto the selected children.
+     *
+     *
+     * @param string $meal  Meal key (breakfast, lunch, dinner).
+     * @param string $menu  Menu text.
+     * @param array  $chids Target child ids.
+     */
     function status_copy_menu($meal, $menu, $chids) {
         global $STATUS_MEALS;
         if (!isset($STATUS_MEALS[$meal])) {
@@ -1683,7 +2095,14 @@ if (!isset($STATUSLIB)) {
         return $written;
     }
 
-    // Quick-fill suggestions: menus already entered today for other kids, same meal.
+    /**
+     *
+     * Recent menu text suggestions for a meal (for quick-fill UI).
+     *
+     *
+     * @param int    $chid Child id.
+     * @param string $meal Meal key (breakfast, lunch, dinner).
+     */
     function status_menu_suggestions($chid, $meal) {
         global $STATUS_MEALS;
         if (!isset($STATUS_MEALS[$meal])) {
@@ -1715,9 +2134,16 @@ if (!isset($STATUSLIB)) {
         return $suggestions;
     }
 
-    // Toggles one activity on/off for a child/day. The row persists once
-    // created (see status_migrate()) so any photos attached to it stay
-    // linked even if it's unchecked and re-checked later the same day.
+    /**
+     *
+     * Toggle an activity on or off for the child for today.
+     * Rows persist when unchecked so photo attachments stay linked.
+     *
+     *
+     * @param int    $chid     Child id.
+     * @param string $activity Activity key.
+     * @param bool   $on       True to check the activity, false to uncheck.
+     */
     function status_toggle_activity($chid, $activity, $on) {
         global $STATUS_ACTIVITIES;
         if (!isset($STATUS_ACTIVITIES[$activity])) {
@@ -1736,12 +2162,15 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
-    // Copies $fromChid's currently-checked activities for today onto each
-    // target child, replacing whatever that child had checked (mirrors
-    // how meal copy overwrites the target's menu text entirely). Existing
-    // rows are toggled rather than deleted/recreated, so a target child's
-    // pre-existing photo attachments for an activity stay put whether
-    // that activity ends up checked or not. Returns the chids written.
+    /**
+     *
+     * Copy $fromChid's checked activities for today onto each target child.
+     * Toggles existing rows so photo attachments are preserved. Returns chids written.
+     *
+     *
+     * @param int   $fromChid Source child id whose activities are copied.
+     * @param array $chids    Target child ids.
+     */
     function status_copy_activities($fromChid, $chids) {
         global $STATUS_ACTIVITIES;
         $fromChid = intval($fromChid);
@@ -1788,9 +2217,14 @@ if (!isset($STATUSLIB)) {
         return $written;
     }
 
-    // Photo attachments on an Activities entry - same documents-table
-    // pattern as Potty Time/Incidents, just linked via arid instead of
-    // evid so the two never collide for the same child.
+    /**
+     *
+     * Attachments for one status_activity row.
+     *
+     *
+     * @param int $chid Child id.
+     * @param int $arid Activity row id (status_activity).
+     */
     function status_get_activity_attachments($chid, $arid) {
         global $CFG;
         $chid = intval($chid);
@@ -1811,6 +2245,15 @@ if (!isset($STATUSLIB)) {
         return $attachments;
     }
 
+    /**
+     *
+     * Attach an uploaded file to an activity row.
+     *
+     *
+     * @param int    $chid     Child id.
+     * @param int    $arid     Activity row id (status_activity).
+     * @param string $filename Stored filename.
+     */
     function status_add_activity_attachment($chid, $arid, $filename) {
         $chid = intval($chid);
         $arid = intval($arid);
@@ -1822,9 +2265,14 @@ if (!isset($STATUSLIB)) {
         return status_get_activity_attachments($chid, $arid);
     }
 
-    // Replaces a child's avatar. Only one avatar document per child, so
-    // any existing one (row + file on disk) is removed first - mirrors
-    // status_delete_attachment_row(), just scoped to the 'avatar' tag.
+    /**
+     *
+     * Set the child's avatar image (documents tag=avatar).
+     *
+     *
+     * @param int    $chid     Child id.
+     * @param string $filename Stored filename.
+     */
     function status_set_avatar($chid, $filename) {
         global $CFG;
         $chid = intval($chid);
@@ -1838,11 +2286,14 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid);
     }
 
-    // notify values:
-    //   0 = no parent notify
-    //   1 = single-day notify (sign-out bulletin + parent status for that day)
-    //   2 = persist (keep notifying until staff clears it)
-    // $notify may be bool (legacy) or int 0/1/2.
+    /**
+     *
+     * Normalize a notify value to 0 (none), 1 (single-day), or 2 (persist).
+     * Accepts bool (legacy) or int 0/1/2.
+     *
+     *
+     * @param int|bool $notify Notify flag: 0 none, 1 single-day, 2 persist (or bool legacy).
+     */
     function status_normalize_notify($notify) {
         if ($notify === true || $notify === '1' || $notify === 1) {
             return 1;
@@ -1853,6 +2304,16 @@ if (!isset($STATUSLIB)) {
         return 0;
     }
 
+    /**
+     *
+     * Add a day-scoped note with optional parent notify flag.
+     *
+     *
+     * @param int      $chid   Child id.
+     * @param string   $tag    Tag or category key.
+     * @param string   $note   Note text.
+     * @param int|bool $notify Notify flag: 0 none, 1 single-day, 2 persist (or bool legacy).
+     */
     function status_add_note($chid, $tag, $note, $notify) {
         $tags = array_column(status_notes_tags(), 'tag');
         if (!in_array($tag, $tags)) {
@@ -1870,6 +2331,17 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
+    /**
+     *
+     * Edit a day-scoped note (tag, text, and notify flag).
+     *
+     *
+     * @param int      $nid    Note id (notes.nid).
+     * @param int      $chid   Child id.
+     * @param string   $tag    Tag or category key.
+     * @param string   $note   Note text.
+     * @param int|bool $notify Notify flag: 0 none, 1 single-day, 2 persist (or bool legacy).
+     */
     function status_edit_note($nid, $chid, $tag, $note, $notify) {
         $tags = array_column(status_notes_tags(), 'tag');
         if (!in_array($tag, $tags)) {
@@ -1886,6 +2358,14 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, status_daykey());
     }
 
+    /**
+     *
+     * Delete a day-scoped note belonging to this child.
+     *
+     *
+     * @param int $nid  Note id (notes.nid).
+     * @param int $chid Child id.
+     */
     function status_delete_note($nid, $chid) {
         $nid  = intval($nid);
         $chid = intval($chid);
@@ -1898,7 +2378,15 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, status_daykey());
     }
 
-    // Changes a mood tap's type without losing its original time.
+    /**
+     *
+     * Change the mood type on an existing mood event.
+     *
+     *
+     * @param int    $chid    Child id.
+     * @param int    $evid    Event id (events.evid).
+     * @param string $newmood New mood tag key.
+     */
     function status_edit_mood($chid, $evid, $newmood) {
         global $STATUS_MOODS;
         if (!isset($STATUS_MOODS[$newmood])) {
@@ -1914,6 +2402,14 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid);
     }
 
+    /**
+     *
+     * Delete a mood event.
+     *
+     *
+     * @param int $chid Child id.
+     * @param int $evid Event id (events.evid).
+     */
     function status_delete_mood($chid, $evid) {
         global $STATUS_MOODS;
         $chid = intval($chid);
@@ -1923,8 +2419,14 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid);
     }
 
-    // Bottles have only one type, so nothing to edit - just add or delete.
-    // Bottles have one type but now carry an ounces amount (0 = not given).
+    /**
+     *
+     * Log a bottle entry with optional ounces amount.
+     *
+     *
+     * @param int       $chid   Child id.
+     * @param int|false $ounces Bottle ounces, or false if unset.
+     */
     function status_add_bottle($chid, $ounces = false) {
         $chid = intval($chid);
         $aid  = intval(get_db_field("aid", "children", "chid='$chid'"));
@@ -1935,6 +2437,15 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid, $day);
     }
 
+    /**
+     *
+     * Edit the ounces amount on an existing bottle entry.
+     *
+     *
+     * @param int       $chid   Child id.
+     * @param int       $evid   Event id (events.evid).
+     * @param int|false $ounces Bottle ounces, or false if unset.
+     */
     function status_edit_bottle_ounces($chid, $evid, $ounces) {
         $chid = intval($chid);
         $evid = intval($evid);
@@ -1945,6 +2456,14 @@ if (!isset($STATUSLIB)) {
         return status_get_day($chid);
     }
 
+    /**
+     *
+     * Delete a bottle entry.
+     *
+     *
+     * @param int $chid Child id.
+     * @param int $evid Event id (events.evid).
+     */
     function status_delete_bottle($chid, $evid) {
         $chid = intval($chid);
         $evid = intval($evid);

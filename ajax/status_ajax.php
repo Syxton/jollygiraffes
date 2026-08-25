@@ -1,10 +1,9 @@
 <?php
 
-/***************************************************************************
-* status_ajax.php - AJAX backend for the Daily Status Report feature.
-* Session-based (unlike the rest of the app's stateless numpad flows).
-* Actions are POSTed with an "action" field and return JSON.
-***************************************************************************/
+/**
+ * status_ajax.php - AJAX backend for Daily Status Report.
+ * Session-based. POST "action"; returns JSON.
+ */
 
 $LIBHEADER = true;
 
@@ -31,23 +30,49 @@ header('Content-Type: application/json');
 
 $action = isset($_POST['action']) ? $_POST['action'] : '';
 
+/**
+ *
+ * Emit a JSON response body and exit the request.
+ *
+ *
+ * @param array $data Payload to encode as JSON.
+ */
 function status_json($data) {
     echo json_encode($data);
     exit();
 }
 
+/**
+ *
+ * Require a logged-in status session; exit with JSON error if not.
+ *
+ *
+ */
 function status_require_auth() {
     if (!status_current_role()) {
         status_json(["success" => false, "message" => "Please log in again.", "expired" => true]);
     }
 }
 
+/**
+ *
+ * Require admin role; exit with JSON error if not.
+ *
+ *
+ */
 function status_require_admin() {
     if (status_current_role() != 'admin') {
         status_json(["success" => false, "message" => "Admin access required.", "expired" => true]);
     }
 }
 
+/**
+ *
+ * Require access to $chid; exit with JSON error if not.
+ *
+ *
+ * @param int $chid Child id.
+ */
 function status_require_child_access($chid) {
     if (!status_can_access_child($chid)) {
         status_json(["success" => false, "message" => "You don't have access to that child."]);

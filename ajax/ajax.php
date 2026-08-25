@@ -1,17 +1,21 @@
 <?php
 
-/***************************************************************************
- * ajax.php - Main backend ajax script.  Usually sends off to feature libraries.
- * -------------------------------------------------------------------------
- * Author: Matthew Davidson
- * Date: 08/23/2019
- * Revision: 3.1.1
- ***************************************************************************/
+/**
+ * ajax.php - Main backend AJAX script; routes to feature libraries.
+ * Author: Matthew Davidson. Revision: 3.1.1.
+ */
 
 include('header.php');
 
 callfunction();
 
+/**
+ *
+ * Build employee timesheet data for the current or selected week.
+ *
+ *
+ * @param bool $thisweekpay Whether to use this week's pay period.
+ */
 function employee_timesheet($thisweekpay = false) {
     global $CFG, $MYVARS;
 
@@ -53,6 +57,12 @@ function employee_timesheet($thisweekpay = false) {
     echo $returnme;
 }
 
+/**
+ *
+ * Check an employee in or out (kiosk flow).
+ *
+ *
+ */
 function check_in_out_employee() {
     global $CFG, $MYVARS;
     $employeeid   = clean_param_req($MYVARS->GET, "employeeid", "int");
@@ -99,6 +109,12 @@ function check_in_out_employee() {
     echo employee_timesheet($thisweekpay);
 }
 
+/**
+ *
+ * Return HTML for the check-in/out form.
+ *
+ *
+ */
 function get_check_in_out_form() {
     global $CFG, $MYVARS;
     $type        = clean_param_opt($MYVARS->GET, "type", "string", "in");
@@ -164,6 +180,12 @@ function get_check_in_out_form() {
     ]);
 }
 
+/**
+ *
+ * Render or process the child check-in/out form.
+ *
+ *
+ */
 function check_in_out_form() {
     global $CFG, $MYVARS;
     $type     = clean_param_opt($MYVARS->GET, "type", "string", "in");
@@ -241,6 +263,16 @@ function check_in_out_form() {
     ]);
 }
 
+/**
+ *
+ * Check one or more children in or out for a contact.
+ *
+ *
+ * @param array     $chids Target child ids.
+ * @param int       $cid   Contact id.
+ * @param mixed    $type  Optional type or mode flag.
+ * @param int|false $time  Optional Unix timestamp.
+ */
 function check_in_out($chids, $cid, $type, $time = false) {
     global $CFG, $MYVARS;
     $returnme = $notify = "";
@@ -474,6 +506,17 @@ function check_in_out($chids, $cid, $type, $time = false) {
     return $returnme;
 }
 
+/**
+ *
+ * Fetch notifications for a parent, child, or account context.
+ *
+ *
+ * @param int        $pid      Parent / person id.
+ * @param int        $chid     Child id.
+ * @param int        $aid      Account id.
+ * @param bool|false $separate Separate.
+ * @param bool|false $tagonly  Tagonly.
+ */
 function get_notifications($pid, $chid = false, $aid = false, $separate = false, $tagonly = false) {
     global $CFG;
     $notify = "";
@@ -567,6 +610,13 @@ function get_notifications($pid, $chid = false, $aid = false, $separate = false,
     return $notify;
 }
 
+/**
+ *
+ * Return the display name for contact $cid.
+ *
+ *
+ * @param int $cid Contact id.
+ */
 function get_contact_name($cid) {
     if ($cid == "admin") {
         $contact = get_db_field("name", "accounts", "admin = '1'");
@@ -579,6 +629,12 @@ function get_contact_name($cid) {
     return $contact;
 }
 
+/**
+ *
+ * Validate the current request and session for AJAX actions.
+ *
+ *
+ */
 function validate() {
     global $MYVARS;
     $aid        = clean_param_opt($MYVARS->GET, "aid", "int", 0);
@@ -633,6 +689,14 @@ function validate() {
     echo $returnme;
 }
 
+/**
+ *
+ * Admin page.
+ *
+ *
+ * @param mixed     $type Optional type or mode flag.
+ * @param bool|false $id   Id.
+ */
 function get_admin_page($type = false, $id = false) {
     $activepid = get_pid();
 
@@ -702,6 +766,12 @@ function get_admin_page($type = false, $id = false) {
     return $returnme;
 }
 
+/**
+ *
+ * Add edit program.
+ *
+ *
+ */
 function add_edit_program() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -777,6 +847,12 @@ function add_edit_program() {
     }
 }
 
+/**
+ *
+ * Add edit expense.
+ *
+ *
+ */
 function add_edit_expense() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -828,6 +904,12 @@ function add_edit_expense() {
     }
 }
 
+/**
+ *
+ * Billing overrides.
+ *
+ *
+ */
 function billing_overrides() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -934,6 +1016,12 @@ function billing_overrides() {
     }
 }
 
+/**
+ *
+ * Add edit tag.
+ *
+ *
+ */
 function add_edit_tag() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1007,6 +1095,12 @@ function add_edit_tag() {
     }
 }
 
+/**
+ *
+ * Add edit payment.
+ *
+ *
+ */
 function add_edit_payment() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1079,6 +1173,12 @@ function add_edit_payment() {
     }
 }
 
+/**
+ *
+ * Add edit account.
+ *
+ *
+ */
 function add_edit_account() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1140,6 +1240,12 @@ function add_edit_account() {
     }
 }
 
+/**
+ *
+ * Add edit employee.
+ *
+ *
+ */
 function add_edit_employee() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1234,6 +1340,12 @@ function add_edit_employee() {
     }
 }
 
+/**
+ *
+ * Add edit child.
+ *
+ *
+ */
 function add_edit_child() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1313,6 +1425,12 @@ function add_edit_child() {
     }
 }
 
+/**
+ *
+ * Add edit contact.
+ *
+ *
+ */
 function add_edit_contact() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1403,6 +1521,12 @@ function add_edit_contact() {
     }
 }
 
+/**
+ *
+ * Add edit note.
+ *
+ *
+ */
 function add_edit_note() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1500,6 +1624,12 @@ function add_edit_note() {
     }
 }
 
+/**
+ *
+ * Add edit bulletin.
+ *
+ *
+ */
 function add_edit_bulletin() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1565,6 +1695,12 @@ function add_edit_bulletin() {
     }
 }
 
+/**
+ *
+ * Add activity.
+ *
+ *
+ */
 function add_activity() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1611,6 +1747,12 @@ function add_activity() {
     }
 }
 
+/**
+ *
+ * Add edit notes.
+ *
+ *
+ */
 function add_edit_notes() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1700,6 +1842,12 @@ function add_edit_notes() {
     }
 }
 
+/**
+ *
+ * Add edit employee activity.
+ *
+ *
+ */
 function add_edit_employee_activity() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1800,6 +1948,12 @@ function add_edit_employee_activity() {
     }
 }
 
+/**
+ *
+ * Refresh hours.
+ *
+ *
+ */
 function refresh_hours() {
     global $CFG, $MYVARS;
     $fields  = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1828,6 +1982,12 @@ function refresh_hours() {
     }
 }
 
+/**
+ *
+ * Save employee timecard.
+ *
+ *
+ */
 function save_employee_timecard() {
     global $CFG, $MYVARS;
     $fields  = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1871,6 +2031,12 @@ function save_employee_timecard() {
     }
 }
 
+/**
+ *
+ * Save employee salary history.
+ *
+ *
+ */
 function save_employee_salary_history() {
     global $CFG, $MYVARS;
     $fields  = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -1911,6 +2077,20 @@ function save_employee_salary_history() {
     }
 }
 
+/**
+ *
+ * Action buttons.
+ *
+ *
+ * @param bool|false $return     Return.
+ * @param int        $pid        Parent / person id.
+ * @param int        $aid        Account id.
+ * @param int        $chid       Child id.
+ * @param int        $cid        Contact id.
+ * @param mixed      $actid      Actid.
+ * @param mixed      $recover    Recover.
+ * @param mixed      $employeeid Employeeid.
+ */
 function get_action_buttons($return = false, $pid = null, $aid = null, $chid = null, $cid = null, $actid = null, $recover = null, $employeeid = null) {
     global $CFG, $MYVARS;
     $activepid     = get_pid();
@@ -2307,6 +2487,12 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
     }
 }
 
+/**
+ *
+ * Delete wage history.
+ *
+ *
+ */
 function delete_wage_history() {
     global $CFG, $MYVARS;
     $id = clean_param_opt($MYVARS->GET, "id", "int", 0);
@@ -2316,6 +2502,12 @@ function delete_wage_history() {
     return "false";
 }
 
+/**
+ *
+ * Delete expense.
+ *
+ *
+ */
 function delete_expense() {
     global $CFG, $MYVARS;
     $payid = clean_param_opt($MYVARS->GET, "payid", "int", 0);
@@ -2325,6 +2517,15 @@ function delete_expense() {
     return "false";
 }
 
+/**
+ *
+ * Billing buttons.
+ *
+ *
+ * @param bool|false $return Return.
+ * @param int        $pid    Parent / person id.
+ * @param int        $aid    Account id.
+ */
 function get_billing_buttons($return = false, $pid = null, $aid = null) {
     global $CFG, $MYVARS;
     $pid        = $pid !== null ? $pid : (empty($MYVARS->GET["pid"]) ? false : $MYVARS->GET["pid"]);
@@ -2471,6 +2672,16 @@ function get_billing_buttons($return = false, $pid = null, $aid = null) {
     }
 }
 
+/**
+ *
+ * Ajax refresh all invoices.
+ *
+ *
+ * @param bool|false $return    Return.
+ * @param int        $pid       Parent / person id.
+ * @param int        $aid       Account id.
+ * @param mixed      $startweek Startweek.
+ */
 function ajax_refresh_all_invoices($return = false, $pid = null, $aid = null, $startweek = null) {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -2506,6 +2717,18 @@ function ajax_refresh_all_invoices($return = false, $pid = null, $aid = null, $s
     create_invoices($return, $pid, $aid, $refresh, $startweek, $enrollment);
 }
 
+/**
+ *
+ * View invoices.
+ *
+ *
+ * @param bool|false $return      Return.
+ * @param int        $pid         Parent / person id.
+ * @param int        $aid         Account id.
+ * @param mixed      $print       Print.
+ * @param mixed      $orderbytime Orderbytime.
+ * @param mixed      $year        Year.
+ */
 function view_invoices($return = false, $pid = null, $aid = null, $print = null, $orderbytime = null, $year = null) {
     global $CFG, $MYVARS;
     $pid         = $pid !== null ? $pid : (empty($MYVARS->GET["pid"]) ? false : $MYVARS->GET["pid"]);
@@ -2942,6 +3165,20 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
     }
 }
 
+/**
+ *
+ * Info.
+ *
+ *
+ * @param bool|false $return     Return.
+ * @param int        $pid        Parent / person id.
+ * @param int        $aid        Account id.
+ * @param int        $chid       Child id.
+ * @param int        $cid        Contact id.
+ * @param mixed      $actid      Actid.
+ * @param mixed      $recover    Recover.
+ * @param mixed      $employeeid Employeeid.
+ */
 function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid = null, $actid = null, $recover = null, $employeeid = null) {
     global $CFG, $MYVARS;
     $activepid  = get_pid();
@@ -2974,6 +3211,12 @@ function get_info($return = false, $pid = null, $aid = null, $chid = null, $cid 
     }
 }
 
+/**
+ *
+ * Delete tag.
+ *
+ *
+ */
 function delete_tag() {
     global $CFG, $MYVARS;
     $tagtype = clean_param_opt($MYVARS->GET, "tagtype", "string", "");
@@ -2987,6 +3230,12 @@ function delete_tag() {
     }
 }
 
+/**
+ *
+ * Delete payment.
+ *
+ *
+ */
 function delete_payment() {
     global $CFG, $MYVARS;
     $payid = clean_param_opt($MYVARS->GET, "payid", "int", 0);
@@ -2996,6 +3245,12 @@ function delete_payment() {
     }
 }
 
+/**
+ *
+ * Delete note.
+ *
+ *
+ */
 function delete_note() {
     global $CFG, $MYVARS;
     $aid   = clean_param_opt($MYVARS->GET, "aid", "int", 0);
@@ -3010,6 +3265,12 @@ function delete_note() {
     }
 }
 
+/**
+ *
+ * Delete activity.
+ *
+ *
+ */
 function delete_activity() {
     global $CFG, $MYVARS;
     $aid   = clean_param_opt($MYVARS->GET, "aid", "int", 0);
@@ -3024,6 +3285,12 @@ function delete_activity() {
     }
 }
 
+/**
+ *
+ * Deactivate employee activity.
+ *
+ *
+ */
 function deactivate_employee_activity() {
     global $CFG, $MYVARS;
     $employeeid = clean_param_opt($MYVARS->GET, "employeeid", "int", 0);
@@ -3039,6 +3306,12 @@ function deactivate_employee_activity() {
     }
 }
 
+/**
+ *
+ * Delete document.
+ *
+ *
+ */
 function delete_document() {
     global $CFG, $MYVARS;
     $aid   = clean_param_opt($MYVARS->GET, "aid", "int", 0);
@@ -3066,6 +3339,17 @@ function delete_document() {
     }
 }
 
+/**
+ *
+ * Documents list.
+ *
+ *
+ * @param bool|false $return Return.
+ * @param int        $aid    Account id.
+ * @param int        $chid   Child id.
+ * @param int        $cid    Contact id.
+ * @param mixed      $actid  Actid.
+ */
 function get_documents_list($return = false, $aid = null, $chid = null, $cid = null, $actid = null) {
     global $CFG, $MYVARS;
     $aid   = $aid !== null ? $aid : (empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"]);
@@ -3165,6 +3449,17 @@ function get_documents_list($return = false, $aid = null, $chid = null, $cid = n
     }
 }
 
+/**
+ *
+ * Notes list.
+ *
+ *
+ * @param bool|false $return Return.
+ * @param int        $aid    Account id.
+ * @param int        $chid   Child id.
+ * @param int        $cid    Contact id.
+ * @param mixed      $actid  Actid.
+ */
 function get_notes_list($return = false, $aid = null, $chid = null, $cid = null, $actid = null) {
     global $CFG, $MYVARS;
     $aid   = $aid !== null ? $aid : (empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"]);
@@ -3256,6 +3551,19 @@ function get_notes_list($return = false, $aid = null, $chid = null, $cid = null,
     }
 }
 
+/**
+ *
+ * Reports list.
+ *
+ *
+ * @param bool|false $return     Return.
+ * @param int        $pid        Parent / person id.
+ * @param int        $aid        Account id.
+ * @param int        $chid       Child id.
+ * @param int        $cid        Contact id.
+ * @param mixed      $actid      Actid.
+ * @param mixed      $employeeid Employeeid.
+ */
 function get_reports_list($return = false, $pid = null, $aid = null, $chid = null, $cid = null, $actid = null, $employeeid = null) {
     global $CFG, $MYVARS;
     $activepid  = get_pid();
@@ -3404,6 +3712,18 @@ $(function() {
     }
 }
 
+/**
+ *
+ * Activity list.
+ *
+ *
+ * @param bool|false $return     Return.
+ * @param int        $aid        Account id.
+ * @param int        $chid       Child id.
+ * @param int        $cid        Contact id.
+ * @param mixed      $actid      Actid.
+ * @param mixed      $employeeid Employeeid.
+ */
 function get_activity_list($return = false, $aid = null, $chid = null, $cid = null, $actid = null, $employeeid = null) {
     global $CFG, $MYVARS;
     $aid        = $aid !== null ? $aid : (empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"]);
@@ -3506,6 +3826,15 @@ function get_activity_list($return = false, $aid = null, $chid = null, $cid = nu
     }
 }
 
+/**
+ *
+ * Admin children form.
+ *
+ *
+ * @param bool|false $return  Return.
+ * @param int        $chid    Child id.
+ * @param bool|false $recover Recover.
+ */
 function get_admin_children_form($return = false, $chid = false, $recover = false) {
     global $MYVARS;
     $chid     = !empty($chid) ? $chid : (empty($MYVARS->GET["chid"]) ? false : $MYVARS->GET["chid"]);
@@ -3559,6 +3888,15 @@ function get_admin_children_form($return = false, $chid = false, $recover = fals
     }
 }
 
+/**
+ *
+ * Admin billing form.
+ *
+ *
+ * @param bool|false $return Return.
+ * @param int        $pid    Parent / person id.
+ * @param int        $aid    Account id.
+ */
 function get_admin_billing_form($return = false, $pid = false, $aid = false) {
     global $MYVARS;
     $pid      = $pid ? $pid : (empty($MYVARS->GET["pid"]) ? false : $MYVARS->GET["pid"]);
@@ -3627,6 +3965,15 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
     }
 }
 
+/**
+ *
+ * Admin contacts form.
+ *
+ *
+ * @param bool|false $return  Return.
+ * @param int        $cid     Contact id.
+ * @param bool|false $recover Recover.
+ */
 function get_admin_contacts_form($return = false, $cid = false, $recover = false) {
     global $MYVARS;
     $cid      = $cid ? $cid : (empty($MYVARS->GET["cid"]) ? false : $MYVARS->GET["cid"]);
@@ -3693,6 +4040,15 @@ function get_admin_contacts_form($return = false, $cid = false, $recover = false
     }
 }
 
+/**
+ *
+ * Admin employees form.
+ *
+ *
+ * @param bool|false $return     Return.
+ * @param bool|false $employeeid Employeeid.
+ * @param bool|false $recover    Recover.
+ */
 function get_admin_employees_form($return = false, $employeeid = false, $recover = false) {
     global $MYVARS;
     $employeeid = $employeeid ? $employeeid : (empty($MYVARS->GET["employeeid"]) ? false : $MYVARS->GET["employeeid"]);
@@ -3778,6 +4134,15 @@ function get_admin_employees_form($return = false, $employeeid = false, $recover
     }
 }
 
+/**
+ *
+ * Admin tags form.
+ *
+ *
+ * @param bool|false $return  Return.
+ * @param bool|false $tagtype Tagtype.
+ * @param string     $tag     Tag or category key.
+ */
 function get_admin_tags_form($return = false, $tagtype = false, $tag = false) {
     global $MYVARS;
     $tagtype  = $tagtype ? $tagtype : (empty($MYVARS->GET["tagtype"]) ? false : $MYVARS->GET["tagtype"]);
@@ -3827,6 +4192,16 @@ function get_admin_tags_form($return = false, $tagtype = false, $tag = false) {
         echo $returnme;
     }
 }
+
+/**
+ *
+ * Tags actions.
+ *
+ *
+ * @param bool|false $return  Return.
+ * @param mixed      $tagtype Tagtype.
+ * @param string     $tag     Tag or category key.
+ */
 function get_tags_actions($return = false, $tagtype = null, $tag = null) {
     global $MYVARS;
     $tagtype  = $tagtype ? $tagtype : (empty($MYVARS->GET["tagtype"]) ? false : $MYVARS->GET["tagtype"]);
@@ -3849,6 +4224,15 @@ function get_tags_actions($return = false, $tagtype = null, $tag = null) {
     }
 }
 
+/**
+ *
+ * Tags info.
+ *
+ *
+ * @param bool|false $return  Return.
+ * @param mixed      $tagtype Tagtype.
+ * @param string     $tag     Tag or category key.
+ */
 function get_tags_info($return = false, $tagtype = null, $tag = null) {
     global $MYVARS;
     $tagtype  = $tagtype ? $tagtype : (empty($MYVARS->GET["tagtype"]) ? false : $MYVARS->GET["tagtype"]);
@@ -3930,6 +4314,14 @@ function get_tags_info($return = false, $tagtype = null, $tag = null) {
     }
 }
 
+/**
+ *
+ * Admin enrollment form.
+ *
+ *
+ * @param bool|false $return Return.
+ * @param int        $pid    Parent / person id.
+ */
 function get_admin_enrollment_form($return = false, $pid = false) {
     global $MYVARS;
     $activepid  = get_pid();
@@ -3983,6 +4375,15 @@ function get_admin_enrollment_form($return = false, $pid = false) {
     }
 }
 
+/**
+ *
+ * Admin accounts form.
+ *
+ *
+ * @param bool|false $return  Return.
+ * @param int        $aid     Account id.
+ * @param bool|false $recover Recover.
+ */
 function get_admin_accounts_form($return = false, $aid = false, $recover = false) {
     global $MYVARS;
     $aid      = $aid ? $aid : (empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"]);
@@ -4106,6 +4507,14 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
     }
 }
 
+/**
+ *
+ * Contacts selector.
+ *
+ *
+ * @param array      $chids Target child ids.
+ * @param bool|false $admin Admin.
+ */
 function get_contacts_selector($chids, $admin = false) {
     $children = "";
     foreach ($chids as $chid) {
@@ -4131,6 +4540,12 @@ function get_contacts_selector($chids, $admin = false) {
     ]);
 }
 
+/**
+ *
+ * Copy program.
+ *
+ *
+ */
 function copy_program() {
     global $CFG, $MYVARS;
     $pid = clean_param_opt($MYVARS->GET, "pid", "int", 0);
@@ -4153,6 +4568,12 @@ function copy_program() {
     }
 }
 
+/**
+ *
+ * Activate program.
+ *
+ *
+ */
 function activate_program() {
     global $CFG, $MYVARS;
     $pid = clean_param_opt($MYVARS->GET, "pid", "int", 0);
@@ -4164,6 +4585,12 @@ function activate_program() {
     }
 }
 
+/**
+ *
+ * Deactivate program.
+ *
+ *
+ */
 function deactivate_program() {
     global $CFG, $MYVARS;
     $pid = clean_param_opt($MYVARS->GET, "pid", "int", 0);
@@ -4174,6 +4601,12 @@ function deactivate_program() {
     }
 }
 
+/**
+ *
+ * Delete program.
+ *
+ *
+ */
 function delete_program() {
     global $CFG, $MYVARS;
     $pid = clean_param_opt($MYVARS->GET, "pid", "int", 0);
@@ -4201,6 +4634,12 @@ function delete_program() {
     }
 }
 
+/**
+ *
+ * Activate account.
+ *
+ *
+ */
 function activate_account() {
     global $CFG, $MYVARS;
     $aid = clean_param_opt($MYVARS->GET, "aid", "int", 0);
@@ -4214,6 +4653,12 @@ function activate_account() {
     }
 }
 
+/**
+ *
+ * Activate employee.
+ *
+ *
+ */
 function activate_employee() {
     global $CFG, $MYVARS;
     $employeeid = clean_param_opt($MYVARS->GET, "employeeid", "int", 0);
@@ -4223,6 +4668,12 @@ function activate_employee() {
     }
 }
 
+/**
+ *
+ * Deactivate employee.
+ *
+ *
+ */
 function deactivate_employee() {
     global $CFG, $MYVARS;
     $employeeid = clean_param_opt($MYVARS->GET, "employeeid", "int", 0);
@@ -4232,6 +4683,12 @@ function deactivate_employee() {
     }
 }
 
+/**
+ *
+ * Deactivate account.
+ *
+ *
+ */
 function deactivate_account() {
     global $CFG, $MYVARS;
     $aid = clean_param_opt($MYVARS->GET, "aid", "int", 0);
@@ -4246,6 +4703,12 @@ function deactivate_account() {
     }
 }
 
+/**
+ *
+ * Toggle contact activation.
+ *
+ *
+ */
 function toggle_contact_activation() {
     global $CFG, $MYVARS;
     $cid     = clean_param_opt($MYVARS->GET, "cid", "int", 0);
@@ -4266,6 +4729,12 @@ function toggle_contact_activation() {
     }
 }
 
+/**
+ *
+ * Toggle child activation.
+ *
+ *
+ */
 function toggle_child_activation() {
     global $CFG, $MYVARS;
     $chid    = clean_param_opt($MYVARS->GET, "chid", "int", 0);
@@ -4286,6 +4755,12 @@ function toggle_child_activation() {
     }
 }
 
+/**
+ *
+ * Toggle enrollment.
+ *
+ *
+ */
 function toggle_enrollment() {
     global $CFG, $MYVARS;
     $fields         = empty($MYVARS->GET["values"]) ? [] : $MYVARS->GET["values"];
@@ -4345,6 +4820,12 @@ function toggle_enrollment() {
     }
 }
 
+/**
+ *
+ * Toggle exemption.
+ *
+ *
+ */
 function toggle_exemption() {
     global $CFG, $MYVARS;
     $id       = clean_param_req($MYVARS->GET, "id", "int");
@@ -4364,6 +4845,14 @@ function toggle_exemption() {
     make_account_invoice($perchild["pid"], $aid, $perchild["fromdate"]);
 }
 
+/**
+ *
+ * View required notes form.
+ *
+ *
+ * @param int $pid  Parent / person id.
+ * @param int $evid Event id (events.evid).
+ */
 function view_required_notes_form($pid = false, $evid = false) {
     global $CFG, $MYVARS;
     $pid  = $pid ? $pid : (empty($MYVARS->GET["pid"]) ? false : $MYVARS->GET["pid"]);
@@ -4416,6 +4905,12 @@ function view_required_notes_form($pid = false, $evid = false) {
     echo $notes_list;
 }
 
+/**
+ *
+ * Save required notes.
+ *
+ *
+ */
 function save_required_notes() {
     global $CFG, $MYVARS;
     $fields = empty($MYVARS->GET["values"]) ? false : $MYVARS->GET["values"];
@@ -4471,6 +4966,12 @@ function save_required_notes() {
     echo view_required_notes_form($pid, $evid);
 }
 
+/**
+ *
+ * Add required notes form.
+ *
+ *
+ */
 function add_required_notes_form() {
     global $CFG, $MYVARS;
     $pid  = empty($pid) ? (empty($MYVARS->GET["pid"]) ? get_pid() : $MYVARS->GET["pid"]) : $pid;
@@ -4496,6 +4997,12 @@ function add_required_notes_form() {
     </ul>';
 }
 
+/**
+ *
+ * Delete required notes.
+ *
+ *
+ */
 function delete_required_notes() {
     global $CFG, $MYVARS;
     $pid  = clean_param_opt($MYVARS->GET, "pid", "int", get_pid());
@@ -4514,6 +5021,12 @@ function delete_required_notes() {
     echo view_required_notes_form($pid, $evid);
 }
 
+/**
+ *
+ * Required notes sort.
+ *
+ *
+ */
 function required_notes_sort() {
     global $CFG, $MYVARS;
     $pid   = clean_param_opt($MYVARS->GET, "pid", "int", 0);
@@ -4533,6 +5046,13 @@ function required_notes_sort() {
     }
 }
 
+/**
+ *
+ * Required notes resort.
+ *
+ *
+ * @param int $evid Event id (events.evid).
+ */
 function required_notes_resort($evid) {
     global $CFG, $MYVARS;
 

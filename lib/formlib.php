@@ -13,6 +13,15 @@ if (!isset($LIBHEADER)) {
 }
 $FORMLIB = true;
 
+/**
+ *
+ * Form.
+ *
+ *
+ * @param mixed  $formname   Formname.
+ * @param array  $vars       Prepared-statement placeholder map.
+ * @param string $identifier Identifier.
+ */
 function get_form($formname, $vars = null, $identifier = "") {
     global $CFG;
     $identifier = $identifier == "" ? "" : "_$identifier";

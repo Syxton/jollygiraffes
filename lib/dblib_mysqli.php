@@ -1,13 +1,12 @@
 <?php
 
-/***************************************************************************
-* dblib_mysqli.php - Database function library
-* -------------------------------------------------------------------------
-* Author: Matthew Davidson
-* Upgraded: adds opt-in prepared statements, ported from syxtoncms 1.1.1
-* Revision: 1.2.0
-***************************************************************************/
-
+/**
+ *
+ * Mysql array type.
+ *
+ *
+ * @param mixed  $type Optional type or mode flag.
+ */
 function get_mysql_array_type($type = "assoc") {
     switch ($type) {
         case "assoc":
@@ -21,19 +20,50 @@ function get_mysql_array_type($type = "assoc") {
     }
 }
 
+/**
+ *
+ * Db report level.
+ *
+ *
+ * @param mixed $level Level.
+ */
 function set_db_report_level($level = MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT) {
     mysqli_report($level);
 }
 
+/**
+ *
+ * Db goto row.
+ *
+ *
+ * @param mixed $result Result.
+ * @param int   $rownum Rownum.
+ */
 function db_goto_row($result, $rownum = 0) {
     mysqli_data_seek($result, $rownum);
 }
 
+/**
+ *
+ * Fetch the next row from a result resource as an associative array.
+ *
+ *
+ * @param mixed  $result Result.
+ * @param mixed $type   Optional type or mode flag.
+ */
 function fetch_row($result, $type = false) {
     $type = get_mysql_array_type($type);
     return mysqli_fetch_array($result, $type);
 }
 
+/**
+ *
+ * Db count.
+ *
+ *
+ * @param string $SQL  SQL statement.
+ * @param array  $vars Prepared-statement placeholder map.
+ */
 function get_db_count($SQL, $vars = []) {
     global $CFG;
     if (strstr($SQL, ".")) { //Complex SQL statements
@@ -51,8 +81,12 @@ function get_db_count($SQL, $vars = []) {
 }
 
 /**
- * Turns a "||name||" or "'||name||'" templated SQL string into a
- * prepared mysqli statement bound against $vars.
+ *
+ * Db prepare statement.
+ *
+ *
+ * @param string $SQL  SQL statement.
+ * @param array  $vars Prepared-statement placeholder map.
  */
 function db_prepare_statement($SQL, $vars) {
     global $conn;
@@ -69,6 +103,14 @@ function db_prepare_statement($SQL, $vars) {
     return $statement;
 }
 
+/**
+ *
+ * Prepared result.
+ *
+ *
+ * @param mixed      $statement Statement.
+ * @param bool|false $select    Select.
+ */
 function get_prepared_result($statement, $select = false) {
     if (!$statement) {
         return false;
@@ -86,11 +128,12 @@ function get_prepared_result($statement, $select = false) {
 }
 
 /**
- * $vars is NEW and optional. Pass an associative array of
- * ["placeholder" => value] together with "||placeholder||" tokens in
- * $SQL to run this as a safe, parameterized prepared statement instead
- * of a plain query. Existing call sites that only pass $SQL behave
- * exactly as before.
+ *
+ * Run a query and return the result resource (or false).
+ *
+ *
+ * @param string $SQL  SQL statement.
+ * @param array  $vars Prepared-statement placeholder map.
  */
 function get_db_result($SQL, $vars = []) {
     global $CFG, $conn;
@@ -114,6 +157,14 @@ function get_db_result($SQL, $vars = []) {
     return false;
 }
 
+/**
+ *
+ * Execute a non-SELECT statement (INSERT, UPDATE, DELETE, or DDL).
+ *
+ *
+ * @param string $SQL  SQL statement.
+ * @param array  $vars Prepared-statement placeholder map.
+ */
 function execute_db_sql($SQL, $vars = []) {
     global $CFG, $conn;
     $update = preg_match('/^\s*UPDATE/i', $SQL) ? true : false;
@@ -156,21 +207,47 @@ function execute_db_sql($SQL, $vars = []) {
     return false;
 }
 
+/**
+ *
+ * Db error.
+ *
+ *
+ */
 function get_db_error() {
     global $conn;
     return mysqli_error($conn);
 }
 
+/**
+ *
+ * Db errorno.
+ *
+ *
+ */
 function get_db_errorno() {
     global $conn;
     return mysqli_errno($conn);
 }
 
+/**
+ *
+ * Escape a string for safe interpolation into SQL.
+ *
+ *
+ * @param mixed $str Str.
+ */
 function dbescape($str) {
     global $conn;
     return mysqli_real_escape_string($conn, $str);
 }
 
+/**
+ *
+ * Db free result.
+ *
+ *
+ * @param mixed $result Result.
+ */
 function db_free_result($result) {
     mysqli_free_result($result);
 }

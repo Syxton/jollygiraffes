@@ -37,6 +37,13 @@ $HELP->input_lname = "Please use your full last name, not just an initial.";
 //FORUM HINTS
 $HELP->new_category = "Please type the name of the new forum category.";
 
+/**
+ *
+ * Help.
+ *
+ *
+ * @param mixed $help Help.
+ */
 function get_help($help){
     global $CFG, $HELP;
     $lang = explode(":", $help);

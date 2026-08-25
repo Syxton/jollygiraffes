@@ -1103,6 +1103,12 @@ if ($empty == $returnme) { //Nothing has changed
 //PRINT REPORT
 echo $returnme;
 
+/**
+ *
+ * Week breakdown.
+ *
+ *
+ */
 function week_breakdown(){
     global $CFG,$MYVARS;
     $pid = empty($MYVARS->GET["pid"]) ? false : $MYVARS->GET["pid"];
@@ -1231,6 +1237,13 @@ function week_breakdown(){
     echo '<div><strong>Week of ' . date('F \t\h\e jS, Y', $startofweek) . '</strong></div>' . $returnme;
 }
 
+/**
+ *
+ * Next fieldcount.
+ *
+ *
+ * @param mixed $array Array.
+ */
 function get_next_fieldcount($array){
     $i = 1;
     while (!empty($array["field$i" . "name"])) {
@@ -1239,6 +1252,14 @@ function get_next_fieldcount($array){
     return $i;
 }
 
+/**
+ *
+ * Match fieldname.
+ *
+ *
+ * @param mixed $array     Array.
+ * @param mixed $fieldname Fieldname.
+ */
 function match_fieldname($array, $fieldname){
     $i = 1;
     while (!empty($array["field$i" . "name"])) {
@@ -1250,6 +1271,15 @@ function match_fieldname($array, $fieldname){
     return false;
 }
 
+/**
+ *
+ * Fill new fields.
+ *
+ *
+ * @param mixed $array      Array.
+ * @param mixed $fieldname  Fieldname.
+ * @param mixed $fieldcount Fieldcount.
+ */
 function fill_new_fields($array, $fieldname, $fieldcount){
     $o = 0;
     while (!empty($array[$o]["field1name"]) && empty($array[$o]["field$fieldcount" . "name"])) {
@@ -1260,6 +1290,16 @@ function fill_new_fields($array, $fieldname, $fieldcount){
     return $array;
 }
 
+/**
+ *
+ * Fill new temp.
+ *
+ *
+ * @param mixed $match      Match.
+ * @param mixed $array      Array.
+ * @param mixed $start      Start.
+ * @param mixed $fieldcount Fieldcount.
+ */
 function fill_new_temp($match, $array, $start, $fieldcount){
     while ($start <= $fieldcount) {
         $array["field$start" . "name"] = $match["field$start" . "name"];
@@ -1269,6 +1309,16 @@ function fill_new_temp($match, $array, $start, $fieldcount){
     return $array;
 }
 
+/**
+ *
+ * Fill skipped fields.
+ *
+ *
+ * @param mixed $match      Match.
+ * @param mixed $array      Array.
+ * @param mixed $max        Max.
+ * @param mixed $fieldcount Fieldcount.
+ */
 function fill_skipped_fields($match, $array, $max, $fieldcount){
     $i = 1;
     while ($i < $fieldcount) {
@@ -1285,6 +1335,13 @@ function fill_skipped_fields($match, $array, $max, $fieldcount){
     return $array;
 }
 
+/**
+ *
+ * Note entry.
+ *
+ *
+ * @param string $note Note text.
+ */
 function note_entry($note){
     $required_notes = $note_name = "";
     $return_array = [];
@@ -1338,6 +1395,15 @@ function note_entry($note){
     return $return_array;
 }
 
+/**
+ *
+ * Format report data.
+ *
+ *
+ * @param mixed  $dataset      Dataset.
+ * @param string $name         Name.
+ * @param int    $sortbycolumn Sortbycolumn.
+ */
 function format_report_data($dataset, $name = "tablesorter", $sortbycolumn = 0){
     $returnme = '<br /><table id="tablesorter_' . $name . '" class="tablesorter" style="width:100%;">';
     $table = $tfooter = "";

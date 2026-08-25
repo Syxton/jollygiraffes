@@ -1,12 +1,9 @@
 <?php
 
-/***************************************************************************
- * pagelib.php - Page function library
- * -------------------------------------------------------------------------
- * Author: Matthew Davidson
- * Date: 12/4/2013
- * Revision: 3.1.2
- ***************************************************************************/
+/**
+ * pagelib.php - Page function library.
+ * Author: Matthew Davidson. Revision: 3.1.2.
+ */
 
 if (!isset($LIBHEADER)) {
     include('header.php');
@@ -37,6 +34,12 @@ if (function_exists("get_magic_quotes_gpc")) {
     unset($process);
 }
 
+/**
+ *
+ * Dispatch $MYVARS->function to the matching callable if allowed.
+ *
+ *
+ */
 function callfunction() {
     global $MYVARS;
     if (empty($_POST["aslib"])) {
@@ -54,6 +57,12 @@ function callfunction() {
     }
 }
 
+/**
+ *
+ * Return a POST value, else GET, else a default.
+ *
+ *
+ */
 function postorget() {
     global $MYVARS;
     //Retrieve from Javascript
@@ -66,6 +75,24 @@ function postorget() {
     return false;
 }
 
+/**
+ *
+ * Build an HTML select element from a database query.
+ *
+ *
+ * @param mixed      $name              Name.
+ * @param mixed      $values            Values.
+ * @param mixed      $valuename         Valuename.
+ * @param mixed      $displayname       Displayname.
+ * @param string     $class             Class.
+ * @param bool|false $selected          Selected.
+ * @param string     $onchange          Onchange.
+ * @param bool|false $leadingblank      Leadingblank.
+ * @param int        $size              Size.
+ * @param string     $style             Style.
+ * @param string     $leadingblanktitle Leadingblanktitle.
+ * @param bool|false $excludevalue      Excludevalue.
+ */
 function make_select($name, $values, $valuename, $displayname, $class = "", $selected = false, $onchange = "", $leadingblank = false, $size = 1, $style = "", $leadingblanktitle = "", $excludevalue = false) {
     $returnme = '<select class=' . $class . ' size="' . $size . '" id="' . $name . '" name="' . $name . '" ' . $onchange . ' style="' . $style . '" >';
     if ($leadingblank) {
@@ -82,6 +109,25 @@ function make_select($name, $values, $valuename, $displayname, $class = "", $sel
     return $returnme;
 }
 
+/**
+ *
+ * Build an HTML select element from object properties.
+ *
+ *
+ * @param mixed      $name              Name.
+ * @param mixed      $values            Values.
+ * @param mixed      $valuename         Valuename.
+ * @param mixed      $displayname       Displayname.
+ * @param string     $class             Class.
+ * @param bool|false $selected          Selected.
+ * @param string     $width             Width.
+ * @param string     $onchange          Onchange.
+ * @param bool|false $leadingblank      Leadingblank.
+ * @param int        $size              Size.
+ * @param string     $style             Style.
+ * @param string     $leadingblanktitle Leadingblanktitle.
+ * @param bool|false $excludevalue      Excludevalue.
+ */
 function make_select_from_object($name, $values, $valuename, $displayname, $class = "", $selected = false, $width = "", $onchange = "", $leadingblank = false, $size = 1, $style = "", $leadingblanktitle = "", $excludevalue = false) {
     $returnme = '<select class=' . $class . ' size="' . $size . '" id="' . $name . '" name="' . $name . '" ' . $onchange . ' ' . $width . ' style="' . $style . '">';
     if ($leadingblank) {
@@ -97,6 +143,23 @@ function make_select_from_object($name, $values, $valuename, $displayname, $clas
     return $returnme;
 }
 
+/**
+ *
+ * Build an HTML select element from an array of options.
+ *
+ *
+ * @param mixed      $name              Name.
+ * @param mixed      $values            Values.
+ * @param mixed      $valuename         Valuename.
+ * @param mixed      $displayname       Displayname.
+ * @param bool|false $selected          Selected.
+ * @param string     $onchange          Onchange.
+ * @param bool|false $leadingblank      Leadingblank.
+ * @param int        $size              Size.
+ * @param string     $style             Style.
+ * @param string     $leadingblanktitle Leadingblanktitle.
+ * @param bool|false $excludevalue      Excludevalue.
+ */
 function make_select_from_array($name, $values, $valuename, $displayname, $selected = false, $onchange = "", $leadingblank = false, $size = 1, $style = "", $leadingblanktitle = "", $excludevalue = false) {
     $returnme = '<select size="' . $size . '" id="' . $name . '" name="' . $name . '" ' . 'onchange="' . $onchange . '" ' . ' style="' . $style . '">';
     if ($leadingblank) {
@@ -156,6 +219,14 @@ function make_select_from_array($name, $values, $valuename, $displayname, $selec
     return $returnme;
 }
 
+/**
+ *
+ * Ajax builder.
+ *
+ *
+ * @param array $actions Actions.
+ * @param int   $index   Index.
+ */
 function ajax_builder($actions = [], $index = 0) {
     $ajax = "";
     while (isset($actions[$index])) {
@@ -188,6 +259,13 @@ function ajax_builder($actions = [], $index = 0) {
     return $ajax;
 }
 
+/**
+ *
+ * Checked in children.
+ *
+ *
+ * @param bool|false $count Count.
+ */
 function checked_in_children($count = false) {
     $pid = get_pid();
     $SQL = "SELECT * FROM children WHERE deleted=0 AND chid IN (SELECT chid FROM enrollments WHERE deleted=0 AND pid='$pid')";
@@ -209,6 +287,13 @@ function checked_in_children($count = false) {
     return false;
 }
 
+/**
+ *
+ * Checked out children.
+ *
+ *
+ * @param bool|false $count Count.
+ */
 function checked_out_children($count = false) {
     $pid = get_pid();
     $SQL = "SELECT * FROM children WHERE deleted=0 AND chid IN (SELECT chid FROM enrollments WHERE deleted=0 AND pid='$pid')";
@@ -230,6 +315,14 @@ function checked_out_children($count = false) {
     return false;
 }
 
+/**
+ *
+ * Is enrolled.
+ *
+ *
+ * @param int $pid  Parent / person id.
+ * @param int $chid Child id.
+ */
 function is_enrolled($pid, $chid) {
     if ($result = get_db_result("SELECT * FROM enrollments WHERE chid='$chid' AND pid='$pid'")) {
         while ($row = fetch_row($result)) {
@@ -240,6 +333,12 @@ function is_enrolled($pid, $chid) {
     return false;
 }
 
+/**
+ *
+ * Home page.
+ *
+ *
+ */
 function get_home_page() {
     global $CFG;
 
@@ -276,10 +375,26 @@ function get_home_page() {
     ]);
 }
 
+/**
+ *
+ * Admin button.
+ *
+ *
+ */
 function get_admin_button() {
     return get_numpad("", true, "", "#display_level", 'admin_numpad1') . '<div><button class="admin_button topright_button" onclick="if (typeof(autoback) != \'undefined\') { clearTimeout(autoback); } numpad(\'admin_numpad1\');">Admin</button></div>';
 }
 
+/**
+ *
+ * Employee button.
+ *
+ *
+ * @param mixed  $employeeid Employeeid.
+ * @param string $class      Class.
+ * @param string $style      Style.
+ * @param string $action     Action.
+ */
 function get_employee_button($employeeid, $class = "", $style = "", $action = "") {
     $row = get_db_row("SELECT * FROM employee WHERE employeeid='$employeeid' AND deleted=0");
     $action .= 'numpad(\'employee_numpad\');';
@@ -294,6 +409,13 @@ function get_employee_button($employeeid, $class = "", $style = "", $action = ""
             </button>';
 }
 
+/**
+ *
+ * Employee status.
+ *
+ *
+ * @param mixed $employeeid Employeeid.
+ */
 function get_employee_status($employeeid) {
     global $CFG;
     $today = get_today();
@@ -308,6 +430,12 @@ function get_employee_status($employeeid) {
     }
 }
 
+/**
+ *
+ * Employee timeclock button.
+ *
+ *
+ */
 function get_employee_timeclock_button() {
     if (!status_current_role()) {
         return "";
@@ -330,6 +458,17 @@ function get_employee_timeclock_button() {
     </button>';
 }
 
+/**
+ *
+ * Numpad.
+ *
+ *
+ * @param int    $aid     Account id.
+ * @param string $admin   Admin.
+ * @param mixed $type    Optional type or mode flag.
+ * @param string $display Display.
+ * @param string $id      Id.
+ */
 function get_numpad($aid = "\'\'", $admin = "false", $type = "\'\'", $display = "#display_level", $id = "numpad") {
     $admin_text   = empty($admin) ? 'Enter your Password' : 'Administrator Password';
     $buttonaction = 'if ($(this).prevAll(\'input:first\').val().length < 4) { $(this).prevAll(\'input:first\').val($(this).prevAll(\'input:first\').val() + $(\'.keypad:first\',this).html())} if ($(this).prevAll(\'input:first\').val().length == 4) { $(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', false); }else{ $(\'.' . $id . 'keypad_submit\').button(\'option\', \'disabled\', true); }';
@@ -363,6 +502,13 @@ function get_numpad($aid = "\'\'", $admin = "false", $type = "\'\'", $display = 
     </div>';
 }
 
+/**
+ *
+ * Is checked in.
+ *
+ *
+ * @param int $chid Child id.
+ */
 function is_checked_in($chid) {
     global $CFG;
     $pid     = get_pid();
@@ -390,6 +536,13 @@ function is_checked_in($chid) {
     return $lastinout["actid"];
 }
 
+/**
+ *
+ * Is working.
+ *
+ *
+ * @param mixed $employeeid Employeeid.
+ */
 function is_working($employeeid) {
     global $CFG;
     $lastout = get_db_row("SELECT * FROM employee_activity WHERE employeeid='$employeeid' AND tag='out' ORDER BY timelog DESC");
@@ -411,15 +564,35 @@ function is_working($employeeid) {
     return $lastin["actid"];
 }
 
+/**
+ *
+ * Pid.
+ *
+ *
+ */
 function get_pid() {
     return get_db_field("pid", "programs", "active=1");
 }
 
+/**
+ *
+ * Icon.
+ *
+ *
+ * @param mixed $icon Icon.
+ */
 function get_icon($icon) {
     global $CFG;
     return '<img style="background:0;" src="' . $CFG->wwwroot . "/images/icons/$icon.png" . '" />';
 }
 
+/**
+ *
+ * Icon.
+ *
+ *
+ * @param mixed $icons Icons.
+ */
 function icon(...$icons) {
     $return = '';
 
@@ -474,6 +647,13 @@ function icon(...$icons) {
     return $return;
 }
 
+/**
+ *
+ * Icon color.
+ *
+ *
+ * @param mixed $icon Icon.
+ */
 function icon_color($icon) {
     // Certain icons have different color than others.
     switch ($icon) {
@@ -568,6 +748,13 @@ function icon_color($icon) {
     return $color;
 }
 
+/**
+ *
+ * Active icon.
+ *
+ *
+ * @param bool|false $active Active.
+ */
 function active_icon($active = true) {
     return '
     <span style="padding: 5px;">
@@ -578,6 +765,16 @@ function active_icon($active = true) {
     ]]) . '
     </span>';
 }
+
+/**
+ *
+ * Go home button.
+ *
+ *
+ * @param string $button_text Button text.
+ * @param string $center      Center.
+ * @param string $rightside   Rightside.
+ */
 function go_home_button($button_text = 'Back', $center = '', $rightside = '') {
     return '
     <div class="go_home">
@@ -590,6 +787,13 @@ function go_home_button($button_text = 'Back', $center = '', $rightside = '') {
     </div>';
 }
 
+/**
+ *
+ * Name.
+ *
+ *
+ * @param array $vars Prepared-statement placeholder map.
+ */
 function get_name($vars) {
     $name = "";
     if (!empty($vars["type"]) && !empty($vars["id"])) {
@@ -632,6 +836,13 @@ function get_name($vars) {
     return $name;
 }
 
+/**
+ *
+ * Tag.
+ *
+ *
+ * @param array $vars Prepared-statement placeholder map.
+ */
 function get_tag($vars) {
     $tag = false;
     if (!empty($vars["type"]) && !empty($vars["tag"])) {
@@ -659,6 +870,12 @@ function get_tag($vars) {
     return $tag;
 }
 
+/**
+ *
+ * Note type array.
+ *
+ *
+ */
 function get_note_type_array() {
     //Yes No type
     $yesno       = new stdClass();
@@ -676,6 +893,13 @@ function get_note_type_array() {
     ];
 }
 
+/**
+ *
+ * Required notes header.
+ *
+ *
+ * @param string $tag Tag or category key.
+ */
 function get_required_notes_header($tag) {
     $notes      = "";
     $pid        = get_pid();
@@ -699,6 +923,13 @@ function get_required_notes_header($tag) {
     return $notes;
 }
 
+/**
+ *
+ * Required notes forms.
+ *
+ *
+ * @param string $tag Tag or category key.
+ */
 function get_required_notes_forms($tag) {
     $notes      = "";
     $pid        = get_pid();
@@ -722,6 +953,14 @@ function get_required_notes_forms($tag) {
     return $notes;
 }
 
+/**
+ *
+ * Children document link.
+ *
+ *
+ * @param int    $chid Child id.
+ * @param string $tag  Tag or category key.
+ */
 function children_document_link($chid, $tag) {
     global $CFG;
     if ($document = get_db_row("SELECT * FROM documents WHERE chid='$chid' AND tag='$tag'")) {
@@ -732,6 +971,13 @@ function children_document_link($chid, $tag) {
     return false;
 }
 
+/**
+ *
+ * Child picture style.
+ *
+ *
+ * @param int $chid Child id.
+ */
 function get_child_picture_style($chid) {
     global $CFG;
 
@@ -750,6 +996,18 @@ function get_child_picture_style($chid) {
     return false;
 }
 
+/**
+ *
+ * Children button.
+ *
+ *
+ * @param int        $chid    Child id.
+ * @param string     $class   Class.
+ * @param string     $style   Style.
+ * @param string     $action  Action.
+ * @param bool|false $piconly Piconly.
+ * @param bool|false $name    Name.
+ */
 function get_children_button($chid, $class = "", $style = "", $action = "", $piconly = false, $name = true) {
     $row = get_db_row("SELECT * FROM children WHERE chid='$chid'");
 
@@ -770,6 +1028,14 @@ function get_children_button($chid, $class = "", $style = "", $action = "", $pic
             </button>';
 }
 
+/**
+ *
+ * Or get tag.
+ *
+ *
+ * @param string $tag  Tag or category key.
+ * @param mixed  $type Optional type or mode flag.
+ */
 function make_or_get_tag($tag, $type = "documents") {
     switch ($type) {
         case "documents":
@@ -803,6 +1069,14 @@ function make_or_get_tag($tag, $type = "documents") {
     }
 }
 
+/**
+ *
+ * Note text.
+ *
+ *
+ * @param array $row     Database row.
+ * @param mixed $setting Setting.
+ */
 function get_note_text($row, $setting) {
     $note = "";
     switch ($row["question_type"]) {
@@ -816,10 +1090,13 @@ function get_note_text($row, $setting) {
     return $note;
 }
 
-
-
-//  GetColor  returns  an  associative  array  with  the  red,  green  and  blue
-//  values  of  the  desired  color
+/**
+ *
+ * Gethexcolor.
+ *
+ *
+ * @param mixed $colorname Colorname.
+ */
 function gethexcolor($colorname) {
     $colors = [
         'aliceblue' => 'F0F8FF',
@@ -978,6 +1255,15 @@ function gethexcolor($colorname) {
     }
 }
 
+/**
+ *
+ * Closeout workdays.
+ *
+ *
+ * @param mixed      $employeeid  Employeeid.
+ * @param mixed      $startofweek Startofweek.
+ * @param bool|false $refresh     Refresh.
+ */
 function closeout_workdays($employeeid, $startofweek, $refresh = false) {
     global $CFG;
     $employee = get_db_row("SELECT * FROM employee WHERE employeeid='$employeeid'");
@@ -1054,7 +1340,12 @@ function closeout_workdays($employeeid, $startofweek, $refresh = false) {
     }
 }
 
-
+/**
+ *
+ * Closeout thisweek.
+ *
+ *
+ */
 function closeout_thisweek() {
     global $CFG;
     if (date('N', get_timestamp()) == "7") { //is already a sunday
@@ -1128,6 +1419,14 @@ function closeout_thisweek() {
     }
 }
 
+/**
+ *
+ * Wage.
+ *
+ *
+ * @param mixed     $employeeid Employeeid.
+ * @param int|false $time       Optional Unix timestamp.
+ */
 function get_wage($employeeid, $time) {
     if ($row = get_db_row("SELECT wage FROM employee_wage WHERE employeeid='$employeeid' AND dategiven <= $time ORDER BY dategiven DESC LIMIT 1")) {
         return $row["wage"];
@@ -1137,6 +1436,13 @@ function get_wage($employeeid, $time) {
     return false;
 }
 
+/**
+ *
+ * Wages for week.
+ *
+ *
+ * @param int|false $time Optional Unix timestamp.
+ */
 function get_wages_for_week($time) {
     if (date('N', $time) == "7") { //is already a sunday
         $startofweek = strtotime(date('m/d/Y', $time));
@@ -1154,6 +1460,13 @@ function get_wages_for_week($time) {
     return $sum;
 }
 
+/**
+ *
+ * Wages for this week.
+ *
+ *
+ * @param mixed $employeeid Employeeid.
+ */
 function get_wages_for_this_week($employeeid) {
     $time = get_timestamp();
     if (date('N', $time) == "7") { //is already a sunday
@@ -1169,6 +1482,15 @@ function get_wages_for_this_week($employeeid) {
     return number_format(($wage * $hours), 2);
 }
 
+/**
+ *
+ * Hours worked.
+ *
+ *
+ * @param mixed $employeeid  Employeeid.
+ * @param mixed $startofweek Startofweek.
+ * @param mixed $endofweek   Endofweek.
+ */
 function hours_worked($employeeid, $startofweek, $endofweek) {
     global $CFG;
     $SQL   = "SELECT CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'" . get_date('P', time(), $CFG->timezone) . "','" . get_date('P', time(), $CFG->timezone) . "'))) as order_day, tag, timelog FROM employee_activity WHERE employeeid='$employeeid' AND (tag='out' OR tag='in') AND timelog >= '$startofweek' AND timelog <= '$endofweek' ORDER BY timelog";
@@ -1212,6 +1534,14 @@ function hours_worked($employeeid, $startofweek, $endofweek) {
     return $hours;
 }
 
+/**
+ *
+ * Hours attended.
+ *
+ *
+ * @param int   $chid      Child id.
+ * @param mixed $starttime Starttime.
+ */
 function hours_attended($chid, $starttime) {
     global $CFG;
     $SQL = "SELECT CONCAT(YEAR(FROM_UNIXTIME(timelog)),MONTH(FROM_UNIXTIME(timelog)),DAY(CONVERT_TZ(FROM_UNIXTIME(timelog),'" . get_date('P', time(), $CFG->timezone) . "','" . get_date('P', time(), $CFG->timezone) . "'))) as order_day, tag, timelog FROM activity WHERE chid='$chid' AND (tag='out' OR tag='in') AND timelog >= '$starttime' ORDER BY timelog";
@@ -1261,6 +1591,13 @@ function hours_attended($chid, $starttime) {
     }
 }
 
+/**
+ *
+ * Grade convert.
+ *
+ *
+ * @param mixed $set Set.
+ */
 function grade_convert($set) {
     switch ($set) {
         case "0":
@@ -1286,6 +1623,14 @@ function grade_convert($set) {
     }
 }
 
+/**
+ *
+ * Is expected today.
+ *
+ *
+ * @param int $pid  Parent / person id.
+ * @param int $chid Child id.
+ */
 function is_expected_today($pid, $chid) {
     $days_attending = get_db_field("days_attending", "enrollments", "pid='$pid' AND chid='$chid'");
     $enrollment = explode(", ", $days_attending);
@@ -1300,6 +1645,14 @@ function is_expected_today($pid, $chid) {
     return false;
 }
 
+/**
+ *
+ * From template.
+ *
+ *
+ * @param string $filename  Stored filename.
+ * @param array  $variables Variables.
+ */
 function from_template($filename, $variables = []) {
     global $CFG;
     if (is_file($CFG->docroot . '/templates/' . $filename)) {
@@ -1313,6 +1666,12 @@ function from_template($filename, $variables = []) {
     return false;
 }
 
+/**
+ *
+ * Check and run upgrades.
+ *
+ *
+ */
 function check_and_run_upgrades() {
     $version = get_db_field("version", "version", "version != ''");
     if (!$version) {

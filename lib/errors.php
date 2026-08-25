@@ -67,6 +67,14 @@ $ERRORS = new stdClass();
     $ERRORS->valid_req_vpassword = "Please verify your password.";
     $ERRORS->valid_vpassword_match = "Must match the password field.";
 
+/**
+ *
+ * Error message.
+ *
+ *
+ * @param mixed $error Error.
+ * @param array $vars  Prepared-statement placeholder map.
+ */
 function get_error_message($error, $vars = false){
     global $CFG, $ERRORS;
     $lang = explode(":", $error);
@@ -86,10 +94,26 @@ function get_error_message($error, $vars = false){
     }
 }
 
+/**
+ *
+ * Page error message.
+ *
+ *
+ * @param mixed $error Error.
+ * @param array $vars  Prepared-statement placeholder map.
+ */
 function get_page_error_message($error, $vars = false){
     return '<div style="background:red;padding:20px;text-align:center;">' . get_error_message($error, $vars) . '</div>';
 }
 
+/**
+ *
+ * Fill template.
+ *
+ *
+ * @param mixed $string String.
+ * @param array $vars   Prepared-statement placeholder map.
+ */
 function fill_template($string, $vars){
     $i = 0;
     foreach ($vars as $var) {

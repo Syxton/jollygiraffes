@@ -1,27 +1,22 @@
 <?php
 
-/***************************************************************************
-* dblib.php - Database function library
-* -------------------------------------------------------------------------
-* Author: Matthew Davidson
-* Upgraded: Ported prepared-statement / sanitization layer from syxtoncms
-* Revision: 1.8.0
-*
-* BACKWARD COMPATIBILITY NOTE:
-* Every existing call site in jollygiraffes calls these functions with the
-* SAME argument order they always have (e.g. get_db_row($SQL, $type)).
-* This file only ever APPENDS new optional parameters, so nothing already
-* written against the old dblib.php needs to change to keep working.
-* New/refactored code can opt in to prepared statements by passing a $vars
-* array of ["placeholder" => value] and using the "||placeholder||" syntax
-* in the SQL string instead of interpolating values directly.
-***************************************************************************/
+/**
+ * dblib.php - Database function library (Rev 1.8.0).
+ * Existing call sites keep the same argument order; new optional $vars
+ * enable prepared statements via ||placeholder|| in SQL.
+ */
 
 if (!isset($LIBHEADER)) {
     include('header.php');
 }
 $DBLIB = true;
 
+/**
+ *
+ * True if the database schema appears to be installed.
+ *
+ *
+ */
 function is_installed() {
     global $CFG;
     try {
@@ -44,6 +39,12 @@ function is_installed() {
     }
 }
 
+/**
+ *
+ * Close and reopen the database connection.
+ *
+ *
+ */
 function reconnect() {
     global $CFG;
     try {
@@ -83,12 +84,15 @@ if ($CFG->dbtype == "mysqli") {
 
 $conn = reconnect();
 
-/* ---------------------------------------------------------------------
- * Existing jollygiraffes API — kept 100% signature-compatible.
- * $vars/$type moved to the END as optional params, never inserted
- * in the middle, so nothing calling these today needs to change.
- * ------------------------------------------------------------------- */
-
+/**
+ *
+ * Fetch one row as an associative array, or false if none.
+ *
+ *
+ * @param string $SQL  SQL statement.
+ * @param mixed  $type Optional type or mode flag.
+ * @param array  $vars Prepared-statement placeholder map.
+ */
 function get_db_row($SQL, $type = false, $vars = []) {
     global $CFG;
     $type = get_mysql_array_type($type);
@@ -98,6 +102,16 @@ function get_db_row($SQL, $type = false, $vars = []) {
     return false;
 }
 
+/**
+ *
+ * Fetch a single field value from the first matching row.
+ *
+ *
+ * @param mixed $field Field.
+ * @param mixed $from  From.
+ * @param mixed $where Where.
+ * @param array $vars  Prepared-statement placeholder map.
+ */
 function get_db_field($field, $from, $where, $vars = []) {
     global $CFG;
     $SQL = "SELECT $field FROM $from WHERE $where LIMIT 1";
@@ -109,6 +123,15 @@ function get_db_field($field, $from, $where, $vars = []) {
     return false;
 }
 
+/**
+ *
+ * Copy a row into another table. Returns the new insert id.
+ *
+ *
+ * @param array  $row             Database row.
+ * @param string $table           Database table name.
+ * @param mixed  $variablechanges Variablechanges.
+ */
 function copy_db_row($row, $table, $variablechanges) {
     global $USER, $CFG, $MYVARS;
     $paired = explode(",", $variablechanges);
@@ -136,6 +159,14 @@ function copy_db_row($row, $table, $variablechanges) {
     return execute_db_sql($SQL);
 }
 
+/**
+ *
+ * Is unique.
+ *
+ *
+ * @param string $table Database table name.
+ * @param mixed  $where Where.
+ */
 function is_unique($table, $where) {
     if (get_db_count("SELECT * FROM $table WHERE $where")) {
         return true;
@@ -143,10 +174,24 @@ function is_unique($table, $where) {
     return false;
 }
 
+/**
+ *
+ * Even.
+ *
+ *
+ * @param mixed $var Var.
+ */
 function even($var) {
     return (!($var & 1));
 }
 
+/**
+ *
+ * Senderror.
+ *
+ *
+ * @param mixed $message Message.
+ */
 function senderror($message) {
     $message = preg_replace(["\r,\t,\n"], "", $message);
     error_log($message);
@@ -154,7 +199,11 @@ function senderror($message) {
 }
 
 /**
- * Checks if a given array is a multi-dimensional array.
+ *
+ * IsMultiArray.
+ *
+ *
+ * @param mixed $a A.
  */
 function isMultiArray($a) {
     if (is_array($a) && count($a) > 0) {
@@ -168,15 +217,15 @@ function isMultiArray($a) {
     return false;
 }
 
-/* ---------------------------------------------------------------------
- * NEW — ported from syxtoncms's dblib.php (1.7.7).
- * Opt-in prepared statement + sanitization layer. None of this runs
- * unless a call site starts passing $vars / calling these directly,
- * so it is safe to drop in without touching the other ~4000 lines of
- * ajax.php yet. Use these when writing NEW queries or refactoring an
- * existing one; see docs/DB_MIGRATION.md for the recommended pattern.
- * ------------------------------------------------------------------- */
-
+/**
+ *
+ * Clean param req.
+ *
+ *
+ * @param mixed  $params Params.
+ * @param string $key    Quick-note preset key.
+ * @param mixed $type   Optional type or mode flag.
+ */
 function clean_param_req($params, $key, $type) {
     if (isset($params[$key])) {
         return clean_var_req($params[$key], $type, $key);
@@ -186,6 +235,16 @@ function clean_param_req($params, $key, $type) {
     }
 }
 
+/**
+ *
+ * Clean param opt.
+ *
+ *
+ * @param mixed  $params  Params.
+ * @param string $key     Quick-note preset key.
+ * @param mixed $type    Optional type or mode flag.
+ * @param mixed  $default Default.
+ */
 function clean_param_opt($params, $key, $type, $default) {
     if (isset($params[$key])) {
         return clean_var_opt($params[$key], $type, $default);
@@ -194,6 +253,15 @@ function clean_param_opt($params, $key, $type, $default) {
     }
 }
 
+/**
+ *
+ * Clean var req.
+ *
+ *
+ * @param mixed  $var  Var.
+ * @param mixed  $type Optional type or mode flag.
+ * @param string $name Name.
+ */
 function clean_var_req($var, $type, $name = "") {
     $var = clean_var_opt($var, $type, NULL);
     if (is_null($var)) {
@@ -203,6 +271,15 @@ function clean_var_req($var, $type, $name = "") {
     return $var;
 }
 
+/**
+ *
+ * Clean var opt.
+ *
+ *
+ * @param mixed  $var     Var.
+ * @param mixed $type    Optional type or mode flag.
+ * @param mixed  $default Default.
+ */
 function clean_var_opt($var, $type, $default) {
     if (is_null($var)) { return $default; }
 
@@ -242,8 +319,13 @@ function clean_var_opt($var, $type, $default) {
 }
 
 /**
- * Builds the ?-placeholder SQL + bound data/typestring for a mysqli
- * prepared statement from a "||name||" templated SQL string.
+ *
+ * Build prepared variables.
+ *
+ *
+ * @param string $SQL     SQL statement.
+ * @param array  $vars    Prepared-statement placeholder map.
+ * @param mixed  $pattern Pattern.
  */
 function build_prepared_variables($SQL, $vars, $pattern) {
     $typestring = "";
@@ -264,6 +346,13 @@ function build_prepared_variables($SQL, $vars, $pattern) {
     return ["data" => $data, "typestring" => $typestring, "sql" => $SQL];
 }
 
+/**
+ *
+ * Find var type.
+ *
+ *
+ * @param mixed $var Var.
+ */
 function find_var_type($var) {
     if ($var === null) {
         return 's'; // mysqli binds PHP null as SQL NULL for s/i/d
@@ -276,10 +365,23 @@ function find_var_type($var) {
     }
 }
 
+/**
+ *
+ * Is select.
+ *
+ *
+ * @param string $SQL SQL statement.
+ */
 function is_select($SQL) {
     return preg_match('/^\s*(SELECT)/i', trim($SQL)) ? true : false;
 }
 
+/**
+ *
+ * Start db transaction.
+ *
+ *
+ */
 function start_db_transaction() {
     global $conn;
     if (function_exists('mysqli_begin_transaction') && $conn instanceof mysqli) {
@@ -287,6 +389,12 @@ function start_db_transaction() {
     }
 }
 
+/**
+ *
+ * Commit db transaction.
+ *
+ *
+ */
 function commit_db_transaction() {
     global $conn;
     if (function_exists('mysqli_commit') && $conn instanceof mysqli) {
@@ -294,6 +402,12 @@ function commit_db_transaction() {
     }
 }
 
+/**
+ *
+ * Rollback db transaction.
+ *
+ *
+ */
 function rollback_db_transaction() {
     global $conn;
     if (function_exists('mysqli_rollback') && $conn instanceof mysqli) {

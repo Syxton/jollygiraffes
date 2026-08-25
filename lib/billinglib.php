@@ -13,6 +13,16 @@ if (!isset($LIBHEADER)) {
 }
 $BILLINGLIB = true;
 
+/**
+ *
+ * Compute the current balance for a billing account.
+ *
+ *
+ * @param int        $pid             Parent / person id.
+ * @param int        $aid             Account id.
+ * @param bool|false $running_balance Running balance.
+ * @param bool|false $year            Year.
+ */
 function account_balance($pid, $aid, $running_balance = false, $year = false) {
     $billing_year_sql = $payment_year_sql = "";
     $vars = ["pid" => $pid, "aid" => $aid];
@@ -37,6 +47,15 @@ function account_balance($pid, $aid, $running_balance = false, $year = false) {
     return number_format($total_owed - $total_paid, 2);
 }
 
+/**
+ *
+ * Apply billing override rules to computed amounts.
+ *
+ *
+ * @param mixed $program Program.
+ * @param int   $pid     Parent / person id.
+ * @param int   $aid     Account id.
+ */
 function apply_overrides($program, $pid, $aid) {
     if ($override = get_db_row("SELECT * FROM billing_override WHERE pid = ||pid|| AND aid = ||aid||", false, ["pid" => $pid, "aid" => $aid])) { // account override is present
         foreach ($program as $key => $value) {
@@ -50,6 +69,16 @@ function apply_overrides($program, $pid, $aid) {
     return false;
 }
 
+/**
+ *
+ * Compute the balance for a specific billing week.
+ *
+ *
+ * @param int        $pid        Parent / person id.
+ * @param int        $aid        Account id.
+ * @param bool|false $enrollment Enrollment.
+ * @param bool|false $nextweek   Nextweek.
+ */
 function week_balance($pid, $aid, $enrollment = true, $nextweek = false) {
     global $CFG;
     $invoiceweek = date("N") == 7 ? strtotime("Sunday") : strtotime("previous Sunday");
@@ -140,6 +169,15 @@ function week_balance($pid, $aid, $enrollment = true, $nextweek = false) {
     return number_format($totalbill, 2);
 }
 
+/**
+ *
+ * Build invoice line items for an account.
+ *
+ *
+ * @param int        $pid         Parent / person id.
+ * @param int        $aid         Account id.
+ * @param bool|false $invoiceweek Invoiceweek.
+ */
 function make_account_invoice($pid, $aid, $invoiceweek = false) {
     $returnme = "";
     $vars = ["pid" => $pid, "aid" => $aid];
@@ -220,6 +258,22 @@ function make_account_invoice($pid, $aid, $invoiceweek = false) {
     return $returnme;
 }
 
+/**
+ *
+ * Persist invoice data for a child.
+ *
+ *
+ * @param mixed      $program     Program.
+ * @param int        $chid        Child id.
+ * @param mixed      $invoiceweek Invoiceweek.
+ * @param mixed      $endofweek   Endofweek.
+ * @param mixed      $billed_by   Billed by.
+ * @param string     $lastid      Lastid.
+ * @param string     $bill        Bill.
+ * @param string     $attendance  Attendance.
+ * @param string     $exempt      Exempt.
+ * @param bool|false $billonly    Billonly.
+ */
 function save_child_invoice($program, $chid, $invoiceweek, $endofweek, $billed_by, $lastid = "0", $bill = "", $attendance = "", $exempt = 'unknown', $billonly = false) {
     $discount = "";
     $discount_threshold = empty($program["discount_rule"]) || $program["discount_rule"] < $program["multiple_discount"]
@@ -347,6 +401,15 @@ function save_child_invoice($program, $chid, $invoiceweek, $endofweek, $billed_b
     }
 }
 
+/**
+ *
+ * Child week attendance list.
+ *
+ *
+ * @param int   $pid         Parent / person id.
+ * @param int   $chid        Child id.
+ * @param mixed $invoiceweek Invoiceweek.
+ */
 function get_child_week_attendance_list($pid, $chid, $invoiceweek) {
     $endofweek = strtotime("+1 week -1 second", $invoiceweek);
 
@@ -376,7 +439,18 @@ function get_child_week_attendance_list($pid, $chid, $invoiceweek) {
     return $week;
 }
 
-//Makes Child invoice per week
+/**
+ *
+ * Child invoice.
+ *
+ *
+ * @param int        $pid                   Parent / person id.
+ * @param int        $chid                  Child id.
+ * @param mixed      $invoiceweek           Invoiceweek.
+ * @param bool|false $refresh               Refresh.
+ * @param string     $lastid                Lastid.
+ * @param bool|false $honor_past_enrollment Honor past enrollment.
+ */
 function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid = '0', $honor_past_enrollment = true) {
     global $CFG;
     $discount = "";
@@ -462,6 +536,18 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
     }
 }
 
+/**
+ *
+ * Create invoices.
+ *
+ *
+ * @param bool|false $return                Return.
+ * @param int        $pid                   Parent / person id.
+ * @param int        $aid                   Account id.
+ * @param bool|false $refreshall            Refreshall.
+ * @param string     $startweek             Startweek.
+ * @param bool|false $honor_past_enrollment Honor past enrollment.
+ */
 function create_invoices($return = false, $pid = null, $aid = null, $refreshall = false, $startweek = "0", $honor_past_enrollment = true) {
     global $CFG, $MYVARS;
     $pid = $pid !== null ? $pid : (empty($MYVARS->GET["pid"]) ? get_pid() : $MYVARS->GET["pid"]);
@@ -563,6 +649,15 @@ function create_invoices($return = false, $pid = null, $aid = null, $refreshall 
     }
 }
 
+/**
+ *
+ * Enrollment method.
+ *
+ *
+ * @param int $pid  Parent / person id.
+ * @param int $aid  Account id.
+ * @param int $chid Child id.
+ */
 function get_enrollment_method($pid, $aid = false, $chid = false) {
     $program = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ["pid" => $pid]);
     //you want to remember past settings and there is a history recorded

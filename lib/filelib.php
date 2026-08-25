@@ -13,6 +13,14 @@ if (!isset($LIBHEADER)) {
 }
 $FILELIB = true;
 
+/**
+ *
+ * Delete stored files older than the configured retention window.
+ *
+ *
+ * @param mixed $path Path.
+ * @param int   $days Days.
+ */
 function delete_old_files($path, $days = 1){
     global $CFG;
     $seconds = $days * (24 * 60 * 60);
@@ -30,12 +38,26 @@ function delete_old_files($path, $days = 1){
     }
 }
 
+/**
+ *
+ * Delete a file at the given path if it exists.
+ *
+ *
+ * @param mixed $filepath Filepath.
+ */
 function delete_file($filepath){
     if (file_exists($filepath)) {
         unlink($filepath);
     }
 }
 
+/**
+ *
+ * Create a directory path recursively (mkdir -p style).
+ *
+ *
+ * @param mixed $folder Folder.
+ */
 function recursive_mkdir($folder){
     // NOTE: previously this manually rebuilt the path segment-by-segment and only worked
     // correctly when $folder lived under $CFG->docroot (it stripped docroot, then re-prefixed
@@ -48,6 +70,13 @@ function recursive_mkdir($folder){
     return mkdir($folder, 0777, true);
 }
 
+/**
+ *
+ * Delete a directory tree and its contents recursively.
+ *
+ *
+ * @param mixed $folderPath Folderpath.
+ */
 function recursive_delete($folderPath){
     global $CFG;
     $doc = "";
@@ -73,6 +102,14 @@ function recursive_delete($folderPath){
     }
 }
 
+/**
+ *
+ * Build CSV text from an array of row arrays.
+ *
+ *
+ * @param string $filename Stored filename.
+ * @param mixed  $contents Contents.
+ */
 function make_csv($filename, $contents){
     $tempdir = sys_get_temp_dir() == "" ? "/tmp/" : sys_get_temp_dir();
     $tmpfname = tempnam($tempdir, $filename);
@@ -88,6 +125,15 @@ function make_csv($filename, $contents){
     return addslashes($tempdir . "/" . $filename);
 }
 
+/**
+ *
+ * Create file.
+ *
+ *
+ * @param string     $filename Stored filename.
+ * @param mixed      $contents Contents.
+ * @param bool|false $makecsv  Makecsv.
+ */
 function create_file($filename, $contents, $makecsv = false){
     if ($makecsv) {
         return make_csv($filename, $contents);
@@ -106,11 +152,34 @@ function create_file($filename, $contents, $makecsv = false){
     }
 }
 
+/**
+ *
+ * Download link.
+ *
+ *
+ * @param string     $filename Stored filename.
+ * @param mixed      $contents Contents.
+ * @param bool|false $makecsv  Makecsv.
+ */
 function get_download_link($filename, $contents, $makecsv = false){
     global $CFG;
     return 'window.open("' . $CFG->wwwroot . '/scripts/download.php?file=' . create_file($filename, $contents, $makecsv) . '", "download","menubar=yes,toolbar=yes,scrollbars=1,resizable=1,width=600,height=400");';
 }
 
+/**
+ *
+ * Smart resize image.
+ *
+ *
+ * @param mixed      $file               File.
+ * @param int        $width              Width.
+ * @param int        $height             Height.
+ * @param bool|false $proportional       Proportional.
+ * @param string     $output             Output.
+ * @param bool|false $delete_original    Delete original.
+ * @param bool|false $use_linux_commands Use linux commands.
+ * @param int        $quality            Quality.
+ */
 function smart_resize_image(
     $file,
     $width = 0,

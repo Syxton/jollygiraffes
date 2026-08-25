@@ -22,6 +22,13 @@ if (!function_exists('mysql_connect')) {
     );
 }
 
+/**
+ *
+ * Mysql array type.
+ *
+ *
+ * @param mixed  $type Optional type or mode flag.
+ */
 function get_mysql_array_type($type = "assoc") {
     switch ($type) {
         case "assoc":
@@ -35,19 +42,49 @@ function get_mysql_array_type($type = "assoc") {
     }
 }
 
+/**
+ *
+ * Db report level.
+ *
+ *
+ * @param mixed $level Level.
+ */
 function set_db_report_level($level = null) {
     // No-op: ext/mysql has no equivalent of mysqli_report().
 }
 
+/**
+ *
+ * Db goto row.
+ *
+ *
+ * @param mixed $result Result.
+ * @param int   $rownum Rownum.
+ */
 function db_goto_row($result, $rownum = 0) {
     mysql_data_seek($result, $rownum);
 }
 
+/**
+ *
+ * Fetch the next row from a result resource as an associative array.
+ *
+ *
+ * @param mixed  $result Result.
+ * @param mixed $type   Optional type or mode flag.
+ */
 function fetch_row($result, $type = false) {
     $type = get_mysql_array_type($type);
     return mysql_fetch_array($result, $type);
 }
 
+/**
+ *
+ * Db count.
+ *
+ *
+ * @param string $SQL SQL statement.
+ */
 function get_db_count($SQL) {
     global $CFG;
     if (strstr($SQL, ".")) {
@@ -64,6 +101,14 @@ function get_db_count($SQL) {
     }
 }
 
+/**
+ *
+ * Run a query and return the result resource (or false).
+ *
+ *
+ * @param string $SQL  SQL statement.
+ * @param array  $vars Prepared-statement placeholder map.
+ */
 function get_db_result($SQL, $vars = []) {
     global $CFG, $conn;
     if (!$conn) {
@@ -83,6 +128,14 @@ function get_db_result($SQL, $vars = []) {
     return false;
 }
 
+/**
+ *
+ * Execute a non-SELECT statement (INSERT, UPDATE, DELETE, or DDL).
+ *
+ *
+ * @param string $SQL  SQL statement.
+ * @param array  $vars Prepared-statement placeholder map.
+ */
 function execute_db_sql($SQL, $vars = []) {
     global $CFG, $conn;
     $update = preg_match('/^\s*UPDATE/i', $SQL) ? true : false;
@@ -110,19 +163,45 @@ function execute_db_sql($SQL, $vars = []) {
     return false;
 }
 
+/**
+ *
+ * Db error.
+ *
+ *
+ */
 function get_db_error() {
     return function_exists('mysql_error') ? mysql_error() : '';
 }
 
+/**
+ *
+ * Db errorno.
+ *
+ *
+ */
 function get_db_errorno() {
     return function_exists('mysql_errno') ? mysql_errno() : 0;
 }
 
+/**
+ *
+ * Escape a string for safe interpolation into SQL.
+ *
+ *
+ * @param mixed $str Str.
+ */
 function dbescape($str) {
     global $conn;
     return mysql_real_escape_string($str, $conn);
 }
 
+/**
+ *
+ * Db free result.
+ *
+ *
+ * @param mixed $result Result.
+ */
 function db_free_result($result) {
     mysql_free_result($result);
 }

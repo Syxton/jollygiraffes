@@ -13,6 +13,13 @@ if (!isset($LIBHEADER)) {
 }
 $TIMELIB = true;
 
+/**
+ *
+ * Current Unix timestamp using the app's time convention.
+ *
+ *
+ * @param string $timezone Timezone.
+ */
 function get_timestamp($timezone = "UTC"){
     global $CFG;
     date_default_timezone_set($timezone);
@@ -21,6 +28,13 @@ function get_timestamp($timezone = "UTC"){
     return $time;
 }
 
+/**
+ *
+ * Seconds elapsed since local midnight for a timestamp.
+ *
+ *
+ * @param int|false $time Optional Unix timestamp.
+ */
 function seconds_from_midnight($time){
     global $CFG;
     $from = mktime(0, 0, 0);
@@ -28,10 +42,26 @@ function seconds_from_midnight($time){
     return $to - $from;
 }
 
+/**
+ *
+ * Format a timestamp for display in the configured app timezone.
+ *
+ *
+ * @param int|false $time Optional Unix timestamp.
+ */
 function display_time($time){
     return ($time + get_offset());
 }
 
+/**
+ *
+ * Format a date string in the configured app timezone.
+ *
+ *
+ * @param mixed     $string    String.
+ * @param int|false $timestamp Unix timestamp; false means now.
+ * @param string    $timezone  Timezone.
+ */
 function get_date($string, $timestamp, $timezone = "UTC"){
     global $CFG;
     date_default_timezone_set($timezone);
@@ -40,6 +70,13 @@ function get_date($string, $timestamp, $timezone = "UTC"){
     return $time;
 }
 
+/**
+ *
+ * Timezone offset (seconds) used by display_time formatting.
+ *
+ *
+ * @param bool|false $timezone Timezone.
+ */
 function get_offset($timezone = false){
     global $CFG;
     $timezone = empty($timezone) ? $CFG->timezone : $timezone;
@@ -50,6 +87,13 @@ function get_offset($timezone = false){
     return $timeOffset;
 }
 
+/**
+ *
+ * Today as a daykey (local midnight stored as a UTC epoch).
+ *
+ *
+ * @param string $timezone Timezone.
+ */
 function get_today($timezone = "UTC"){
     global $CFG;
     $dateinmytimezone = new DateTime("now", new DateTimeZone($CFG->timezone)); //first argument "must" be a string
@@ -57,6 +101,13 @@ function get_today($timezone = "UTC"){
     return $UTCdate->getTimestamp();
 }
 
+/**
+ *
+ * Ago.
+ *
+ *
+ * @param int|false $timestamp Unix timestamp; false means now.
+ */
 function ago($timestamp){
     global $CFG;
     if (!$timestamp) {
@@ -135,6 +186,15 @@ function ago($timestamp){
     }
 }
 
+/**
+ *
+ * Date graphic.
+ *
+ *
+ * @param int|false  $timestamp Unix timestamp; false means now.
+ * @param bool|false $newday    Newday.
+ * @param bool|false $alter     Alter.
+ */
 function get_date_graphic($timestamp = false, $newday = true, $alter = false){
     global $CFG;
     $alterfont = $alter ? "font-size:.75em;" : "";
@@ -161,6 +221,13 @@ function get_date_graphic($timestamp = false, $newday = true, $alter = false){
     }
 }
 
+/**
+ *
+ * Convert time.
+ *
+ *
+ * @param int|false $time Optional Unix timestamp.
+ */
 function convert_time($time){
     date_default_timezone_set('UTC');
     $time = explode(":", $time);
@@ -175,7 +242,15 @@ function convert_time($time){
     }
 }
 
-/* draws a calendar */
+/**
+ *
+ * Draw calendar.
+ *
+ *
+ * @param mixed $month Month.
+ * @param mixed $year  Year.
+ * @param array $vars  Prepared-statement placeholder map.
+ */
 function draw_calendar($month, $year, $vars = false){
 
   /* draw table */
@@ -426,6 +501,14 @@ function draw_calendar($month, $year, $vars = false){
     return $calendar;
 }
 
+/**
+ *
+ * Timestamp from date.
+ *
+ *
+ * @param mixed  $date     Date.
+ * @param string $timezone Timezone.
+ */
 function make_timestamp_from_date($date, $timezone = "UTC") {
     global $CFG;
     $timezone = empty($timezone) ? $CFG->timezone : $timezone;

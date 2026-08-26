@@ -521,17 +521,19 @@ if (!isset($STATUSLIB)) {
      * @param int $timelog Stored event timestamp (app UTC convention).
      */
     function status_clamp_timelog($timelog) {
+        global $CFG;
         $now = get_timestamp();
         $timelog = intval($timelog);
         if (!$timelog) {
             return $now;
         }
-        $day = status_daykey();
-        $shifted = $timelog + get_offset();
-        if ($shifted < $day || $shifted >= $day + 86400) {
-            return $now;
-        }
-        if ($timelog > $now + 300) {
+
+        // Make DateTime objects for comparison.
+        $nowObj = new DateTime("@" . $now, new DateTimeZone($CFG->timezone));
+        $timelogObj = new DateTime("@" . $timelog, new DateTimeZone($CFG->timezone));
+
+        // Must be the same day. }
+        if ($nowObj->format('d-m-Y') !== $timelogObj->format('d-m-Y')) {
             return $now;
         }
         return $timelog;

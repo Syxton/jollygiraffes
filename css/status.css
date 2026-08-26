@@ -1096,7 +1096,7 @@ html, body {
 /* ---------- Potty Time entry panel ---------- */
 .potty-panel-overlay {
     position: fixed;
-    inset: 85px 0 0 0;
+    inset: 70px 0 0 0;
     background: rgba(0,0,0,0.4);
     display: flex;
     align-items: flex-end;

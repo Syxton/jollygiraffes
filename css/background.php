@@ -29,9 +29,9 @@ foreach ($filetypes as $filetype) {
     background: brown <?php echo $background ?>;
     background-size: cover;
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    filter: blur(10px) brightness(0.899);
+    top: -20px;
+    left: -20px;
+    width: calc(100% + 50px);
+    height: calc(100% + 50px);
+    filter: blur(10px);
 }

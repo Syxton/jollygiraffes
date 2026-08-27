@@ -116,6 +116,7 @@ h3 {
     overflow: auto;
     flex-direction: column;
     justify-content: space-between;
+    z-index: 1;
 }
 
 .admin_display {
@@ -562,6 +563,7 @@ button.selected_button:hover {
     padding: .4em 1em !important;
     margin: 10px;
     font-weight: bold !important;
+    border-radius: 15px;
 }
 
 .big_button.signinout {
@@ -604,6 +606,7 @@ button.selected_button:hover {
 .topleft_button,
 .bottomleft_button {
     font-size: clamp(15px, 5vmin, 30px);
+    border-radius: 10px;
 }
 
 .image_button {
@@ -672,6 +675,7 @@ svg {
 
 .alphabet_filter .keypad_buttons {
     font-size: clamp(10px, 3vmin, 15px);
+    border-radius: 50px;
 }
 
 .alphabet_label {
@@ -1269,6 +1273,7 @@ div.day-add a {
 
 .go_home button {
     font-size: clamp(7px, 4vmin, 22px);
+    border-radius: 10px;
 }
 
 .topcornerbuttons,

@@ -24,7 +24,14 @@ foreach ($filetypes as $filetype) {
 }
 
 ?>
-.main_level {
+.main_level::before {
+    content: "";
     background: brown <?php echo $background ?>;
     background-size: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    filter: blur(10px) brightness(0.899);
 }

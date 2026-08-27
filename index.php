@@ -80,8 +80,8 @@ function kiosk_lock_screen() {
     global $CFG;
     return '
     <div id="kiosk_lock" class="display_level ui-corner-all" style="align-items: center;justify-content: center;text-align:center;">
-        <h1>' . htmlspecialchars($CFG->sitename) . '</h1>
-        <p style="font-size:1.2em;">Enter the admin PIN to unlock the check-in screen.</p>
+        <h1 style="font-size: xxx-large;">' . htmlspecialchars($CFG->sitename) . '</h1>
+        <h1>Enter the admin PIN to unlock the check-in screen.</h1>
         <input size="4" maxlength="4" type="password" inputmode="numeric" disabled
             name="kiosk_password" id="kiosk_password" value="" autocomplete="off"
             class="text ui-widget-content ui-corner-all"

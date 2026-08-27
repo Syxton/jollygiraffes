@@ -232,6 +232,7 @@ h3 {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
+    filter: drop-shadow(yellow 0px 0px 3px);
 }
 
 
@@ -564,6 +565,7 @@ button.selected_button:hover {
     margin: 10px;
     font-weight: bold !important;
     border-radius: 15px;
+    filter: drop-shadow(black 0px 0px 5px);
 }
 
 .big_button.signinout {
@@ -607,6 +609,7 @@ button.selected_button:hover {
 .bottomleft_button {
     font-size: clamp(15px, 5vmin, 30px);
     border-radius: 10px;
+    filter: drop-shadow(black 0px 0px 5px);
 }
 
 .image_button {
@@ -687,6 +690,8 @@ svg {
 .admin_menu .keypad_buttons {
     font-size: clamp(7px, 4vmin, 22px);
     margin: 2px;
+    border-radius: 10px;
+    filter: drop-shadow(black 0px 0px 5px);
 }
 
 
@@ -923,6 +928,8 @@ svg {
 .scroll-pane .list_buttons {
     zoom: 90%;
     margin-left: 4px;
+    border-radius: 8px;
+    padding: 10px;
 }
 
 .scroll-content {
@@ -1274,6 +1281,7 @@ div.day-add a {
 .go_home button {
     font-size: clamp(7px, 4vmin, 22px);
     border-radius: 10px;
+    filter: drop-shadow(black 0px 0px 5px);
 }
 
 .topcornerbuttons,

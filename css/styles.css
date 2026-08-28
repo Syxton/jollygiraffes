@@ -232,7 +232,7 @@ h3 {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    filter: drop-shadow(yellow 0px 0px 3px);
+    filter: drop-shadow(#e2c227bf 0 0 70px);
 }
 
 

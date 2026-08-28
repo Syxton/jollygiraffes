@@ -33,5 +33,5 @@ foreach ($filetypes as $filetype) {
     left: -20px;
     width: calc(100% + 50px);
     height: calc(100% + 50px);
-    filter: blur(10px);
+    filter: blur(10px) brightness(.9);
 }

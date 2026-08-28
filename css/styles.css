@@ -235,6 +235,11 @@ h3 {
     filter: drop-shadow(#e2c227bf 0 0 70px);
 }
 
+.ui-button:active {
+    background-color: #e2c227bf;
+    color: black;
+    border: 1px solid #783b1a;
+}
 
 /* ============================================
    Absolute Positioning Helpers
@@ -517,8 +522,9 @@ button span {
 }
 
 .selected_button {
-    background: 0 #485060 !important;
+    background-color: #783b1a !important;
     color: white;
+    border: 2px solid #e2c227bf;
     font-weight: bold;
 }
 

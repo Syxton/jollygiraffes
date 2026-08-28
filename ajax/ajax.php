@@ -3358,6 +3358,7 @@ function get_documents_list($return = false, $aid = null, $chid = null, $cid = n
     $actid = $actid !== null ? $actid : (empty($MYVARS->GET["actid"]) ? false : $MYVARS->GET["actid"]);
 
     $returnme = "";
+    $type = false;
     if (!empty($chid)) {
         $type = "chid";
         $SQL  = "SELECT * FROM documents WHERE chid='$chid' AND tag != 'avatar' ORDER BY timelog DESC";
@@ -3370,6 +3371,16 @@ function get_documents_list($return = false, $aid = null, $chid = null, $cid = n
     } elseif (!empty($actid)) {
         $type = "actid";
         $SQL  = "SELECT * FROM documents WHERE actid='$actid' AND tag != 'avatar' ORDER BY timelog DESC";
+    }
+
+    if (!$type) {
+        $returnme = "Invalid id type given";
+        if ($return) {
+            return $returnme;
+        } else {
+            echo $returnme;
+        }
+        die();
     }
 
     if ($documents = get_db_result($SQL)) {
@@ -3468,6 +3479,7 @@ function get_notes_list($return = false, $aid = null, $chid = null, $cid = null,
     $actid = $actid !== null ? $actid : (empty($MYVARS->GET["actid"]) ? false : $MYVARS->GET["actid"]);
 
     $returnme = "";
+    $type = false;
     if (!empty($aid)) {
         $type = "aid";
         $id   = $aid;
@@ -3480,6 +3492,16 @@ function get_notes_list($return = false, $aid = null, $chid = null, $cid = null,
     } elseif (!empty($actid)) {
         $type = "actid";
         $id   = $actid;
+    }
+
+    if (!$type) {
+        $returnme = "Invalid id type given";
+        if ($return) {
+            return $returnme;
+        } else {
+            echo $returnme;
+        }
+        die();
     }
 
     $SQL = "SELECT * FROM notes WHERE $type='$id' AND tag IN (SELECT tag FROM notes_tags) ORDER BY timelog DESC";
@@ -3576,6 +3598,7 @@ function get_reports_list($return = false, $pid = null, $aid = null, $chid = nul
 
     $returnme = "";
 
+    $type = false;
     if (!empty($pid)) {
         $type = "pid";
         $id   = $pid;
@@ -3595,6 +3618,15 @@ function get_reports_list($return = false, $pid = null, $aid = null, $chid = nul
         $type = "actid";
         $id   = $actid;
     }
+    if (!$type) {
+        $returnme = "Invalid id type given";
+        if ($return) {
+            return $returnme;
+        } else {
+            echo $returnme;
+        }
+        die();
+    }
 
     $pid = !empty($pid) ? $pid : $activepid; // if pid isn't set, set it to active pid
 
@@ -3604,106 +3636,118 @@ function get_reports_list($return = false, $pid = null, $aid = null, $chid = nul
     switch ($type) {
         case "pid":
             // Simple Child List
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'child_list\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' List of Children</span></a><div class="report-cubes-container"></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="$(\'#report\').val(\'child_list\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' List of Children</span></a><div class="report-cubes-container"></div></div>';
             // Child attendance between dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'program_per_child_attendance\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Per Child Attendance Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'program_per_child_attendance\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Per Child Attendance Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Per Account attendance between dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'program_per_account_attendance\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Per Account Attendance Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'program_per_account_attendance\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Per Account Attendance Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Activities between dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Daily Activity Tag Count Between Dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Daily Attendance Breakdown 30 min
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'attendance_throughout_day\'); $(\'#extra\').val(\'30\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Attendance 30min Breakdown</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'attendance_throughout_day\'); $(\'#extra\').val(\'30\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Attendance 30min Breakdown</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Daily Attendance Breakdown 15 min
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'attendance_throughout_day\'); $(\'#extra\').val(\'15\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Attendance 15min Breakdown</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'attendance_throughout_day\'); $(\'#extra\').val(\'15\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Attendance 15min Breakdown</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Meal Status Count Between Dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'meal_status_count\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Meal Status Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'meal_status_count\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Meal Status Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Notes between dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'allnotes\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Notes Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: pink"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'allnotes\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Notes Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: pink"></div><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Week expected attendance
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'weekly_expected_attendance\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Expected attendance vs Actual attendance</span></a><div class="report-cubes-container"></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="$(\'#report\').val(\'weekly_expected_attendance\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Expected attendance vs Actual attendance</span></a><div class="report-cubes-container"></div></div>';
             // Account Balances
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_account_bill\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View All Account Balances</span></a><div class="report-cubes-container"></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_account_bill\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View All Account Balances</span></a><div class="report-cubes-container"></div></div>';
             // Program Cash Flow
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_program_cash_flow\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Program Cash Flow</span></a><div class="report-cubes-container"></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_program_cash_flow\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Program Cash Flow</span></a><div class="report-cubes-container"></div></div>';
             // Program Payments between dates (optional)
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'payments_between\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Program Payments (dates optional)</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="$(\'#report\').val(\'payments_between\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Program Payments (dates optional)</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div></div>';
             break;
         case "aid":
             // Activities between dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Daily Activity Tag Count Between Dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Invoice Between Dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'invoice_between\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Invoice Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'invoice_between\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Invoice Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightblue"></div></div>';
             // Notes between dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'allnotes\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Notes Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: pink"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'allnotes\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Notes Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: pink"></div><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Account Cash Flow
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_program_cash_flow\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Account Cash Flow</span></a><div class="report-cubes-container"></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="$(\'#report\').val(\'program_per_program_cash_flow\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Account Cash Flow</span></a><div class="report-cubes-container"></div></div>';
             // Account Payments
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="$(\'#report\').val(\'payments_between\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Account Payments - FOR TAXES</span></a><div class="report-cubes-container"></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="$(\'#report\').val(\'payments_between\'); $(\'#myValidForm\').submit();"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Account Payments - FOR TAXES</span></a><div class="report-cubes-container"></div></div>';
             break;
         case "chid":
             // Child Activities Between Dates
-            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Daily Activity Tag Count Between Dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Child Notes Between Dates
-            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'allnotes\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Notes Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: pink"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'allnotes\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Notes Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: pink"></div><div class="cube" style="background-color: lightblue"></div></div></div>';
             break;
         case "cid":
             // Daily Activity Tag Count Between Dates
-            $reports .= '<br /><br /><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a href="javascript: void(0);" onclick="if ($(\'#att_tag\').val().length && $(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity_tag\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' Daily Activity Tag Count Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Contact Activities Between Dates
-            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div></div>';
             break;
         case "employeeid":
             // Employee Activities Between Dates
-            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'activity\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Activities Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div></div>';
             // Employee Pay Between Dates
-            $reports .= '<br /><br /><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'employee_paid\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Pay Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div>';
+            $reports .= '<div><a onclick="if ($(\'#from\').val().length && $(\'#to\').val().length) { $(\'#report\').val(\'employee_paid\'); $(\'#myValidForm\').submit(); } "><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Pay Between Dates</span></a><div class="report-cubes-container"><div class="cube" style="background-color: lightgreen"></div><div class="cube" style="background-color: lightblue"></div></div></div>';
             break;
         case "actid":
             break;
     }
 
     // Activity from / to
-    $returnme .= '<div class="scroll-pane document_list_item ui-corner-all fill_height" style="text-align:center">
-                        <form id="myValidForm" method="get" action="ajax/reports.php" onsubmit="return false;">
-                            <input type="hidden" name="report" id="report" value="" />
-                            <input type="hidden" name="id" id="id" value="' . $id . '" />
-                            <input type="hidden" name="type" id="type" value="' . $type . '" />
-                            <input type="hidden" name="actid" id="actid" value="' . $actid . '" />
-                            <input type="hidden" name="extra" id="extra" value="" />
-                            <div class="ui-corner-all" style="margin:2px;padding:5px;background-color:lightblue;"><label for="from">From</label><input type="text" id="from" name="from"/><label for="to">to</label><input type="text" id="to" name="to"/></div>
-                            <div class="ui-corner-all" style="margin:2px;padding:5px;background-color:pink;"><label for="tag">Only notes with the tag: </label>' . $tags_form . '</div>
-                            <div class="ui-corner-all" style="margin:2px;padding:5px;background-color:lightgreen;"><label for="tag">Only activites with the tag: </label>' . $att_tags_form . '</div>
-        ';
-    $returnme .= $reports . '</form>
-<script>
-    $(function() {
-        var dates = $("#from, #to").datepicker({
-            changeMonth: true,
-            numberOfMonths: 1,
-            onSelect: function(selectedDate) {
-                var option = this.id == "from" ? "minDate" : "maxDate",
-                    instance = $(this).data("datepicker"),
-                    date = $.datepicker.parseDate(
-                        instance.settings.dateFormat ||
-                        $.datepicker._defaults.dateFormat,
-                        selectedDate, instance.settings);
-                dates.not(this).datepicker("option", option, date);
-            }
-        } );
-    } );
-$(function() {
-  var validForm = $("#myValidForm").submit(function(e) {
-      validForm.nyroModal().nmCall();
-  } );
-} );
-</script>
-            </div>';
+    $returnme .= '
+        <div class="document_list_item ui-corner-all fill_height" style="text-align:center">
+            <form id="myValidForm" method="get" action="ajax/reports.php" onsubmit="return false;">
+                <input type="hidden" name="report" id="report" value="" />
+                <input type="hidden" name="id" id="id" value="' . $id . '" />
+                <input type="hidden" name="type" id="type" value="' . $type . '" />
+                <input type="hidden" name="actid" id="actid" value="' . $actid . '" />
+                <input type="hidden" name="extra" id="extra" value="" />
+                <div class="report_fromto">
+                    <label for="from">From</label>
+                    <input type="text" id="from" name="from"/>
+                    <label for="to">to</label>
+                    <input type="text" id="to" name="to"/>
+                </div>
+                <div class="report_notetags">
+                    <label for="tag">Only notes with the tag: </label>
+                    ' . $tags_form . '
+                </div>
+                <div class="report_activitytags">
+                    <label for="tag">Only activites with the tag: </label>
+                    ' . $att_tags_form . '
+                </div>
+                ' . $reports . '
+            </form>
+            <script>
+                $(function() {
+                    var dates = $("#from, #to").datepicker({
+                        changeMonth: true,
+                        numberOfMonths: 1,
+                        onSelect: function(selectedDate) {
+                            var option = this.id == "from" ? "minDate" : "maxDate",
+                                instance = $(this).data("datepicker"),
+                                date = $.datepicker.parseDate(
+                                    instance.settings.dateFormat ||
+                                    $.datepicker._defaults.dateFormat,
+                                    selectedDate, instance.settings);
+                            dates.not(this).datepicker("option", option, date);
+                        }
+                    } );
+                } );
+                $(function() {
+                    var validForm = $("#myValidForm").submit(function(e) {
+                        validForm.nyroModal().nmCall();
+                    } );
+                } );
+            </script>
+        </div>';
 
     if ($return) {
         return $returnme;
@@ -4893,20 +4937,20 @@ function view_required_notes_form($pid = false, $evid = false) {
     $notes_list = "";
     if ($events = get_db_result("SELECT * FROM events_required_notes e JOIN notes_required n ON e.rnid = n.rnid WHERE n.deleted = 0 AND e.evid = ||evid|| ORDER BY e.sort", ["evid" => $evid])) {
         $notes_list .= '<strong>Required Notes:</strong>
-        <button type="button" style="font-size:9px;float:right;" onclick="$.ajax({
+        <button type="button" class="required_sub_button" onclick="$.ajax({
               type: \'POST\',
               url: \'ajax/ajax.php\',
               data: { action: \'add_required_notes_form\',pid:\'' . $pid . '\',evid: \'' . $evid . '\' } ,
               success: function(data) { $(\'#required_notes_div_pid_' . $pid . '\').html(data); }
             });">Add Required Event Note</button><br /><br /><ul id="sortable">';
         while ($event = fetch_row($events)) {
-            $save          = '<button type="button" style="font-size:9px;float:right;" onclick="$.ajax({
+            $save = '<button type="button" class="required_sub_button" onclick="$.ajax({
               type: \'POST\',
               url: \'ajax/ajax.php\',
               data: { action: \'save_required_notes\',pid:\'' . $pid . '\',rnid:\'' . $event["rnid"] . '\',evid: \'' . $evid . '\',values: $(\'.fields\', \'li#' . $event["rnid"] . '\').serializeArray() } ,
               success: function(data) { $(\'#required_notes_div_pid_' . $pid . '\').html(data); }
             });">Save</button>';
-            $delete        = '<button type="button" style="font-size:9px;float:right;" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to delete this required note?\', \'Yes\', \'No\', function(){ $.ajax({
+            $delete = '<button type="button" class="required_sub_button" onclick="CreateConfirm(\'dialog-confirm\', \'Are you sure you wish to delete this required note?\', \'Yes\', \'No\', function(){ $.ajax({
               type: \'POST\',
               url: \'ajax/ajax.php\',
               data: { action: \'delete_required_notes\',pid:\'' . $pid . '\',rnid:\'' . $event["rnid"] . '\',evid: \'' . $evid . '\' } ,
@@ -4927,7 +4971,7 @@ function view_required_notes_form($pid = false, $evid = false) {
         $notes_list .= '</ul>';
     } else {
         $notes_list .= '<strong>Required Notes:</strong>
-        <button type="button" style="font-size:9px;float:right;" onclick="$.ajax({
+        <button type="button" class="required_sub_button" onclick="$.ajax({
               type: \'POST\',
               url: \'ajax/ajax.php\',
               data: { action: \'add_required_notes_form\',pid:\'' . $pid . '\',evid: \'' . $evid . '\' } ,
@@ -5011,7 +5055,7 @@ function add_required_notes_form() {
     echo '<strong>Add Required Event Note:</strong><br /><br />
     <ul id="sortable">
         <li id="addone" class="ui-state-default">&nbsp;&nbsp;Title: <input class="fields" name="title" id="title" type="text" value="" />&nbsp;&nbsp;Type: ' . make_select_from_object("question_type", get_note_type_array(), "id", "name", "fields") . '
-            <button type="button" style="font-size:9px;float:right;" onclick="if($(\'#name\',\'li#addone\').val() != \'\'){ $.ajax({
+            <button type="button" class="required_sub_button" onclick="if($(\'#name\',\'li#addone\').val() != \'\'){ $.ajax({
               type: \'POST\',
               url: \'ajax/ajax.php\',
               data: { action: \'save_required_notes\',pid:\'' . $pid . '\',evid: \'' . $evid . '\',values: $(\'.fields\', \'li#addone\').serializeArray() } ,

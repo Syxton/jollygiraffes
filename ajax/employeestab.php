@@ -17,7 +17,7 @@ if (!empty($tab)) {
         $info = get_activity_list(true, false, false, false, false, $employeeid);
         $activity_selected = "selected_button";
     } elseif ($tab == "reports") {
-        $info = get_reports_list(true, false, false, false, false, $employeeid);
+        $info = get_reports_list(true, false, false, false, false, false, $employeeid);
         $reports_selected = "selected_button";
     } else {
         $info = get_activity_list(true, false, false, false, false, $employeeid);

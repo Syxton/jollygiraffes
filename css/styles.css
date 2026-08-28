@@ -375,6 +375,20 @@ h3 {
     display: inline-block;
 }
 
+.program_event_list {
+    display: flex;
+    font-size: 17px;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+.required_sub_button {
+    float: right;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
 .list_box_item_full {
     position: relative;
     width: 100%;
@@ -1120,6 +1134,41 @@ li.ui-widget-content.ui-selectee.ui-selected {
     width: 80px;
 }
 
+.report_fromto {
+    display: flex;
+    padding: 10px;
+    margin-bottom: 5px;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background-color: lightblue;
+}
+
+.report_notetags {
+    display: flex;
+    padding: 10px;
+    margin-bottom: 5px;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background-color:pink;
+}
+
+.report_activitytags {
+    display: flex;
+    padding: 10px;
+    margin-bottom: 5px;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background-color:lightgreen;
+}
+
+#myValidForm {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
 
 /* ============================================
    Calendar
@@ -1610,6 +1659,24 @@ div.day-add a {
     -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
+}
+
+/* ============================================
+   Donation Area
+   ============================================ */
+
+.donation_list_headers {
+    width: 100%;
+    padding-right: 10px;
+}
+
+.donation_list {
+    margin-top: 5px;
+    height: 330px;
+    overflow-y: scroll;
+    background: #DDFFFF;
+    padding: 10px;
+    box-sizing: border-box;
 }
 
 /* Nested scroll regions inside info (tabs, tags list, etc.) */

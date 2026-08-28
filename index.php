@@ -66,6 +66,7 @@ echo '
     <div id="dialog-confirm" title="Confirm" style="display:none;">
         <p>
             <span class="ui-icon ui-icon-alert" style="margin-right: auto;margin-left: auto;"></span>
+            <span class="dialog-message"></span>
         </p>
     </div>
     <div class="loadingscreen" style="display:none;"></div>';

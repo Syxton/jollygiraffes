@@ -273,7 +273,7 @@ function get_form($formname, $vars = null, $identifier = "") {
             $form = '<div id="add_edit_expense' . $identifier . '" title="' . $title . '" style="display:none;">
                     <div style="height: 375px;margin-bottom: 10px;">
                         <strong>Program Donation/Expense History</strong><br />
-                        <table style="width:100%;padding-right:5px;"><tr>
+                        <table class="donation_list_headers"><tr>
                                         <td style="width:110px">
                                             Date
                                         </td>
@@ -286,7 +286,7 @@ function get_form($formname, $vars = null, $identifier = "") {
                                         <td style="width:15px;">
                                         </td>
                                     </tr></table>
-                        <div style="margin-top:5px;height: 330px;overflow-y:scroll;background: #DDFFFF;">
+                        <div class="donation_list">
                             ' . $program_expense_form . '
                         </div>
                     </div>
@@ -299,17 +299,18 @@ function get_form($formname, $vars = null, $identifier = "") {
                             <tr><td><label for="timelog">Date</label></td><td><input style="width:100px;" class="fields" type="input" name="timelog" id="timelog" value="' . $timelog . '" /></td></tr>
                             <tr><td><label for="note">Note</label></td><td><textarea style="width:100%;" rows="2" class="fields" type="input" name="note" id="note">' . $note . '</textarea></td></tr>
                         </table>
-                    <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
-                        type: \'POST\',
-                        url: \'ajax/ajax.php\',
-                        timeout: 10000,
-                        error: function(x, t, m) {
-                        $(button).button(\'option\', \'disabled\', false);
-                        },
-                        data: { action: \'add_edit_expense\',values: $(\'#' . $formname . $identifier . ' .fields\').serializeArray()},
-                        success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_expense' . $identifier . '\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
-                        });">Save Donation/Expense</button>
-                        </form>
+                        <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
+                            type: \'POST\',
+                            url: \'ajax/ajax.php\',
+                            timeout: 10000,
+                            error: function(x, t, m) {
+                            $(button).button(\'option\', \'disabled\', false);
+                            },
+                            data: { action: \'add_edit_expense\',values: $(\'#' . $formname . $identifier . ' .fields\').serializeArray()},
+                            success: function(data) { $(button).button(\'option\', \'disabled\', false); if(data != \'false\'){ $(\'#add_edit_expense' . $identifier . '\').dialog(\'close\'); $(\'#admin_display\').html(data); refresh_all(); }else{ $(\'.ui-dialog\').effect(\'shake\', { times:3 }, 150); } }
+                            });">Save Donation/Expense
+                        </button>
+                    </form>
                 </div>';
             break;
         case "add_edit_account":
@@ -1107,7 +1108,7 @@ function get_form($formname, $vars = null, $identifier = "") {
             if ($events = get_db_result("SELECT * FROM events e JOIN events_tags t ON t.tag = e.tag WHERE pid='" . $program["pid"] . "' OR pid='0' ORDER BY sort")) {
                 $events_list .= '<ul class="ui-corner-all selectable" style="width:100%">';
                 while ($event = fetch_row($events)) {
-                    $events_list .= '<li class="ui-corner-all" style="font-size: 17px;padding-left: 45px;" onclick="$.ajax({
+                    $events_list .= '<li class="program_event_list" onclick="$.ajax({
                         type: \'POST\',
                         url: \'ajax/ajax.php\',
                         timeout: 10000,
@@ -1134,7 +1135,7 @@ function get_form($formname, $vars = null, $identifier = "") {
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="programs" />' : '<input type="hidden" name="callback" class="fields callback" value="' . $vars["callback"] . '" />';
 
             $form = '<div id="event_editor' . $identifier . '" title="' . $title . '" style="display:none;">
-                    <form name="' . $formname . '_form' . $identifier . '">
+                    <form name="' . $formname . '_form' . $identifier . '" style="display: flex;height:100%">
                         ' . $fields . '
                         <table class="fill_height" style="width:100%;">
                             <tr>

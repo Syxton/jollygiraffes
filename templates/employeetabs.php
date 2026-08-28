@@ -24,7 +24,7 @@
                         url: 'ajax/ajax.php',
                         data: {
                             action: 'get_reports_list',
-                            '<?php echo $employeeid; ?>',
+                            employeeid: '<?php echo $employeeid; ?>',
                         },
                         success: function(data) {
                             $('#subselect_div').html(data);

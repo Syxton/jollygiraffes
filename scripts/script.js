@@ -214,7 +214,7 @@ function uploader(id, callback, fields) {
 }
 
 function CreateConfirm(id, messageText, okText, cancelText, okCallback, cancelCallback) {
-    $('#' + id + ' label').html(messageText);
+    $('#' + id + ' .dialog-message').html(messageText);
     var thisdialog = $('#' + id);
     $('#' + id).dialog({
         dialogClass: "big_confirm",
@@ -239,7 +239,7 @@ function CreateConfirm(id, messageText, okText, cancelText, okCallback, cancelCa
 }
 
 function CreateAlert(id, messageText, cancelText, cancelCallback) {
-    $('#' + id + ' label').html(messageText);
+    $('#' + id + ' .dialog-message').html(messageText);
     var thisdialog = $('#' + id);
     $('#' + id).dialog({
         dialogClass: "big_confirm",

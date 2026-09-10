@@ -160,7 +160,6 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
             $billed_by  = '';
             $day_count  = 0;
             $vacation   = 0;
-            $exempt     = 0;
 
             $enroll = get_db_row(
                 "SELECT exempt, discount, days_attending
@@ -177,18 +176,18 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
 
             $perchild = null;
             if (!$nextweek) {
-                if ($perchild = get_db_row(
+                $perchild = get_db_row(
                     "SELECT * FROM billing_perchild
                      WHERE pid = ||pid|| AND chid = ||chid|| AND fromdate = ||fromdate||",
                     false,
                     ['pid' => $pid, 'chid' => $chid, 'fromdate' => $invoiceweek]
-                )) { // Past billing data exists for this child.
-                    $vacation = (int)($perchild['vacation'] ?? 0);
-                    $exempt   = (int)($perchild['exempt'] ?? 0);
+                );
+                if ($perchild && !empty($perchild['vacation'])) {
+                    $vacation = 1;
                 }
             }
 
-            if ($nextweek) { // Estimating Next Weeks charges.
+            if ($nextweek) {
                 $days_str       = $enroll['days_attending'] ?? '';
                 $days_attending = count(array_filter(explode(',', (string)$days_str)));
                 $day_count      = $days_attending;
@@ -208,11 +207,6 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
             } elseif ($vacation) {
                 // Explicit vacation week for this child
                 $raw_bill  = (float)$program['vacation'];
-                $billed_by = $perchild['days_attending'] ?? ($enroll['days_attending'] ?? '');
-                $attendance = '';
-            } elseif ($exempt) {
-                // Explicit exempt week for this child
-                $raw_bill  = 0.0;
                 $billed_by = $perchild['days_attending'] ?? ($enroll['days_attending'] ?? '');
                 $attendance = '';
             } else {
@@ -299,7 +293,6 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
                 'perchild'   => $perchild,
                 'day_count'  => $day_count,
                 'vacation'   => $vacation,
-                'exempt'     => $exempt,
             ];
         }
     }
@@ -382,8 +375,8 @@ function make_account_invoice($pid, $aid, $invoiceweek = false) {
         while ($invoice = fetch_row($child_invoices)) {  //Loop through each week
             $fromdate = $invoice["fromdate"];
             $todate = $invoice["todate"];
-            // Does this invoice need to be made?
-            if ($fromdate !== $sameweek) { //start of a new week
+             //Does this invoice need to be made?
+            if ($fromdate != $sameweek) { //start of a new week
                 if ($sameweek !== 0) { //not the first week, so you need to end the last week.
                     $receipt .= '<div><strong>Week Total: $' . number_format($bill, 2) . '</strong></div>';
                     if (!get_db_row("SELECT * FROM billing WHERE pid = ||pid|| AND aid = ||aid|| AND fromdate = ||fromdate||", false, ["pid" => $pid, "aid" => $aid, "fromdate" => $oldfromdate])) {
@@ -401,23 +394,23 @@ function make_account_invoice($pid, $aid, $invoiceweek = false) {
                     $receipt = "";
                 }
 
-                // Start new week bill;
+                //Start new week bill;
                 $bill = empty($invoice["exempt"]) ? $invoice["bill"] : 0;
-            } else { // Same week continuing
-                // Add to bill
+
+                //Start week
+                $receipt .= empty($invoice["exempt"]) ? "<div>" . $invoice["receipt"] . "</div>" : "<div>" . $invoice["receipt"] . " - Exempt $0</div>";
+            } else { //Same week continuing
+                //Add to bill
                 $bill += empty($invoice["exempt"]) ? $invoice["bill"] : 0;
+                $receipt .= empty($invoice["exempt"]) ? "<div>" . $invoice["receipt"] . "</div>" : "<div>" . $invoice["receipt"] . " - Exempt $0</div>";
             }
-
-            // Start week
-            $receipt .= empty($invoice["exempt"]) ? "<div>" . $invoice["receipt"] . "</div>" : "<div>" . $invoice["receipt"] . " - Exempt $0</div>";
-
             //Save last week
             $oldfromdate = $fromdate;
             $oldtodate = $todate;
             $sameweek = $fromdate;
         }
 
-        if ($sameweek !== 0) { // Not the first week, so you need to end the last week.
+        if ($sameweek !== 0) { //not the first week, so you need to end the last week.
             $receipt .= '<div><strong>Week Total: $' . number_format($bill, 2) . '</strong></div>';
             if (!get_db_row("SELECT * FROM billing WHERE pid = ||pid|| AND aid = ||aid|| AND fromdate = ||fromdate||", false, ["pid" => $pid, "aid" => $aid, "fromdate" => $oldfromdate])) {
                 $SQL = "INSERT INTO billing (pid, aid, fromdate, todate, owed, receipt) VALUES (||pid||, ||aid||, ||fromdate||, ||todate||, ||owed||, ||receipt||)";
@@ -462,7 +455,7 @@ function make_account_invoice($pid, $aid, $invoiceweek = false) {
  * @param string $lastid
  * @param float  $bill
  * @param string $attendance
- * @param int    $exempt       1 if this week is marked exempt for the child
+ * @param int    $exempt
  * @param float  $discount
  * @param bool   $billonly
  * @param bool   $upsert
@@ -518,17 +511,6 @@ function save_child_invoice(
             // No activity, not vacation
             $rate = '[Did Not Attend]' . $disc_txt;
         } else {
-            if ($program["billed_by"] === 'attendance') {
-                if ($program["consider_full"] > 7) { // Per Day charging
-                    $rate = '[Part-time Rate]' . $disc_txt . ' Attended ' . $attendance;
-                } else {
-                    if ($program["consider_full"] <= )
-                }
-            } else { // Enrollment charging
-                $rate = '[Fulltime Rate]' . $disc_txt . ' Attended ' . $attendance;
-
-            }
-
             // Attended: fulltime vs part-time (per-day / minimum active only)
             $is_full = abs($bill - (float)$program['fulltime']) < 0.001
                        || abs($bill + $discount - (float)$program['fulltime']) < 0.001;

@@ -1237,7 +1237,7 @@ function get_form($formname, $vars = null, $identifier = "") {
             $fields .= empty($vars["callback"]) ? '<input type="hidden" name="callback" class="fields callback" value="billing" />' : '<input type="hidden" name="callback" class="fields callback" value="' . $vars["callback"] . '" />';
 
             $sql = empty($vars["aid"]) ? "" : "AND aid='" . $vars["aid"] . "'";
-            $weeks_sql = "SELECT (DATE_FORMAT(CONVERT_TZ(FROM_UNIXTIME(fromdate-" . get_offset() . "), @@session.time_zone,'UTC'),'%M %D %Y') ) as display, fromdate FROM billing WHERE pid='$activepid' $sql GROUP BY fromdate ORDER BY fromdate DESC";
+            $weeks_sql = "SELECT DATE_FORMAT(FROM_UNIXTIME(fromdate - " . get_offset() . "), '%M %D %Y') AS display, fromdate FROM billing WHERE pid='$activepid' $sql GROUP BY fromdate ORDER BY fromdate DESC";
             $form = '<div id="create_invoices' . $identifier . '" title="Recreate Invoices" style="display:none;">
                     <form name="' . $formname . '_form' . $identifier . '">
                         ' . $fields . '

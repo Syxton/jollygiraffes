@@ -475,25 +475,21 @@ function save_child_invoice(
         $discount = 0.0;
     }
 
+    echo "Attendance: $attendance";
     $name = get_name(['type' => 'chid', 'id' => $chid]);
-
+    $attendance_text = empty($attendance) ? ' [Did Not Attend]' : ' Attended ' . $attendance;
     if ($exempt) {
-        $receipt = $name . ' - [Exempt] ' .
-                   (empty($attendance) ? '[Did Not Attend]' : 'Attended ' . $attendance) .
-                   ': $0.00';
+        $receipt = $name . ' - [Exempt] ' . $attendance_text . ': $0.00';
+    } else if ($vacation) {
+        $receipt = $name . ' - [Vacation Rate] ' . $attendance_text . ': ' . '$' . number_format($bill, 2);
     } else {
         $disc_txt = $discount > 0
             ? ' [$' . number_format($discount, 2) . ' Individual Discount]'
             : '';
 
-        if ($vacation) {
-            $rate = '[Vacation Rate]';
-            if (!empty($attendance)) {
-                $rate .= ' Attended ' . $attendance;
-            }
-        } elseif (empty($attendance)) {
+        if (empty($attendance)) {
             // No activity, not vacation
-            $rate = '[Did Not Attend]' . $disc_txt;
+            $rate = $attendance_text . $disc_txt;
         } else {
             // Attended: fulltime vs part-time (per-day / minimum active only)
             $is_full = abs($bill - (float)$program['fulltime']) < 0.001
@@ -501,11 +497,11 @@ function save_child_invoice(
             $is_min_active = abs($bill - (float)$program['minimumactive']) < 0.001
                        || abs($bill + $discount - (float)$program['minimumactive']) < 0.001;
             if ($is_full) {
-                $rate = '[Fulltime Rate]' . $disc_txt . ' Attended ' . $attendance;
+                $rate = '[Fulltime Rate]' . $disc_txt . $attendance_text;
             } elseif ($is_min_active) {
-                $rate = '[Minimum Active Rate]' . $disc_txt . ' Attended ' . $attendance;
+                $rate = '[Minimum Active Rate]' . $disc_txt . $attendance_text;
             } else {
-                $rate = '[Part-time Rate]' . $disc_txt . ' Attended ' . $attendance;
+                $rate = '[Part-time Rate]' . $disc_txt . $attendance_text;
             }
         }
 
@@ -626,6 +622,8 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
         ? $perchild["exempt"]
         : get_db_field("exempt", "enrollments", "chid = ||chid|| AND pid = ||pid||", ["chid" => $chid, "pid" => $pid]);
 
+    $vacation = $honor_past_enrollment && $perchild ? $perchild["vacation"] : 0;
+
     //you want to remember past settings and there is a history recorded
     if (!empty($honor_past_enrollment) && !empty($perchild)) {
         $bill_by = $perchild["days_attending"];  //bill according to the days attended
@@ -672,9 +670,9 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
         }
 
         if (!$perchild) {
-            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, $attendance);
+            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, $attendance, $vacation);
         } elseif ($refresh) {
-            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, $attendance, $exempt);
+            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, $attendance, $exempt, $vacation);
         }
     } else { //Did not attend, see if there is a minimuminactive rate.
         $bill = $program["minimuminactive"] > "0" ? $program["minimuminactive"] : "0";
@@ -686,9 +684,9 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
         }
 
         if (!$perchild) {
-            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill);
+            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, "", $vacation);
         } elseif ($refresh) {
-            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, "", $exempt);
+            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, "", $exempt, $vacation);
         }
     }
 }
@@ -856,60 +854,60 @@ function recalculate_completed_child_invoice($program, $perchild) {
     $day_count  = 0;
     $days_list  = [];
 
+    $bill = 0.0;
+    $activities = get_db_result(
+        "SELECT * FROM activity
+            WHERE tag = 'in' AND pid = ||pid|| AND chid = ||chid||
+            AND timelog >= ||start|| AND timelog <= ||end||
+            ORDER BY timelog",
+        ['pid' => $pid, 'chid' => $chid, 'start' => $invoiceweek, 'end' => $endofweek]
+    );
+
+    $sameday = '';
+    if ($activities) {
+        while ($activity = fetch_row($activities)) {
+            $daykey = date('m/d/Y', display_time($activity['timelog']));
+            if ($daykey !== $sameday) {
+                $day_count++;
+                $days_list[] = date('D', display_time($activity['timelog']));
+                $sameday = $daykey;
+            }
+        }
+    }
+
+    if ($day_count > 0) {
+        $attendance = $day_count . ($day_count == 1 ? ' day' : ' days')
+                    . ' (' . implode(' ', $days_list) . ')';
+        if ($day_count >= (int)$program['consider_full']) {
+            $bill = (float)$program['fulltime'];
+        } else {
+            $perday = (float)($program['perday'] ?? 0);
+            if ($perday > 0) {
+                $bill = $perday * $day_count;
+            }
+            $min_active = (float)$program['minimumactive'];
+            if ($min_active > 0 && $bill < $min_active) {
+                $bill = $min_active;
+            }
+        }
+        if (($program['bill_by'] ?? '') === 'attendance' || $bill_by === 'attendance' || $bill_by === '') {
+            $bill_by = implode(',', $days_list);
+        }
+    } else {
+        // Did not attend
+        if (($program['bill_by'] ?? '') === 'enrollment') {
+            $bill = (float)$program['fulltime'];
+        } else {
+            $bill = (float)$program['minimuminactive'];
+        }
+        $attendance = '';
+    }
+    $raw = $bill;
+    $bill = max(0, $bill - $discount);
+
     if ($vacation) {
         $bill = (float)$program['vacation'];
         $raw  = $bill;
-    } else {
-        $bill = 0.0;
-        $activities = get_db_result(
-            "SELECT * FROM activity
-             WHERE tag = 'in' AND pid = ||pid|| AND chid = ||chid||
-               AND timelog >= ||start|| AND timelog <= ||end||
-             ORDER BY timelog",
-            ['pid' => $pid, 'chid' => $chid, 'start' => $invoiceweek, 'end' => $endofweek]
-        );
-
-        $sameday = '';
-        if ($activities) {
-            while ($activity = fetch_row($activities)) {
-                $daykey = date('m/d/Y', display_time($activity['timelog']));
-                if ($daykey !== $sameday) {
-                    $day_count++;
-                    $days_list[] = date('D', display_time($activity['timelog']));
-                    $sameday = $daykey;
-                }
-            }
-        }
-
-        if ($day_count > 0) {
-            $attendance = $day_count . ($day_count == 1 ? ' day' : ' days')
-                        . ' (' . implode(' ', $days_list) . ')';
-            if ($day_count >= (int)$program['consider_full']) {
-                $bill = (float)$program['fulltime'];
-            } else {
-                $perday = (float)($program['perday'] ?? 0);
-                if ($perday > 0) {
-                    $bill = $perday * $day_count;
-                }
-                $min_active = (float)$program['minimumactive'];
-                if ($min_active > 0 && $bill < $min_active) {
-                    $bill = $min_active;
-                }
-            }
-            if (($program['bill_by'] ?? '') === 'attendance' || $bill_by === 'attendance' || $bill_by === '') {
-                $bill_by = implode(',', $days_list);
-            }
-        } else {
-            // Did not attend
-            if (($program['bill_by'] ?? '') === 'enrollment') {
-                $bill = (float)$program['fulltime'];
-            } else {
-                $bill = (float)$program['minimuminactive'];
-            }
-            $attendance = '';
-        }
-        $raw = $bill;
-        $bill = max(0, $bill - $discount);
     }
 
     if ($exempt) {
@@ -968,6 +966,7 @@ function rebuild_account_week_invoices($pid, $aid, $fromdate) {
             $charges[] = [
                 'id'     => $row['id'],
                 'exempt' => (int)($row['exempt'] ?? 0),
+                'vacation' => (int)($row['vacation'] ?? 0),
                 'bill'   => $amount,
             ];
         }

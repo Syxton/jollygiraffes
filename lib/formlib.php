@@ -29,43 +29,50 @@ function get_form($formname, $vars = null, $identifier = "") {
     $form = "";
     switch ($formname) {
         case "add_edit_program":
-            $name = empty($vars["program"]["name"]) ? "" : $vars["program"]["name"];
-            $fein = empty($vars["program"]["fein"]) ? "" : $vars["program"]["fein"];
-            $timeopen = empty($vars["program"]["timeopen"]) ? "" : $vars["program"]["timeopen"];
-            $timeclosed = empty($vars["program"]["timeclosed"]) ? "" : $vars["program"]["timeclosed"];
-            $perday = empty($vars["program"]["perday"]) ? "0" : $vars["program"]["perday"];
-            $fulltime = empty($vars["program"]["fulltime"]) ? "0" : $vars["program"]["fulltime"];
-            $minimumactive = empty($vars["program"]["minimumactive"]) ? "0" : $vars["program"]["minimumactive"];
-            $minimuminactive = empty($vars["program"]["minimuminactive"]) ? "0" : $vars["program"]["minimuminactive"];
-            $vacation = empty($vars["program"]["vacation"]) ? "0" : $vars["program"]["vacation"];
-            $multiple_discount = empty($vars["program"]["multiple_discount"]) ? "0" : $vars["program"]["multiple_discount"];
-            $consider_full = empty($vars["program"]["consider_full"]) ? "5" : $vars["program"]["consider_full"];
-            $bill_by = empty($vars["program"]["bill_by"]) ? "enrollment" : $vars["program"]["bill_by"];
-            $payahead = empty($vars["program"]["payahead"]) ? "0" : $vars["program"]["payahead"];
-            $discount_rule = empty($vars["program"]["discount_rule"]) ? "0" : $vars["program"]["discount_rule"];
-
-            $title = empty($vars["pid"]) ? "Add Program" : "Edit Program";
+            if (!empty($vars["program"])) { // Editing existing program.
+                $title = "Edit Program";
+                $name = empty($vars["program"]["name"]) ? "" : $vars["program"]["name"];
+                $fein = empty($vars["program"]["fein"]) ? "" : $vars["program"]["fein"];
+                $timeopen = empty($vars["program"]["timeopen"]) ? "" : $vars["program"]["timeopen"];
+                $timeclosed = empty($vars["program"]["timeclosed"]) ? "" : $vars["program"]["timeclosed"];
+                $perday = empty($vars["program"]["perday"]) ? "0" : $vars["program"]["perday"];
+                $fulltime = empty($vars["program"]["fulltime"]) ? "0" : $vars["program"]["fulltime"];
+                $minimumactive = empty($vars["program"]["minimumactive"]) ? "0" : $vars["program"]["minimumactive"];
+                $minimuminactive = empty($vars["program"]["minimuminactive"]) ? "0" : $vars["program"]["minimuminactive"];
+                $vacation = empty($vars["program"]["vacation"]) ? "0" : $vars["program"]["vacation"];
+                $multiple_discount = empty($vars["program"]["multiple_discount"]) ? "0" : $vars["program"]["multiple_discount"];
+                $consider_full = empty($vars["program"]["consider_full"]) && $vars["program"]["consider_full"] !== 0 ? "5" : $vars["program"]["consider_full"];
+                $bill_by = empty($vars["program"]["bill_by"]) ? "none" : $vars["program"]["bill_by"];
+                $payahead = empty($vars["program"]["payahead"]) ? "none" : $vars["program"]["payahead"];
+                $discount_rule = empty($vars["program"]["discount_rule"]) ? "0" : $vars["program"]["discount_rule"];
+            } else { // New program.
+                $title = "Add Program";
+                $name = $fein = $timeopen = $timeclosed = "";
+                $perday = $fulltime = $minimumactive = $minimuminactive = $vacation = $multiple_discount = $discount_rule = "0";
+                $consider_full = "5";
+                $bill_by = $payahead = "none";
+            }
 
             $days = [
-            (object) ["value" => "none", "display" => "None"],
-            (object) ["value" => "1", "display" => "1 day attending"],
-            (object) ["value" => "2", "display" => "2 days attending"],
-            (object) ["value" => "3", "display" => "3 days attending"],
-            (object) ["value" => "4", "display" => "4 days attending"],
-            (object) ["value" => "5", "display" => "5 days attending"],
-            (object) ["value" => "6", "display" => "6 days attending"],
-            (object) ["value" => "7", "display" => "7 days attending"],
-            (object) ["value" => "8", "display" => "Part-time Rate Only"],
+                (object) ["value" => "0", "display" => "None"],
+                (object) ["value" => "1", "display" => "1 day attending"],
+                (object) ["value" => "2", "display" => "2 days attending"],
+                (object) ["value" => "3", "display" => "3 days attending"],
+                (object) ["value" => "4", "display" => "4 days attending"],
+                (object) ["value" => "5", "display" => "5 days attending"],
+                (object) ["value" => "6", "display" => "6 days attending"],
+                (object) ["value" => "7", "display" => "7 days attending"],
+                (object) ["value" => "8", "display" => "Part-time Rate Only"],
             ];
 
             $bill_by_array = [
-            (object) ["value" => "enrollment", "display" => "Enrollment"],
-            (object) ["value" => "attendance", "display" => "Attendance"],
+                (object) ["value" => "enrollment", "display" => "Enrollment"],
+                (object) ["value" => "attendance", "display" => "Attendance"],
             ];
 
             $payahead_array = [
-            (object) ["value" => "0", "display" => "No"],
-            (object) ["value" => "1", "display" => "Yes"],
+                (object) ["value" => "0", "display" => "No"],
+                (object) ["value" => "1", "display" => "Yes"],
             ];
 
             $fields = "";
@@ -90,7 +97,7 @@ function get_form($formname, $vars = null, $identifier = "") {
                             <tr><td><label for="minimuminactive">Minimum (Inactive)</label></td><td>$<input style="width:125px;" class="fields" type="input" name="minimuminactive" id="minimuminactive" value="' . $minimuminactive . '" /></td></tr>
                             <tr><td><label for="vacation">Vacation Price</label></td><td>$<input style="width:125px;" class="fields" type="input" name="vacation" id="vacation" value="' . $vacation . '" /></td></tr>
                             <tr><td><label for="multiple_discount">Multiple Discount</label></td><td>$<input style="width:125px;" class="fields" type="input" name="multiple_discount" id="multiple_discount" value="' . $multiple_discount . '" /></td></tr>
-                            <tr><td><label for="discount_rule">Discount Qualifier</label></td><td>$<input style="width:125px;" class="fields" type="input" name="discount_rule" id="discount_rule" value="' . $discount_rule . '" /></td></tr>
+                            <tr><td><label for="discount_rule">Multiple Minimum Threshold</label></td><td>$<input style="width:125px;" class="fields" type="input" name="discount_rule" id="discount_rule" value="' . $discount_rule . '" /></td></tr>
                         </table>
                         <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
                             type: \'POST\',
@@ -112,41 +119,46 @@ function get_form($formname, $vars = null, $identifier = "") {
                 ';
             break;
         case "billing_overrides":
-            $perday = !isset($vars["override"]["perday"]) || (empty($vars["override"]["perday"]) && $vars["override"]["perday"] !== "0") ? "" : $vars["override"]["perday"];
-            $fulltime = !isset($vars["override"]["fulltime"]) || (empty($vars["override"]["fulltime"]) && $vars["override"]["fulltime"] !== "0") ? "" : $vars["override"]["fulltime"];
-            $minimumactive = !isset($vars["override"]["minimumactive"]) || (empty($vars["override"]["minimumactive"]) && $vars["override"]["minimumactive"] !== "0") ? "" : $vars["override"]["minimumactive"];
-            $minimuminactive = !isset($vars["override"]["minimuminactive"]) || (empty($vars["override"]["minimuminactive"]) && $vars["override"]["minimuminactive"] !== "0") ? "" : $vars["override"]["minimuminactive"];
-            $vacation = !isset($vars["override"]["vacation"]) || (empty($vars["override"]["vacation"]) && $vars["override"]["vacation"] !== "0") ? "" : $vars["override"]["vacation"];
-            $multiple_discount = !isset($vars["override"]["multiple_discount"]) || (empty($vars["override"]["multiple_discount"]) && $vars["override"]["multiple_discount"] !== "0") ? "" : $vars["override"]["multiple_discount"];
-            $consider_full = empty($vars["override"]["consider_full"]) ? "" : $vars["override"]["consider_full"];
-            $bill_by = empty($vars["override"]["bill_by"]) ? "none" : $vars["override"]["bill_by"];
-            $payahead = empty($vars["override"]["payahead"]) ? "none" : $vars["override"]["payahead"];
-            $discount_rule = empty($vars["override"]["discount_rule"]) ? "" : $vars["override"]["discount_rule"];
+            if (!empty($vars["override"])) { // Editing existing program.
+                $perday = empty($vars["override"]["perday"]) ? "" : $vars["override"]["perday"];
+                $fulltime = empty($vars["override"]["fulltime"]) ? "" : $vars["override"]["fulltime"];
+                $minimumactive = empty($vars["override"]["minimumactive"]) ? "" : $vars["override"]["minimumactive"];
+                $minimuminactive = empty($vars["override"]["minimuminactive"]) ? "" : $vars["override"]["minimuminactive"];
+                $vacation = empty($vars["override"]["vacation"]) ? "" : $vars["override"]["vacation"];
+                $multiple_discount = empty($vars["override"]["multiple_discount"]) ? "" : $vars["override"]["multiple_discount"];
+                $consider_full = empty($vars["override"]["consider_full"]) && $vars["override"]["consider_full"] !== 0 ? "" : $vars["override"]["consider_full"];
+                $bill_by = empty($vars["override"]["bill_by"]) ? "none" : $vars["override"]["bill_by"];
+                $payahead = empty($vars["override"]["payahead"]) ? "" : $vars["override"]["payahead"];
+                $discount_rule = empty($vars["override"]["discount_rule"]) ? "" : $vars["override"]["discount_rule"];
+            } else { // New program.
+                $perday = $fulltime = $minimumactive = $minimuminactive = $vacation = $multiple_discount = $consider_full = $discount_rule = "";
+                $bill_by = $payahead = "none";
+            }
 
             $title = "Billing Override";
             $days = [
-            (object) ["value" => "none", "display" => "None"],
-            (object) ["value" => "1", "display" => "1 day attending"],
-            (object) ["value" => "2", "display" => "2 days attending"],
-            (object) ["value" => "3", "display" => "3 days attending"],
-            (object) ["value" => "4", "display" => "4 days attending"],
-            (object) ["value" => "5", "display" => "5 days attending"],
-            (object) ["value" => "6", "display" => "6 days attending"],
-            (object) ["value" => "7", "display" => "7 days attending"],
-            (object) ["value" => "8", "display" => "Part-time Rate Only"],
+                (object) ["value" => "0", "display" => "None"],
+                (object) ["value" => "1", "display" => "1 day attending"],
+                (object) ["value" => "2", "display" => "2 days attending"],
+                (object) ["value" => "3", "display" => "3 days attending"],
+                (object) ["value" => "4", "display" => "4 days attending"],
+                (object) ["value" => "5", "display" => "5 days attending"],
+                (object) ["value" => "6", "display" => "6 days attending"],
+                (object) ["value" => "7", "display" => "7 days attending"],
+                (object) ["value" => "8", "display" => "Part-time Rate Only"],
             ];
 
 
             $bill_by_array = [
-            (object) ["value" => "none", "display" => "None"],
-            (object) ["value" => "enrollment", "display" => "Enrollment"],
-            (object) ["value" => "attendance", "display" => "Attendance"],
+                (object) ["value" => "none", "display" => "None"],
+                (object) ["value" => "enrollment", "display" => "Enrollment"],
+                (object) ["value" => "attendance", "display" => "Attendance"],
             ];
 
             $payahead_array = [
-            (object) ["value" => "none", "display" => "None"],
-            (object) ["value" => "0", "display" => "No"],
-            (object) ["value" => "1", "display" => "Yes"],
+                (object) ["value" => "none", "display" => "None"],
+                (object) ["value" => "0", "display" => "No"],
+                (object) ["value" => "1", "display" => "Yes"],
             ];
 
             $fields = "";
@@ -173,7 +185,7 @@ function get_form($formname, $vars = null, $identifier = "") {
                             <tr><td><label for="minimuminactive">Minimum (Inactive)</label></td><td>$<input style="width:125px;" class="fields" type="input" name="minimuminactive" id="minimuminactive" value="' . $minimuminactive . '" /></td></tr>
                             <tr><td><label for="vacation">Vacation Price</label></td><td>$<input style="width:125px;" class="fields" type="input" name="vacation" id="vacation" value="' . $vacation . '" /></td></tr>
                             <tr><td><label for="multiple_discount">Multiple Discount</label></td><td>$<input style="width:125px;" class="fields" type="input" name="multiple_discount" id="multiple_discount" value="' . $multiple_discount . '" /></td></tr>
-                            <tr><td><label for="discount_rule">Discount Qualifier</label></td><td>$<input style="width:125px;" class="fields" type="input" name="discount_rule" id="discount_rule" value="' . $discount_rule . '" /></td></tr>
+                            <tr><td><label for="discount_rule">Multiple Minimum Threshold</label></td><td>$<input style="width:125px;" class="fields" type="input" name="discount_rule" id="discount_rule" value="' . $discount_rule . '" /></td></tr>
                         </table>
                         <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true); $.ajax({
                             type: \'POST\',
@@ -1050,11 +1062,18 @@ function get_form($formname, $vars = null, $identifier = "") {
             $title = empty($vars["pid"]) ? "Enroll Child" : "Edit Enrollment";
 
             $M = $T = $W = $Th = $F = $exempt = "";
+            $discount_val = "0.00";
+            $discount_disabled = "";
             if (!empty($vars["chid"])) {
                 $days_attending = [];
                 $enrollment = get_db_row("SELECT * FROM enrollments WHERE chid='" . $vars["chid"] . "' AND pid='" . $vars["pid"] . "'");
                 if ($enrollment) {
                     $exempt = isset($enrollment["exempt"]) && $enrollment["exempt"] == "1" ? "selected" : "";
+                    $discount_val = isset($enrollment["discount"]) ? number_format((float)$enrollment["discount"], 2, ".", "") : "0.00";
+                    if ($exempt === "selected") {
+                        $discount_val = "0.00";
+                        $discount_disabled = "disabled";
+                    }
                     $days_attending = $enrollment["days_attending"];
                     $days_attending = explode(",", $days_attending);
                 }
@@ -1084,8 +1103,26 @@ function get_form($formname, $vars = null, $identifier = "") {
                         ' . $fields . '
                         <table style="width:100%;">
                             <tr><td><label for="days_attending">Days Attending</label></td><td>M:<input class="fields" type="checkbox" name="M" value="M" ' . $M . '/> T:<input class="fields" type="checkbox" name="T" value="T" ' . $T . '/> W:<input class="fields" type="checkbox" name="W" value="W" ' . $W . '/> Th:<input class="fields" type="checkbox" name="Th" value="Th" ' . $Th . '/> F:<input class="fields" type="checkbox" name="F" value="F" ' . $F . '/></td></tr>
-                            <tr><td><label for="exempt">Pay Exempt</label></td><td><select class="fields" name="exempt"><option value="0">No</option><option value="1" ' . $exempt . '>Yes</option></select></td></tr>
+                            <tr><td><label for="exempt">Pay Exempt</label></td><td><select class="fields" name="exempt" id="exempt_select' . $identifier . '"><option value="0">No</option><option value="1" ' . $exempt . '>Yes</option></select></td></tr>
+                            <tr><td><label for="discount">Discount $</label></td><td><input class="fields" type="number" step="0.01" min="0" name="discount" id="discount_input' . $identifier . '" value="' . $discount_val . '" ' . $discount_disabled . ' style="width:80px;" /></td></tr>
                         </table>
+                        <script>
+                        (function(){
+                            var sel = document.getElementById("exempt_select' . $identifier . '");
+                            var disc = document.getElementById("discount_input' . $identifier . '");
+                            if (!sel || !disc) return;
+                            function sync() {
+                                if (sel.value === "1") {
+                                    disc.value = "0.00";
+                                    disc.disabled = true;
+                                } else {
+                                    disc.disabled = false;
+                                }
+                            }
+                            sel.addEventListener("change", sync);
+                            sync();
+                        })();
+                        </script>
                         <button class="bottom-right" type="button" onclick="var button = $(this); $(this).button(\'option\', \'disabled\', true);
                         $.ajax({
                         type: \'POST\',

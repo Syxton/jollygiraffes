@@ -1402,7 +1402,7 @@ function add_edit_child() {
             ])) { // Added successfully
                 // Enroll them in the active program
                 if ($activepid) {
-                    $SQL = "INSERT INTO enrollments (pid, chid, days_attending, exempt) VALUES (||pid||, ||chid||, 'M, T, W, Th, F', 0)";
+                    $SQL = "INSERT INTO enrollments (pid, chid, days_attending, exempt, discount) VALUES (||pid||, ||chid||, 'M, T, W, Th, F', 0, 0)";
                     execute_db_sql($SQL, ["pid" => $activepid, "chid" => $chid]); // Enrolled successfully
                 }
             }
@@ -2328,7 +2328,7 @@ function get_action_buttons($return = false, $pid = null, $aid = null, $chid = n
             "identifier" => 'add_edit_enrollment_' . $identifier,
             "title"      => "Edit Enrollment",
             "icon"       => "list-check",
-            "height"     => 200,
+            "height"     => 260,
             "width"      => 400
         ]);
 
@@ -2884,18 +2884,22 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                         $receipts = "";
                         if ($perchild_invoices = get_db_result($SQL, $pcv)) {
                             while ($perchild_invoice = fetch_row($perchild_invoices)) {
-                                $exempt_button = "";
-                                if (!strstr($perchild_invoice["receipt"], "[Exempt]")) { // If not already exempted
-                                    $exempt_button = from_template("exempt_button.php", [
-                                        "title" => (empty($perchild_invoice["exempt"]) ? "Exempt" : "Recend Exemption"),
-                                        "invoiceid" => $perchild_invoice["id"],
-                                        "pid" => $pid,
-                                        "aid" => $aid,
-                                    ]);
-                                }
+                                $exempt_button = from_template("exempt_button.php", [
+                                    "title" => (empty($perchild_invoice["exempt"]) ? "Exempt" : "Rescind Exemption"),
+                                    "invoiceid" => $perchild_invoice["id"],
+                                    "pid" => $pid,
+                                    "aid" => $aid,
+                                ]);
+                                $vacation_button = from_template("vacation_button.php", [
+                                    "title" => (empty($perchild_invoice["vacation"]) ? "Vacation" : "Rescind Vacation"),
+                                    "invoiceid" => $perchild_invoice["id"],
+                                    "pid" => $pid,
+                                    "aid" => $aid,
+                                ]);
 
                                 $receipts .= from_template("billing_receipt_layout.php", [
                                     "exemptbutton" => $exempt_button,
+                                    "vacationbutton" => $vacation_button,
                                     "desc" => $perchild_invoice["receipt"],
                                 ]);
                             }
@@ -3034,18 +3038,22 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                             $receipts = "";
                             if ($perchild_invoices = get_db_result($SQL)) {
                                 while ($perchild_invoice = fetch_row($perchild_invoices)) {
-                                    $exempt_button = "";
-                                    if (!strstr($perchild_invoice["receipt"], "[Exempt]")) { // If not already exempted
-                                        $exempt_button = from_template("exempt_button.php", [
-                                            "title" => (empty($perchild_invoice["exempt"]) ? "Exempt" : "Recend Exemption"),
-                                            "invoiceid" => $perchild_invoice["id"],
-                                            "pid" => $pid,
-                                            "aid" => $aid,
-                                        ]);
-                                    }
+                                    $exempt_button = from_template("exempt_button.php", [
+                                        "title" => (empty($perchild_invoice["exempt"]) ? "Exempt" : "Rescind Exemption"),
+                                        "invoiceid" => $perchild_invoice["id"],
+                                        "pid" => $pid,
+                                        "aid" => $aid,
+                                    ]);
+                                    $vacation_button = from_template("vacation_button.php", [
+                                        "title" => (empty($perchild_invoice["vacation"]) ? "Vacation" : "Rescind Vacation"),
+                                        "invoiceid" => $perchild_invoice["id"],
+                                        "pid" => $pid,
+                                        "aid" => $aid,
+                                    ]);
 
                                     $receipts .= from_template("billing_receipt_layout.php", [
                                         "exemptbutton" => $exempt_button,
+                                        "vacationbutton" => $vacation_button,
                                         "desc" => $perchild_invoice["receipt"],
                                     ]);
                                 }
@@ -4842,6 +4850,7 @@ function toggle_enrollment() {
     $fields         = empty($MYVARS->GET["values"]) ? [] : $MYVARS->GET["values"];
     $days_attending = "";
     $eid = $aid = $chid = $pid = $exempt = $callback = null;
+    $discount = 0.0;
     foreach ($fields as $field) {
         switch ($field["name"]) {
             case "callback":
@@ -4854,6 +4863,9 @@ function toggle_enrollment() {
             case "exempt":
                 ${$field["name"]} = clean_var_opt($field["value"], "int", 0);
                 break;
+            case "discount":
+                $discount = (float) clean_var_opt($field["value"], "float", 0);
+                break;
             case "M":
             case "T":
             case "W":
@@ -4864,21 +4876,26 @@ function toggle_enrollment() {
         }
     }
 
+    // Exempt children always store zero individual discount
+    if (!empty($exempt)) {
+        $discount = 0.0;
+    }
+
     $pid      = empty($pid) ? clean_param_opt($MYVARS->GET, "pid", "int", get_pid()) : $pid;
     $chid     = empty($chid) ? clean_param_opt($MYVARS->GET, "chid", "int", 0) : $chid;
     $callback = empty($callback) ? false : $callback;
     if (!empty($eid)) {
         execute_db_sql(
-            "UPDATE enrollments SET days_attending = ||days||, exempt = ||exempt|| WHERE eid = ||eid||",
-            ["days" => $days_attending, "exempt" => $exempt, "eid" => $eid]
+            "UPDATE enrollments SET days_attending = ||days||, exempt = ||exempt||, discount = ||discount|| WHERE eid = ||eid||",
+            ["days" => $days_attending, "exempt" => $exempt, "discount" => $discount, "eid" => $eid]
         );
     } elseif ($chid && $pid) {
         if (get_db_row("SELECT * FROM enrollments WHERE pid = ||pid|| AND chid = ||chid||", false, ["pid" => $pid, "chid" => $chid])) {
             execute_db_sql("DELETE FROM enrollments WHERE pid = ||pid|| AND chid = ||chid||", ["pid" => $pid, "chid" => $chid]);
         } else {
             execute_db_sql(
-                "INSERT INTO enrollments (pid, chid, days_attending, exempt) VALUES (||pid||, ||chid||, ||days||, ||exempt||)",
-                ["pid" => $pid, "chid" => $chid, "days" => $days_attending, "exempt" => $exempt]
+                "INSERT INTO enrollments (pid, chid, days_attending, exempt, discount) VALUES (||pid||, ||chid||, ||days||, ||exempt||, ||discount||)",
+                ["pid" => $pid, "chid" => $chid, "days" => $days_attending, "exempt" => $exempt, "discount" => $discount]
             );
         }
     }
@@ -4907,10 +4924,11 @@ function toggle_exemption() {
     $id       = clean_param_req($MYVARS->GET, "id", "int");
     $perchild = get_db_row("SELECT * FROM billing_perchild WHERE id = ||id||", false, ["id" => $id]);
     $aid      = get_db_field("aid", "children", "chid = ||chid||", ["chid" => $perchild["chid"]]);
+
     if (empty($perchild["exempt"])) {
-        execute_db_sql("UPDATE billing_perchild SET exempt = '1' WHERE id = ||id||", ["id" => $id]);
+        execute_db_sql("UPDATE billing_perchild SET exempt = 1 WHERE id = ||id||", ["id" => $id]);
     } else {
-        execute_db_sql("UPDATE billing_perchild SET exempt = '0' WHERE id = ||id||", ["id" => $id]);
+        execute_db_sql("UPDATE billing_perchild SET exempt = 0 WHERE id = ||id||", ["id" => $id]);
     }
 
     // Now you must redo the entire week's invoices for that account
@@ -4918,7 +4936,66 @@ function toggle_exemption() {
         "DELETE FROM billing WHERE fromdate = ||fromdate|| AND pid = ||pid|| AND aid = ||aid||",
         ["fromdate" => $perchild["fromdate"], "pid" => $perchild["pid"], "aid" => $aid]
     );
-    make_account_invoice($perchild["pid"], $aid, $perchild["fromdate"]);
+    echo make_account_invoice($perchild["pid"], $aid, $perchild["fromdate"]);
+}
+
+/**
+ *
+ * Toggle vacation for a child's billing week.
+ * When set, that week is charged at the program vacation rate.
+ *
+ *
+ */
+function toggle_vacation() {
+    global $CFG, $MYVARS;
+    $id       = clean_param_req($MYVARS->GET, "id", "int");
+    $perchild = get_db_row("SELECT * FROM billing_perchild WHERE id = ||id||", false, ["id" => $id]);
+    if (!$perchild) {
+        return;
+    }
+    $aid = get_db_field("aid", "children", "chid = ||chid||", ["chid" => $perchild["chid"]]);
+    $pid = $perchild["pid"];
+
+    $program = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ["pid" => $pid]);
+    if ($overrides = apply_overrides($program, $pid, $aid)) {
+        $program = $overrides;
+    }
+
+    $turning_on = empty($perchild["vacation"]);
+
+    if ($turning_on) {
+        $bill = (float)$program["vacation"];
+        // Individual discount does not apply to vacation rate
+        $exempt = (int)($perchild["exempt"] ?? 0);
+        if ($exempt) {
+            $bill = 0;
+        }
+        $name = get_name(["type" => "chid", "id" => $perchild["chid"]]);
+        $receipt = $exempt
+            ? $name . " - [Exempt] [Vacation Rate]: $0.00"
+            : $name . " - [Vacation Rate]: $" . number_format($bill, 2);
+
+        execute_db_sql(
+            "UPDATE billing_perchild
+             SET vacation = 1, bill = ||bill||, receipt = ||receipt||, discount = 0
+             WHERE id = ||id||",
+            ["bill" => $bill, "receipt" => $receipt, "id" => $id]
+        );
+    } else {
+        // Clear vacation and recalculate from activity via week_balance path for this child/week
+        execute_db_sql(
+            "UPDATE billing_perchild SET vacation = 0 WHERE id = ||id||",
+            ["id" => $id]
+        );
+        // Recalculate current amounts for the account (upserts perchild rows)
+        week_balance($pid, $aid, true, false);
+    }
+
+    execute_db_sql(
+        "DELETE FROM billing WHERE fromdate = ||fromdate|| AND pid = ||pid|| AND aid = ||aid||",
+        ["fromdate" => $perchild["fromdate"], "pid" => $pid, "aid" => $aid]
+    );
+    make_account_invoice($pid, $aid, $perchild["fromdate"]);
 }
 
 /**

@@ -3,7 +3,7 @@
                     type: 'POST',
                     url: 'ajax/ajax.php',
                     data: {
-                        action: 'toggle_exemption',
+                        action: 'toggle_vacation',
                         id: '<?php echo $invoiceid; ?>',
                     },
                     success: function(data) {

@@ -1462,16 +1462,20 @@ div.day-add a {
 }
 
 .week_receipt {
-    margin: 5px;
-    vertical-align: top;
+    margin: 5px 10px;
+    padding-bottom: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 40px;
 }
 
-.week_receipt span {
-    display: inline-block;
-    margin: 0 10px;
+.week_receipt .receipt_buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: flex-end;
+    flex-direction: column;
+    min-width: 90px;
 }
 
 

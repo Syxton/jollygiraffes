@@ -333,9 +333,12 @@ function build_prepared_variables($SQL, $vars, $pattern) {
     preg_match_all($pattern, $SQL, $matches);
     foreach ($matches[0] as $match) {
         $variablename = trim($match, "|\"'");
-        if (isset($vars[$variablename])) {
+        if (array_key_exists($variablename, $vars)) {
             $data[] = $vars[$variablename];
             $typestring .= find_var_type($vars[$variablename]);
+            if ($vars[$variablename] === null) {
+                $vars[$variablename] = "NULL";
+            }
         } else {
             if (strpos($variablename, "*") === false) {
                 throw new \Exception("No value found for variable: " . $variablename);

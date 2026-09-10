@@ -138,6 +138,8 @@ CREATE TABLE IF NOT EXISTS `billing_perchild` (
   `bill` varchar(10) COLLATE utf8_unicode_ci NOT NULL DEFAULT '0',
   `receipt` text COLLATE utf8_unicode_ci NOT NULL,
   `exempt` int(1) NOT NULL DEFAULT '0',
+  `discount` decimal(8,2) NOT NULL DEFAULT '0.00',
+  `vacation` tinyint(1) NOT NULL DEFAULT '0',
   `days_attending` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   KEY `chid` (`chid`,`fromdate`,`todate`,`bill`),
@@ -339,6 +341,7 @@ CREATE TABLE IF NOT EXISTS `enrollments` (
   `chid` int(11) NOT NULL,
   `days_attending` varchar(20) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   `exempt` tinyint(1) NOT NULL DEFAULT '0',
+  `discount` decimal(8,2) NOT NULL DEFAULT '0.00',
   `deleted` tinyint(4) NOT NULL DEFAULT '0',
   PRIMARY KEY (`eid`),
   KEY `pid` (`pid`,`chid`),
@@ -573,3 +576,74 @@ execute_db_sql($SQL);
 $SQL = "INSERT INTO `version` (`version`) VALUES('2020022000');";
 
 execute_db_sql($SQL);
+
+
+/**
+ * Ensure billing-related schema is up to date.
+ * Safe to call repeatedly.
+ *
+ * @return bool True on success (or already up-to-date), false on failure.
+ */
+function billing_migrate() {
+    $column_exists = function ($table, $column) {
+        try {
+            return (bool) get_db_row(
+                "SELECT column_name
+                 FROM information_schema.columns
+                 WHERE table_schema = DATABASE()
+                   AND table_name = '" . dbescape($table) . "'
+                   AND column_name = '" . dbescape($column) . "'"
+            );
+        } catch (Throwable $e) {
+            error_log('billing_migrate: failed checking column ' . $table . '.' . $column . ' – ' . $e->getMessage());
+            return false;
+        }
+    };
+
+    $ok = true;
+
+    if (!$column_exists('enrollments', 'discount')) {
+        try {
+            execute_db_sql(
+                "ALTER TABLE enrollments
+                 ADD COLUMN discount DECIMAL(8,2) NOT NULL DEFAULT '0.00' AFTER exempt"
+            );
+        } catch (Throwable $e) {
+            error_log('billing_migrate: failed adding enrollments.discount – ' . $e->getMessage());
+            $ok = false;
+        }
+    }
+
+    if (!$column_exists('billing_perchild', 'discount')) {
+        try {
+            execute_db_sql(
+                "ALTER TABLE billing_perchild
+                 ADD COLUMN discount DECIMAL(8,2) NOT NULL DEFAULT '0.00' AFTER exempt"
+            );
+        } catch (Throwable $e) {
+            error_log('billing_migrate: failed adding billing_perchild.discount – ' . $e->getMessage());
+            $ok = false;
+        }
+    }
+
+    if (!$column_exists('billing_perchild', 'vacation')) {
+        try {
+            execute_db_sql(
+                "ALTER TABLE billing_perchild
+                 ADD COLUMN vacation TINYINT(1) NOT NULL DEFAULT '0' AFTER discount"
+            );
+        } catch (Throwable $e) {
+            error_log('billing_migrate: failed adding billing_perchild.vacation – ' . $e->getMessage());
+            $ok = false;
+        }
+    }
+
+    return $ok;
+}
+
+// Run migration for existing installs
+if (function_exists('get_db_row') && function_exists('execute_db_sql')) {
+    if (!billing_migrate()) {
+        error_log('billing_migrate completed with errors – check logs');
+    }
+}

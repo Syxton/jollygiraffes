@@ -103,12 +103,102 @@ function apply_overrides($program, $pid, $aid) {
 }
 
 /**
+ * Compute the raw (pre-discount, pre-exempt, pre-vacation) charge for a
+ * single child for a single week, given how many days they attended and
+ * which billing method is in effect for the program/account.
+ *
+ * Billing rules:
+ * - Enrollment billing: the full program rate (fulltime) is always charged,
+ *   no matter how many days the child actually attended (including zero).
+ *   Minimum Active and Minimum Inactive never apply to enrollment billing.
+ * - Attendance billing: charge per day attended (perday * day_count),
+ *   floored at Minimum Active once the child has attended at least one day,
+ *   and replaced by the Fulltime rate once attendance reaches consider_full
+ *   days. If the child did not attend at all, Minimum Inactive applies.
+ *   This includes the case where consider_full is set to 8 (a sentinel used
+ *   to charge strictly by the day / disable the Fulltime rate within a
+ *   7-day week) -- Minimum Active and Minimum Inactive still apply as a
+ *   fallback in that case.
+ *
+ * @param array $program               Program row (with overrides applied).
+ * @param int   $day_count             Number of days attended this week (0 if none).
+ * @param bool  $is_enrollment_billing True when the effective bill_by is 'enrollment'.
+ * @return float
+ */
+function compute_child_week_bill($program, $day_count, $is_enrollment_billing) {
+    if ($is_enrollment_billing) {
+        // Billed by enrollment: full price no matter attendance.
+        return (float)$program['fulltime'];
+    }
+
+    // Billed by attendance.
+    if ($day_count > 0) {
+        if ($day_count >= (int)$program['consider_full']) {
+            return (float)$program['fulltime'];
+        }
+
+        $bill = $day_count * (float)$program['perday'];
+        $min_active = (float)$program['minimumactive'];
+        if ($min_active > 0 && $bill < $min_active) {
+            $bill = $min_active;
+        }
+        return $bill;
+    }
+
+    // Did not attend at all.
+    return (float)$program['minimuminactive'];
+}
+
+/**
+ * Apply a child's individual discount to a raw (pre-discount) weekly
+ * charge.
+ *
+ * The discount applies to every non-exempt, non-vacation bill -- both
+ * attendance-billed and enrollment-billed -- but:
+ * - For attendance billing, the discounted amount is floored at the
+ *   applicable minimum: Minimum Active if the child attended at least one
+ *   day that week (this also covers the fulltime-rate case), or Minimum
+ *   Inactive if the child did not attend at all.
+ * - For enrollment billing, there is no minimum floor -- the discount can
+ *   reduce the charge all the way down, just never below zero.
+ *
+ * Callers are responsible for not calling this when the child is exempt or
+ * the week is a vacation week (neither is discounted).
+ *
+ * @param array $program
+ * @param float $raw_bill              Pre-discount charge.
+ * @param float $discount              Individual discount amount.
+ * @param bool  $is_enrollment_billing
+ * @param int   $day_count             Days attended this week (0 if none); ignored for enrollment billing.
+ * @return float
+ */
+function apply_individual_discount($program, $raw_bill, $discount, $is_enrollment_billing, $day_count) {
+    $final = (float)$raw_bill - (float)$discount;
+
+    if (!$is_enrollment_billing) {
+        $floor = $day_count > 0 ? (float)$program['minimumactive'] : (float)$program['minimuminactive'];
+        if ($floor > 0 && $final < $floor) {
+            $final = $floor;
+        }
+    }
+
+    return max(0, $final);
+}
+
+/**
  * Compute the balance for a specific billing week.
  *
  * Rate rules:
  * - Vacation flag on the week: charge vacation rate only
- * - Otherwise days × perday, minimumactive floor, fulltime if days >= consider_full
- * - No activity (not vacation): fulltime if bill_by enrollment, else minimuminactive
+ * - Enrollment billing: always the fulltime rate, regardless of attendance
+ *   (Minimum Active / Minimum Inactive never apply)
+ * - Attendance billing: days × perday, Minimum Active floor, fulltime if
+ *   days >= consider_full; Minimum Inactive if no activity at all. Minimum
+ *   Active / Minimum Inactive still apply when consider_full is set to 8
+ *   (charge-by-the-day mode).
+ * - Individual discount applies to every non-exempt, non-vacation bill
+ *   (enrollment or attendance billed), floored at the applicable minimum
+ *   for attendance billing, and never below zero.
  * - Labels: Part-time only for per-day path; [Did Not Attend] when absent; [Vacation Rate] when flagged
  *
  * @param int  $pid
@@ -192,17 +282,12 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
                 $days_attending = count(array_filter(explode(',', (string)$days_str)));
                 $day_count      = $days_attending;
                 $billed_by      = $days_str;
+                $is_enrollment_billing = ($program['bill_by'] === 'enrollment');
 
                 if ($days_attending === 0) {
                     $raw_bill = 0.0;
                 } else {
-                    $raw_bill = $days_attending * (float)$program['perday'];
-                    if ($program['minimumactive'] > 0 && $raw_bill < $program['minimumactive']) {
-                        $raw_bill = (float)$program['minimumactive'];
-                    }
-                    if ($days_attending >= (int)$program['consider_full']) {
-                        $raw_bill = (float)$program['fulltime'];
-                    }
+                    $raw_bill = compute_child_week_bill($program, $days_attending, $is_enrollment_billing);
                 }
             } elseif ($vacation) {
                 // Explicit vacation week for this child
@@ -210,9 +295,11 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
                 $billed_by = $perchild['days_attending'] ?? ($enroll['days_attending'] ?? '');
                 $attendance = '';
             } else {
+                $is_enrollment_billing = ($program['bill_by'] === 'enrollment');
+
                 if ($use_enrollment && $perchild && !empty($perchild['days_attending'])) {
                     $billed_by = $perchild['days_attending'];
-                } elseif ($program['bill_by'] === 'enrollment') {
+                } elseif ($is_enrollment_billing) {
                     $billed_by = $enroll['days_attending'] ?? '';
                 } else {
                     $billed_by = 'attendance';
@@ -233,13 +320,11 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
 
                 $days_list = [];
                 $last_day  = null;
-                $bill      = 0.0;
 
                 if ($activities) {
                     while ($activity = fetch_row($activities)) {
                         $day = date('m/d/Y', display_time($activity['timelog']));
                         if ($day !== $last_day) {
-                            $bill      += (float)$program['perday'];
                             $day_count++;
                             $days_list[] = date('D', display_time($activity['timelog']));
                             $last_day    = $day;
@@ -248,30 +333,24 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
                 }
 
                 if ($day_count > 0) {
-                    if ($program['minimumactive'] > 0 && $bill < $program['minimumactive']) {
-                        $bill = (float)$program['minimumactive'];
-                    }
-                    if ($day_count >= (int)$program['consider_full']) {
-                        $bill = (float)$program['fulltime'];
-                    }
                     $attendance = $day_count . ($day_count === 1 ? ' day' : ' days')
                                 . ' (' . implode(' ', $days_list) . ')';
                 } else {
-                    // Did not attend (not vacation): enrollment → fulltime, attendance → minimuminactive
-                    if ($program['bill_by'] === 'enrollment') {
-                        $bill = (float)$program['fulltime'];
-                    } else {
-                        $bill = (float)$program['minimuminactive'];
-                    }
                     $attendance = '';
                 }
 
-                $raw_bill = $bill;
+                // Enrollment billing: full price no matter attendance (no Minimum
+                // Active / Minimum Inactive). Attendance billing: per-day with
+                // Minimum Active / Minimum Inactive floors and the consider_full
+                // fulltime cutoff (still applies when consider_full is 8).
+                $raw_bill = compute_child_week_bill($program, $day_count, $is_enrollment_billing);
 
                 if ($billed_by === 'attendance' && $day_count > 0) {
                     $billed_by = implode(',', $days_list);
                 }
             }
+
+            $is_enrollment_billing = ($program['bill_by'] === 'enrollment');
 
             if ($exempt) {
                 $final = 0.0;
@@ -279,7 +358,7 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
                 // Individual discount does not apply to vacation rate
                 $final = $raw_bill;
             } else {
-                $final = max(0, $raw_bill - $discount);
+                $final = apply_individual_discount($program, $raw_bill, $discount, $is_enrollment_billing, $day_count);
             }
 
             $charges[$chid] = [
@@ -605,7 +684,6 @@ function get_child_week_attendance_list($pid, $chid, $invoiceweek) {
  */
 function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid = '0', $honor_past_enrollment = true) {
     global $CFG;
-    $discount = "";
     $override = false;
     $program = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ["pid" => $pid]);
     $aid = get_db_field("aid", "children", "chid = ||chid||", ["chid" => $chid]);
@@ -622,6 +700,10 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
         : get_db_field("exempt", "enrollments", "chid = ||chid|| AND pid = ||pid||", ["chid" => $chid, "pid" => $pid]);
 
     $vacation = $honor_past_enrollment && $perchild ? $perchild["vacation"] : 0;
+
+    $discount = $honor_past_enrollment && $perchild
+        ? (float)($perchild["discount"] ?? 0)
+        : (float)get_db_field("discount", "enrollments", "chid = ||chid|| AND pid = ||pid||", ["chid" => $chid, "pid" => $pid]);
 
     //you want to remember past settings and there is a history recorded
     if (!empty($honor_past_enrollment) && !empty($perchild)) {
@@ -649,14 +731,27 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
             $sameday = date("m/d/Y", display_time($activity["timelog"]));
         }
 
-        if ($attendance > 0) {
-            if ($attendance >= $program["consider_full"]) {
-                $bill = $program["fulltime"];
-            } else {
-                $bill = $program["minimumactive"] > 0 && ($bill < $program["minimumactive"]) ? $program["minimumactive"] : $bill;
-            }
+        $day_count = (int)$attendance;
+
+        // Enrollment billing: full price no matter attendance (no Minimum
+        // Active / Minimum Inactive). Attendance billing: per-day with
+        // Minimum Active / Minimum Inactive floors and the consider_full
+        // fulltime cutoff (still applies when consider_full is 8).
+        $is_enrollment_billing = (($program["bill_by"] ?? '') === 'enrollment');
+        $bill = compute_child_week_bill($program, $day_count, $is_enrollment_billing);
+
+        // Individual discount applies to every non-exempt, non-vacation
+        // bill (enrollment or attendance billed), floored at the
+        // applicable minimum for attendance billing, never below zero.
+        $bill_discount = 0.0;
+        if ($vacation) {
+            $bill = (float)$program['vacation'];
         } else {
-            $bill = $program["minimuminactive"] > 0 && ($bill < $program["minimuminactive"]) ? $program["minimuminactive"] : $bill;
+            $bill_discount = $discount;
+            $bill = apply_individual_discount($program, $bill, $discount, $is_enrollment_billing, $day_count);
+        }
+        if ($exempt) {
+            $bill = 0.0;
         }
 
         $attendance .= $attendance > 0 ? ($attendance == 1 ? " day ($days)" : " days ($days)") : " days";
@@ -669,12 +764,25 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
         }
 
         if (!$perchild) {
-            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, $attendance, $vacation);
+            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, $attendance, $exempt, $bill_discount, false, false, $vacation);
         } elseif ($refresh) {
-            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, $attendance, $exempt, $vacation);
+            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, $attendance, $exempt, $bill_discount, false, false, $vacation);
         }
-    } else { //Did not attend, see if there is a minimuminactive rate.
-        $bill = $program["minimuminactive"] > "0" ? $program["minimuminactive"] : "0";
+    } else { //Did not attend: enrollment billing still charges fulltime, attendance billing falls back to minimuminactive.
+        $is_enrollment_billing = (($program["bill_by"] ?? '') === 'enrollment');
+        $bill = compute_child_week_bill($program, 0, $is_enrollment_billing);
+
+        $bill_discount = 0.0;
+        if ($vacation) {
+            $bill = (float)$program['vacation'];
+        } else {
+            $bill_discount = $discount;
+            $bill = apply_individual_discount($program, $bill, $discount, $is_enrollment_billing, 0);
+        }
+        if ($exempt) {
+            $bill = 0.0;
+        }
+
         if ($refresh) {
             execute_db_sql(
                 "DELETE FROM billing_perchild WHERE pid = ||pid|| AND chid = ||chid|| AND fromdate = ||fromdate||",
@@ -683,9 +791,9 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
         }
 
         if (!$perchild) {
-            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, "", $vacation);
+            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, "", $exempt, $bill_discount, false, false, $vacation);
         } elseif ($refresh) {
-            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, "", $exempt, $vacation);
+            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, "", $exempt, $bill_discount, false, false, $vacation);
         }
     }
 }
@@ -874,35 +982,27 @@ function recalculate_completed_child_invoice($program, $perchild) {
         }
     }
 
+    $is_enrollment_billing = (($program['bill_by'] ?? '') === 'enrollment');
+
     if ($day_count > 0) {
         $attendance = $day_count . ($day_count == 1 ? ' day' : ' days')
                     . ' (' . implode(' ', $days_list) . ')';
-        if ($day_count >= (int)$program['consider_full']) {
-            $bill = (float)$program['fulltime'];
-        } else {
-            $perday = (float)($program['perday'] ?? 0);
-            if ($perday > 0) {
-                $bill = $perday * $day_count;
-            }
-            $min_active = (float)$program['minimumactive'];
-            if ($min_active > 0 && $bill < $min_active) {
-                $bill = $min_active;
-            }
-        }
+        // Enrollment billing: full price no matter attendance (no Minimum
+        // Active). Attendance billing: per-day with Minimum Active floor and
+        // the consider_full fulltime cutoff (still applies when
+        // consider_full is 8).
+        $bill = compute_child_week_bill($program, $day_count, $is_enrollment_billing);
         if (($program['bill_by'] ?? '') === 'attendance' || $bill_by === 'attendance' || $bill_by === '') {
             $bill_by = implode(',', $days_list);
         }
     } else {
-        // Did not attend
-        if (($program['bill_by'] ?? '') === 'enrollment') {
-            $bill = (float)$program['fulltime'];
-        } else {
-            $bill = (float)$program['minimuminactive'];
-        }
+        // Did not attend: enrollment billing still charges fulltime;
+        // attendance billing falls back to Minimum Inactive.
+        $bill = compute_child_week_bill($program, 0, $is_enrollment_billing);
         $attendance = '';
     }
     $raw = $bill;
-    $bill = max(0, $bill - $discount);
+    $bill = apply_individual_discount($program, $bill, $discount, $is_enrollment_billing, $day_count);
 
     if ($vacation) {
         $bill = (float)$program['vacation'];

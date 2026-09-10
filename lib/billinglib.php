@@ -475,7 +475,6 @@ function save_child_invoice(
         $discount = 0.0;
     }
 
-    echo "Attendance: $attendance";
     $name = get_name(['type' => 'chid', 'id' => $chid]);
     $attendance_text = empty($attendance) ? ' [Did Not Attend]' : ' Attended ' . $attendance;
     if ($exempt) {

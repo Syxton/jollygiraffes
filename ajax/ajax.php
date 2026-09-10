@@ -4923,20 +4923,21 @@ function toggle_exemption() {
     global $CFG, $MYVARS;
     $id       = clean_param_req($MYVARS->GET, "id", "int");
     $perchild = get_db_row("SELECT * FROM billing_perchild WHERE id = ||id||", false, ["id" => $id]);
-    $aid      = get_db_field("aid", "children", "chid = ||chid||", ["chid" => $perchild["chid"]]);
-
-    if (empty($perchild["exempt"])) {
-        execute_db_sql("UPDATE billing_perchild SET exempt = 1 WHERE id = ||id||", ["id" => $id]);
-    } else {
-        execute_db_sql("UPDATE billing_perchild SET exempt = 0 WHERE id = ||id||", ["id" => $id]);
+    if (!$perchild) {
+        return;
     }
+    $aid = get_db_field("aid", "children", "chid = ||chid||", ["chid" => $perchild["chid"]]);
+    $pid = $perchild["pid"];
 
-    // Now you must redo the entire week's invoices for that account
+    // Flip flag only — amounts are recomputed below for the completed week
+    $new_exempt = empty($perchild["exempt"]) ? 1 : 0;
     execute_db_sql(
-        "DELETE FROM billing WHERE fromdate = ||fromdate|| AND pid = ||pid|| AND aid = ||aid||",
-        ["fromdate" => $perchild["fromdate"], "pid" => $perchild["pid"], "aid" => $aid]
+        "UPDATE billing_perchild SET exempt = ||exempt|| WHERE id = ||id||",
+        ["exempt" => $new_exempt, "id" => $id]
     );
-    echo make_account_invoice($perchild["pid"], $aid, $perchild["fromdate"]);
+
+    // Recalculate all children on this account for this completed week, then rebuild billing row
+    rebuild_account_week_invoices($pid, $aid, $perchild["fromdate"]);
 }
 
 /**
@@ -4956,46 +4957,15 @@ function toggle_vacation() {
     $aid = get_db_field("aid", "children", "chid = ||chid||", ["chid" => $perchild["chid"]]);
     $pid = $perchild["pid"];
 
-    $program = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ["pid" => $pid]);
-    if ($overrides = apply_overrides($program, $pid, $aid)) {
-        $program = $overrides;
-    }
-
-    $turning_on = empty($perchild["vacation"]);
-
-    if ($turning_on) {
-        $bill = (float)$program["vacation"];
-        // Individual discount does not apply to vacation rate
-        $exempt = (int)($perchild["exempt"] ?? 0);
-        if ($exempt) {
-            $bill = 0;
-        }
-        $name = get_name(["type" => "chid", "id" => $perchild["chid"]]);
-        $receipt = $exempt
-            ? $name . " - [Exempt] [Vacation Rate]: $0.00"
-            : $name . " - [Vacation Rate]: $" . number_format($bill, 2);
-
-        execute_db_sql(
-            "UPDATE billing_perchild
-             SET vacation = 1, bill = ||bill||, receipt = ||receipt||, discount = 0
-             WHERE id = ||id||",
-            ["bill" => $bill, "receipt" => $receipt, "id" => $id]
-        );
-    } else {
-        // Clear vacation and recalculate from activity via week_balance path for this child/week
-        execute_db_sql(
-            "UPDATE billing_perchild SET vacation = 0 WHERE id = ||id||",
-            ["id" => $id]
-        );
-        // Recalculate current amounts for the account (upserts perchild rows)
-        week_balance($pid, $aid, true, false);
-    }
-
+    // Flip vacation flag only — amounts are recomputed for this completed week
+    $new_vacation = empty($perchild["vacation"]) ? 1 : 0;
     execute_db_sql(
-        "DELETE FROM billing WHERE fromdate = ||fromdate|| AND pid = ||pid|| AND aid = ||aid||",
-        ["fromdate" => $perchild["fromdate"], "pid" => $pid, "aid" => $aid]
+        "UPDATE billing_perchild SET vacation = ||vacation|| WHERE id = ||id||",
+        ["vacation" => $new_vacation, "id" => $id]
     );
-    make_account_invoice($pid, $aid, $perchild["fromdate"]);
+
+    // Recalculate all children on this account for this completed week (not current week)
+    rebuild_account_week_invoices($pid, $aid, $perchild["fromdate"]);
 }
 
 /**

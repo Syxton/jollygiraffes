@@ -1840,6 +1840,55 @@ function check_and_run_upgrades() {
         }
     }
 
+    // Individual discount + vacation columns for billing (moved out of
+    // per-request billinglib.php fallback so existing installs only pay
+    // the information_schema cost once during upgrade).
+    $thisversion = 2026091100;
+    if ($version < $thisversion) {
+        $column_exists = function ($table, $column) {
+            try {
+                return (bool) get_db_row(
+                    "SELECT column_name FROM information_schema.columns
+                     WHERE table_schema = DATABASE()
+                       AND table_name = '" . dbescape($table) . "'
+                       AND column_name = '" . dbescape($column) . "'"
+                );
+            } catch (Throwable $e) {
+                error_log('upgrade 2026091100: column check failed for ' . $table . '.' . $column . ' – ' . $e->getMessage());
+                return false;
+            }
+        };
+
+        $ok = true;
+        try {
+            if (!$column_exists('enrollments', 'discount')) {
+                if (!execute_db_sql("ALTER TABLE enrollments ADD COLUMN discount DECIMAL(8,2) NOT NULL DEFAULT '0.00' AFTER exempt")) {
+                    $ok = false;
+                }
+            }
+            if (!$column_exists('billing_perchild', 'discount')) {
+                if (!execute_db_sql("ALTER TABLE billing_perchild ADD COLUMN discount DECIMAL(8,2) NOT NULL DEFAULT '0.00' AFTER exempt")) {
+                    $ok = false;
+                }
+            }
+            if (!$column_exists('billing_perchild', 'vacation')) {
+                if (!execute_db_sql("ALTER TABLE billing_perchild ADD COLUMN vacation TINYINT(1) NOT NULL DEFAULT '0' AFTER discount")) {
+                    $ok = false;
+                }
+            }
+        } catch (Throwable $e) {
+            error_log('upgrade 2026091100 failed: ' . $e->getMessage());
+            $ok = false;
+        }
+
+        // Bump version even if columns already existed (common on dev
+        // sites that already ran the old billinglib.php fallback). Only
+        // hold back on hard failure so a transient DB error can retry.
+        if ($ok) {
+            execute_db_sql("UPDATE version SET version='$thisversion'");
+        }
+    }
+
     //    $thisversion = YYYYMMDD;
     //    if ($version < $thisversion) { //# = new version number.  If this is the first...start at 1
     //        $SQL = "";

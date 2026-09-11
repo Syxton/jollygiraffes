@@ -573,77 +573,9 @@ execute_db_sql($SQL);
 // -- Dumping data for table `version`
 // --
 
-$SQL = "INSERT INTO `version` (`version`) VALUES('2020022000');";
+$SQL = "INSERT INTO `version` (`version`) VALUES('2026091100');";
 
 execute_db_sql($SQL);
 
-
-/**
- * Ensure billing-related schema is up to date.
- * Safe to call repeatedly.
- *
- * @return bool True on success (or already up-to-date), false on failure.
- */
-function billing_migrate() {
-    $column_exists = function ($table, $column) {
-        try {
-            return (bool) get_db_row(
-                "SELECT column_name
-                 FROM information_schema.columns
-                 WHERE table_schema = DATABASE()
-                   AND table_name = '" . dbescape($table) . "'
-                   AND column_name = '" . dbescape($column) . "'"
-            );
-        } catch (Throwable $e) {
-            error_log('billing_migrate: failed checking column ' . $table . '.' . $column . ' – ' . $e->getMessage());
-            return false;
-        }
-    };
-
-    $ok = true;
-
-    if (!$column_exists('enrollments', 'discount')) {
-        try {
-            execute_db_sql(
-                "ALTER TABLE enrollments
-                 ADD COLUMN discount DECIMAL(8,2) NOT NULL DEFAULT '0.00' AFTER exempt"
-            );
-        } catch (Throwable $e) {
-            error_log('billing_migrate: failed adding enrollments.discount – ' . $e->getMessage());
-            $ok = false;
-        }
-    }
-
-    if (!$column_exists('billing_perchild', 'discount')) {
-        try {
-            execute_db_sql(
-                "ALTER TABLE billing_perchild
-                 ADD COLUMN discount DECIMAL(8,2) NOT NULL DEFAULT '0.00' AFTER exempt"
-            );
-        } catch (Throwable $e) {
-            error_log('billing_migrate: failed adding billing_perchild.discount – ' . $e->getMessage());
-            $ok = false;
-        }
-    }
-
-    if (!$column_exists('billing_perchild', 'vacation')) {
-        try {
-            execute_db_sql(
-                "ALTER TABLE billing_perchild
-                 ADD COLUMN vacation TINYINT(1) NOT NULL DEFAULT '0' AFTER discount"
-            );
-        } catch (Throwable $e) {
-            error_log('billing_migrate: failed adding billing_perchild.vacation – ' . $e->getMessage());
-            $ok = false;
-        }
-    }
-
-    return $ok;
-}
-
-// Run migration for existing installs
-if (function_exists('get_db_row') && function_exists('execute_db_sql')) {
-    if (!billing_migrate()) {
-        error_log('billing_migrate completed with errors – check logs');
-    }
-}
+// discount / vacation columns are part of the CREATE TABLE definitions above.
+// Existing installs get them via check_and_run_upgrades() (version 2026091100).

@@ -13,37 +13,11 @@ if (!isset($LIBHEADER)) {
 }
 $BILLINGLIB = true;
 
-// Ensure discount columns exist (safe no-op if already present)
-if (function_exists('billing_migrate')) {
-    billing_migrate();
-} elseif (function_exists('get_db_row') && function_exists('execute_db_sql') && function_exists('dbescape')) {
-    $__bm_col = function ($table, $column) {
-        try {
-            return (bool) get_db_row(
-                "SELECT column_name FROM information_schema.columns
-                 WHERE table_schema = DATABASE()
-                   AND table_name = '" . dbescape($table) . "'
-                   AND column_name = '" . dbescape($column) . "'"
-            );
-        } catch (Throwable $e) {
-            return false;
-        }
-    };
-    try {
-        if (!$__bm_col('enrollments', 'discount')) {
-            execute_db_sql("ALTER TABLE enrollments ADD COLUMN discount DECIMAL(8,2) NOT NULL DEFAULT '0.00' AFTER exempt");
-        }
-        if (!$__bm_col('billing_perchild', 'discount')) {
-            execute_db_sql("ALTER TABLE billing_perchild ADD COLUMN discount DECIMAL(8,2) NOT NULL DEFAULT '0.00' AFTER exempt");
-        }
-        if (!$__bm_col('billing_perchild', 'vacation')) {
-            execute_db_sql("ALTER TABLE billing_perchild ADD COLUMN vacation TINYINT(1) NOT NULL DEFAULT '0' AFTER discount");
-        }
-    } catch (Throwable $e) {
-        error_log('billing schema ensure failed: ' . $e->getMessage());
-    }
-    unset($__bm_col);
-}
+// Schema for discount/vacation columns is applied once via
+// check_and_run_upgrades() in pagelib.php (version 2026091100) and on
+// fresh install via install.php. Do not run information_schema checks
+// on every request here — billinglib is included from header.php on
+// every page.
 
 
 /**

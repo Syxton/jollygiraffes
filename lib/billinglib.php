@@ -486,6 +486,86 @@ function make_account_invoice($pid, $aid, $invoiceweek = false) {
 
 
 /**
+ * Build the human-readable receipt line for one child-week.
+ *
+ * Rate labels (when not exempt/vacation):
+ * - [Fulltime Rate] when the classification amount matches fulltime
+ * - [Minimum Active Rate] when it matches minimumactive
+ * - [Part-time Rate] otherwise
+ * - [Did Not Attend] when attendance is empty and not vacation
+ * - [Vacation Rate] when the week is marked vacation
+ *
+ * $bill is the amount printed on the receipt. $classification_bill (defaults
+ * to $bill) is used only for Fulltime / Minimum Active detection so that a
+ * later multi-child discount does not change the rate label.
+ *
+ * @param array  $program
+ * @param int    $chid
+ * @param float  $bill                Amount shown on the receipt
+ * @param float  $discount            Individual discount (0 when vacation)
+ * @param int    $exempt
+ * @param int    $vacation
+ * @param string $attendance          e.g. "1 day (Fri)" or "" for none
+ * @param float|null $classification_bill  Amount used for rate labels; null = use $bill
+ * @return string
+ */
+function build_child_receipt(
+    $program,
+    $chid,
+    $bill,
+    $discount = 0.0,
+    $exempt = 0,
+    $vacation = 0,
+    $attendance = '',
+    $classification_bill = null
+) {
+    $bill     = (float)$bill;
+    $discount = (float)$discount;
+    $exempt   = (int)$exempt;
+    $vacation = (int)$vacation;
+    $class_bill = $classification_bill !== null ? (float)$classification_bill : $bill;
+
+    if ($exempt) {
+        $bill = 0.0;
+    }
+    if ($vacation) {
+        $discount = 0.0;
+    }
+
+    $name = get_name(['type' => 'chid', 'id' => $chid]);
+    $attendance_text = empty($attendance) ? ' [Did Not Attend]' : ' Attended ' . $attendance;
+
+    if ($exempt) {
+        return $name . ' - [Exempt] ' . $attendance_text . ': $0.00';
+    }
+    if ($vacation) {
+        return $name . ' - [Vacation Rate] ' . $attendance_text . ': $' . number_format($bill, 2, '.', '');
+    }
+
+    $disc_txt = $discount > 0
+        ? ' [$' . number_format($discount, 2, '.', '') . ' Individual Discount]'
+        : '';
+
+    if (empty($attendance)) {
+        $rate = $attendance_text . $disc_txt;
+    } else {
+        $is_full = abs($class_bill - (float)$program['fulltime']) < 0.001
+                   || abs($class_bill + $discount - (float)$program['fulltime']) < 0.001;
+        $is_min_active = abs($class_bill - (float)$program['minimumactive']) < 0.001
+                   || abs($class_bill + $discount - (float)$program['minimumactive']) < 0.001;
+        if ($is_full) {
+            $rate = '[Fulltime Rate]' . $disc_txt . $attendance_text;
+        } elseif ($is_min_active) {
+            $rate = '[Minimum Active Rate]' . $disc_txt . $attendance_text;
+        } else {
+            $rate = '[Part-time Rate]' . $disc_txt . $attendance_text;
+        }
+    }
+
+    return $name . ' - ' . $rate . ': $' . number_format($bill, 2, '.', '');
+}
+
+/**
  * Persist (or just calculate) invoice data for a child.
  *
  * Rate labels:
@@ -538,37 +618,15 @@ function save_child_invoice(
         $discount = 0.0;
     }
 
-    $name = get_name(['type' => 'chid', 'id' => $chid]);
-    $attendance_text = empty($attendance) ? ' [Did Not Attend]' : ' Attended ' . $attendance;
-    if ($exempt) {
-        $receipt = $name . ' - [Exempt] ' . $attendance_text . ': $0.00';
-    } else if ($vacation) {
-        $receipt = $name . ' - [Vacation Rate] ' . $attendance_text . ': ' . '$' . number_format($bill, 2);
-    } else {
-        $disc_txt = $discount > 0
-            ? ' [$' . number_format($discount, 2) . ' Individual Discount]'
-            : '';
-
-        if (empty($attendance)) {
-            // No activity, not vacation
-            $rate = $attendance_text . $disc_txt;
-        } else {
-            // Attended: fulltime vs part-time (per-day / minimum active only)
-            $is_full = abs($bill - (float)$program['fulltime']) < 0.001
-                       || abs($bill + $discount - (float)$program['fulltime']) < 0.001;
-            $is_min_active = abs($bill - (float)$program['minimumactive']) < 0.001
-                       || abs($bill + $discount - (float)$program['minimumactive']) < 0.001;
-            if ($is_full) {
-                $rate = '[Fulltime Rate]' . $disc_txt . $attendance_text;
-            } elseif ($is_min_active) {
-                $rate = '[Minimum Active Rate]' . $disc_txt . $attendance_text;
-            } else {
-                $rate = '[Part-time Rate]' . $disc_txt . $attendance_text;
-            }
-        }
-
-        $receipt = $name . ' - ' . $rate . ': $' . number_format($bill, 2);
-    }
+    $receipt = build_child_receipt(
+        $program,
+        $chid,
+        $bill,
+        $discount,
+        $exempt,
+        $vacation,
+        $attendance
+    );
 
     $insert_vars = [
         'pid'            => $program['pid'],
@@ -1043,6 +1101,8 @@ function recalculate_completed_child_invoice($program, $perchild) {
  * Apply the multi-child discount to billing_perchild rows for one account-week.
  * Only applies when the family total (pre-discount) exceeds discount_rule.
  * Highest bill is unchanged; each subsequent non-exempt positive bill is reduced.
+ * Receipts are regenerated via build_child_receipt() so the final amount stays
+ * consistent with the rate labels (classification uses the pre-multi bill).
  *
  *
  * @param int   $pid
@@ -1088,8 +1148,10 @@ function apply_multiple_child_discount_for_week($pid, $aid, $fromdate, $program)
         return;
     }
 
+    // Highest bill first; equal bills keep relative order by id for stability
     usort($charges, function ($a, $b) {
-        return $b['bill'] <=> $a['bill'];
+        $cmp = $b['bill'] <=> $a['bill'];
+        return $cmp !== 0 ? $cmp : ($a['id'] <=> $b['id']);
     });
 
     $first = true;
@@ -1101,21 +1163,34 @@ function apply_multiple_child_discount_for_week($pid, $aid, $fromdate, $program)
             $first = false;
             continue;
         }
-        $newbill = max(0, $c['bill'] - $multiple);
+        $newbill = max(0, round($c['bill'] - $multiple, 2));
         if (abs($newbill - $c['bill']) > 0.001) {
             $pc = get_db_row("SELECT * FROM billing_perchild WHERE id = ||id||", false, ['id' => $c['id']]);
             if ($pc) {
-                // $$ so preg_replace treats $ as a literal dollar sign (not a backreference)
-                $receipt = preg_replace(
-                    '/\$\d+\.\d{2}$/',
-                    '$$' . number_format($newbill, 2),
-                    $pc['receipt']
+                // Reconstruct attendance text from stored days_attending so the
+                // receipt can be regenerated without relying on the old string.
+                $attendance = '';
+                $billed_by  = trim((string)($pc['days_attending'] ?? ''));
+                if ($billed_by !== '' && strtolower($billed_by) !== 'attendance') {
+                    $days = array_values(array_filter(array_map('trim', explode(',', $billed_by))));
+                    $cnt  = count($days);
+                    if ($cnt > 0) {
+                        $attendance = $cnt . ($cnt === 1 ? ' day' : ' days')
+                                    . ' (' . implode(' ', $days) . ')';
+                    }
+                }
+
+                $receipt = build_child_receipt(
+                    $program,
+                    (int)$pc['chid'],
+                    $newbill,
+                    (float)($pc['discount'] ?? 0),
+                    (int)($pc['exempt'] ?? 0),
+                    (int)($pc['vacation'] ?? 0),
+                    $attendance,
+                    $c['bill']   // classify rate labels from the pre-multi amount
                 );
-                $receipt = preg_replace(
-                    '/\$\d+\.\d{2}$/',
-                    '\$' . number_format($newbill, 2),   // or "\\$" . number_format(...)
-                    $pc['receipt']
-                );
+
                 execute_db_sql(
                     "UPDATE billing_perchild SET bill = ||bill||, receipt = ||receipt|| WHERE id = ||id||",
                     ['bill' => $newbill, 'receipt' => $receipt, 'id' => $c['id']]

@@ -2884,18 +2884,23 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                         $receipts = "";
                         if ($perchild_invoices = get_db_result($SQL, $pcv)) {
                             while ($perchild_invoice = fetch_row($perchild_invoices)) {
-                                $exempt_button = from_template("exempt_button.php", [
-                                    "title" => (empty($perchild_invoice["exempt"]) ? "Exempt" : "Rescind Exemption"),
-                                    "invoiceid" => $perchild_invoice["id"],
-                                    "pid" => $pid,
-                                    "aid" => $aid,
-                                ]);
-                                $vacation_button = from_template("vacation_button.php", [
-                                    "title" => (empty($perchild_invoice["vacation"]) ? "Vacation" : "Rescind Vacation"),
-                                    "invoiceid" => $perchild_invoice["id"],
-                                    "pid" => $pid,
-                                    "aid" => $aid,
-                                ]);
+                                $exempt_button = $vacation_button = "";
+                                if (empty($perchild_invoice["vacation"])) {
+                                    $exempt_button = from_template("exempt_button.php", [
+                                        "title" => (empty($perchild_invoice["exempt"]) ? "Exempt" : "Rescind Exemption"),
+                                        "invoiceid" => $perchild_invoice["id"],
+                                        "pid" => $pid,
+                                        "aid" => $aid,
+                                    ]);
+                                }
+                                if (empty($perchild_invoice["exempt"])) {
+                                    $vacation_button = from_template("vacation_button.php", [
+                                        "title" => (empty($perchild_invoice["vacation"]) ? "Vacation" : "Rescind Vacation"),
+                                        "invoiceid" => $perchild_invoice["id"],
+                                        "pid" => $pid,
+                                        "aid" => $aid,
+                                    ]);
+                                }
 
                                 $receipts .= from_template("billing_receipt_layout.php", [
                                     "exemptbutton" => $exempt_button,

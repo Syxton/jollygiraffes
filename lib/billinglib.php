@@ -103,25 +103,21 @@ function apply_overrides($program, $pid, $aid) {
 }
 
 /**
- * Compute the raw (pre-discount, pre-exempt, pre-vacation) charge for a
- * single child for a single week, given how many days they attended and
- * which billing method is in effect for the program/account.
+ * Compute the raw (pre-discount, pre-exempt, pre-vacation) charge for one
+ * child for one week.
  *
- * Billing rules:
- * - Enrollment billing: the full program rate (fulltime) is always charged,
- *   no matter how many days the child actually attended (including zero).
- *   Minimum Active and Minimum Inactive never apply to enrollment billing.
- * - Attendance billing: charge per day attended (perday * day_count),
- *   floored at Minimum Active once the child has attended at least one day,
- *   and replaced by the Fulltime rate once attendance reaches consider_full
- *   days. If the child did not attend at all, Minimum Inactive applies.
- *   This includes the case where consider_full is set to 8 (a sentinel used
- *   to charge strictly by the day / disable the Fulltime rate within a
- *   7-day week) -- Minimum Active and Minimum Inactive still apply as a
- *   fallback in that case.
+ * - Enrollment billing: always $program['fulltime'], regardless of
+ *   attendance (including zero days). Minimum Active / Minimum Inactive
+ *   never apply.
+ * - Attendance billing: perday * day_count, floored at Minimum Active once
+ *   the child attended >=1 day, replaced by Fulltime once attendance
+ *   reaches consider_full days, or Minimum Inactive if no attendance at
+ *   all. This still holds when consider_full is 8, a sentinel meaning
+ *   "charge strictly by the day" (a week maxes out at 7 days, so Fulltime
+ *   never triggers and the Minimum Active/Inactive floor is what applies).
  *
  * @param array $program               Program row (with overrides applied).
- * @param int   $day_count             Number of days attended this week (0 if none).
+ * @param int   $day_count             Days attended this week (0 if none).
  * @param bool  $is_enrollment_billing True when the effective bill_by is 'enrollment'.
  * @return float
  */
@@ -150,20 +146,13 @@ function compute_child_week_bill($program, $day_count, $is_enrollment_billing) {
 }
 
 /**
- * Apply a child's individual discount to a raw (pre-discount) weekly
- * charge.
+ * Apply a child's individual discount to a raw (pre-discount) weekly charge.
  *
- * The discount applies to every non-exempt, non-vacation bill -- both
- * attendance-billed and enrollment-billed -- but:
- * - For attendance billing, the discounted amount is floored at the
- *   applicable minimum: Minimum Active if the child attended at least one
- *   day that week (this also covers the fulltime-rate case), or Minimum
- *   Inactive if the child did not attend at all.
- * - For enrollment billing, there is no minimum floor -- the discount can
- *   reduce the charge all the way down, just never below zero.
- *
- * Callers are responsible for not calling this when the child is exempt or
- * the week is a vacation week (neither is discounted).
+ * Applies to every non-exempt, non-vacation bill, enrollment- or
+ * attendance-billed. For attendance billing the result is floored at
+ * Minimum Active (attended >=1 day, including the fulltime case) or
+ * Minimum Inactive (no attendance). Enrollment billing has no floor beyond
+ * zero. Caller must skip this call entirely for exempt/vacation weeks.
  *
  * @param array $program
  * @param float $raw_bill              Pre-discount charge.
@@ -188,18 +177,10 @@ function apply_individual_discount($program, $raw_bill, $discount, $is_enrollmen
 /**
  * Compute the balance for a specific billing week.
  *
- * Rate rules:
- * - Vacation flag on the week: charge vacation rate only
- * - Enrollment billing: always the fulltime rate, regardless of attendance
- *   (Minimum Active / Minimum Inactive never apply)
- * - Attendance billing: days × perday, Minimum Active floor, fulltime if
- *   days >= consider_full; Minimum Inactive if no activity at all. Minimum
- *   Active / Minimum Inactive still apply when consider_full is set to 8
- *   (charge-by-the-day mode).
- * - Individual discount applies to every non-exempt, non-vacation bill
- *   (enrollment or attendance billed), floored at the applicable minimum
- *   for attendance billing, and never below zero.
- * - Labels: Part-time only for per-day path; [Did Not Attend] when absent; [Vacation Rate] when flagged
+ * See compute_child_week_bill() for enrollment-vs-attendance billing rules
+ * and apply_individual_discount() for how the individual discount and its
+ * minimum floors are applied. Vacation weeks charge the vacation rate only
+ * (no discount). Labels: [Did Not Attend] when absent, [Vacation Rate] when flagged.
  *
  * @param int  $pid
  * @param int  $aid
@@ -220,6 +201,7 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
     if ($overrides = apply_overrides($program, $pid, $aid)) {
         $program = $overrides;
     }
+    $is_enrollment_billing = ($program['bill_by'] === 'enrollment');
 
     $charges = [];
 
@@ -282,7 +264,6 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
                 $days_attending = count(array_filter(explode(',', (string)$days_str)));
                 $day_count      = $days_attending;
                 $billed_by      = $days_str;
-                $is_enrollment_billing = ($program['bill_by'] === 'enrollment');
 
                 if ($days_attending === 0) {
                     $raw_bill = 0.0;
@@ -295,8 +276,6 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
                 $billed_by = $perchild['days_attending'] ?? ($enroll['days_attending'] ?? '');
                 $attendance = '';
             } else {
-                $is_enrollment_billing = ($program['bill_by'] === 'enrollment');
-
                 if ($use_enrollment && $perchild && !empty($perchild['days_attending'])) {
                     $billed_by = $perchild['days_attending'];
                 } elseif ($is_enrollment_billing) {
@@ -339,18 +318,13 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
                     $attendance = '';
                 }
 
-                // Enrollment billing: full price no matter attendance (no Minimum
-                // Active / Minimum Inactive). Attendance billing: per-day with
-                // Minimum Active / Minimum Inactive floors and the consider_full
-                // fulltime cutoff (still applies when consider_full is 8).
+                // See compute_child_week_bill() for the enrollment-vs-attendance rules.
                 $raw_bill = compute_child_week_bill($program, $day_count, $is_enrollment_billing);
 
                 if ($billed_by === 'attendance' && $day_count > 0) {
                     $billed_by = implode(',', $days_list);
                 }
             }
-
-            $is_enrollment_billing = ($program['bill_by'] === 'enrollment');
 
             if ($exempt) {
                 $final = 0.0;
@@ -390,15 +364,25 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
         return $cmp !== 0 ? $cmp : ($a['_ord'] <=> $b['_ord']);
     });
 
+    // Multi-child discount applies only when family total exceeds the threshold
+    $family_total = 0.0;
+    foreach ($charges as $info) {
+        if (!$info['exempt'] && $info['final'] > 0) {
+            $family_total += (float)$info['final'];
+        }
+    }
+    $multiple = (float)($program['multiple_discount'] ?? 0);
+    $threshold = (float)($program['discount_rule'] ?? 0);
+    $apply_multiple = ($multiple > 0 && ($threshold <= 0 || $family_total > $threshold));
+
     $total  = 0.0;
     $first  = true;
-    $lastid = '0';
 
     foreach ($charges as $chid => $info) {
         $bill = $info['final'];
 
-        if (!$first && !$info['exempt'] && $bill > 0) {
-            $bill = max(0, $bill - (float)$program['multiple_discount']);
+        if ($apply_multiple && !$first && !$info['exempt'] && $bill > 0) {
+            $bill = max(0, $bill - $multiple);
         }
         $first = false;
 
@@ -683,8 +667,6 @@ function get_child_week_attendance_list($pid, $chid, $invoiceweek) {
  * @param bool|false $honor_past_enrollment Honor past enrollment.
  */
 function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid = '0', $honor_past_enrollment = true) {
-    global $CFG;
-    $override = false;
     $program = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ["pid" => $pid]);
     $aid = get_db_field("aid", "children", "chid = ||chid||", ["chid" => $chid]);
     $perchild = get_db_row(
@@ -717,15 +699,15 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
         // Create a week's enrollment based on attendance instead of the program enrollment settings
         $bill_by = get_child_week_attendance_list($pid, $chid, $invoiceweek);
     }
+    $is_enrollment_billing = (($program["bill_by"] ?? '') === 'enrollment');
 
     if ($activities = get_db_result(
         "SELECT * FROM activity WHERE tag = 'in' AND pid = ||pid|| AND chid = ||chid|| AND timelog >= ||start|| AND timelog < ||end|| ORDER BY timelog",
         ["pid" => $pid, "chid" => $chid, "start" => $invoiceweek, "end" => $endofweek]
     )) {
-        $sameday = $bill = $attendance = 0;
+        $sameday = $attendance = 0;
         $days = "";
         while ($activity = fetch_row($activities)) {
-            $bill += date("m/d/Y", display_time($activity["timelog"])) == $sameday ? 0 : $program["perday"];
             $attendance += date("m/d/Y", display_time($activity["timelog"])) == $sameday ? "0" : "1";
             $days .= date("m/d/Y", display_time($activity["timelog"])) == $sameday ? "" : ($days == "" ? date("D", display_time($activity["timelog"])) : " " . date("D", display_time($activity["timelog"])));
             $sameday = date("m/d/Y", display_time($activity["timelog"]));
@@ -733,16 +715,10 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
 
         $day_count = (int)$attendance;
 
-        // Enrollment billing: full price no matter attendance (no Minimum
-        // Active / Minimum Inactive). Attendance billing: per-day with
-        // Minimum Active / Minimum Inactive floors and the consider_full
-        // fulltime cutoff (still applies when consider_full is 8).
-        $is_enrollment_billing = (($program["bill_by"] ?? '') === 'enrollment');
+        // See compute_child_week_bill() for the enrollment-vs-attendance rules.
         $bill = compute_child_week_bill($program, $day_count, $is_enrollment_billing);
 
-        // Individual discount applies to every non-exempt, non-vacation
-        // bill (enrollment or attendance billed), floored at the
-        // applicable minimum for attendance billing, never below zero.
+        // Individual discount: see apply_individual_discount().
         $bill_discount = 0.0;
         if ($vacation) {
             $bill = (float)$program['vacation'];
@@ -768,10 +744,10 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
         } elseif ($refresh) {
             save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, $attendance, $exempt, $bill_discount, false, false, $vacation);
         }
-    } else { //Did not attend: enrollment billing still charges fulltime, attendance billing falls back to minimuminactive.
-        $is_enrollment_billing = (($program["bill_by"] ?? '') === 'enrollment');
+    } else { //Did not attend
         $bill = compute_child_week_bill($program, 0, $is_enrollment_billing);
 
+        // See apply_individual_discount() for the discount/floor rules.
         $bill_discount = 0.0;
         if ($vacation) {
             $bill = (float)$program['vacation'];
@@ -894,6 +870,39 @@ function create_invoices($return = false, $pid = null, $aid = null, $refreshall 
                     }
                 }
             }
+            // Apply multi-child discount to weeks that do not yet have a billing row
+            // (raw per-child bills are written first; multi-discount is a second pass).
+            // Skip weeks that already have a billing row so re-runs do not double-apply.
+            $program_for_account = $program;
+            if ($overrides = apply_overrides($program, $pid, $account["aid"])) {
+                $program_for_account = $overrides;
+            }
+            $week_rows = get_db_result(
+                "SELECT DISTINCT fromdate FROM billing_perchild
+                 WHERE pid = ||pid||
+                   AND chid IN (SELECT chid FROM children WHERE aid = ||aid||)
+                 ORDER BY fromdate",
+                ['pid' => $pid, 'aid' => $account['aid']]
+            );
+            if ($week_rows) {
+                while ($week_row = fetch_row($week_rows)) {
+                    $billing_exists = get_db_row(
+                        "SELECT id FROM billing
+                         WHERE pid = ||pid|| AND aid = ||aid|| AND fromdate = ||fromdate||",
+                        false,
+                        ['pid' => $pid, 'aid' => $account['aid'], 'fromdate' => $week_row['fromdate']]
+                    );
+                    if (!$billing_exists) {
+                        apply_multiple_child_discount_for_week(
+                            $pid,
+                            $account['aid'],
+                            $week_row['fromdate'],
+                            $program_for_account
+                        );
+                    }
+                }
+            }
+
             $returnme .= make_account_invoice($pid, $account["aid"]);
         }
     }
@@ -987,17 +996,13 @@ function recalculate_completed_child_invoice($program, $perchild) {
     if ($day_count > 0) {
         $attendance = $day_count . ($day_count == 1 ? ' day' : ' days')
                     . ' (' . implode(' ', $days_list) . ')';
-        // Enrollment billing: full price no matter attendance (no Minimum
-        // Active). Attendance billing: per-day with Minimum Active floor and
-        // the consider_full fulltime cutoff (still applies when
-        // consider_full is 8).
+        // See compute_child_week_bill() for the enrollment-vs-attendance rules.
         $bill = compute_child_week_bill($program, $day_count, $is_enrollment_billing);
         if (($program['bill_by'] ?? '') === 'attendance' || $bill_by === 'attendance' || $bill_by === '') {
             $bill_by = implode(',', $days_list);
         }
     } else {
-        // Did not attend: enrollment billing still charges fulltime;
-        // attendance billing falls back to Minimum Inactive.
+        // Did not attend
         $bill = compute_child_week_bill($program, 0, $is_enrollment_billing);
         $attendance = '';
     }
@@ -1034,12 +1039,100 @@ function recalculate_completed_child_invoice($program, $perchild) {
 }
 
 /**
- * After flags change on one child-week, recalculate every child on the account
- * for that week (so multi-child discount stays correct), then rebuild billing row.
  *
- * @param int $pid
- * @param int $aid
- * @param int $fromdate Week start timestamp
+ * Apply the multi-child discount to billing_perchild rows for one account-week.
+ * Only applies when the family total (pre-discount) exceeds discount_rule.
+ * Highest bill is unchanged; each subsequent non-exempt positive bill is reduced.
+ *
+ *
+ * @param int   $pid
+ * @param int   $aid
+ * @param int   $fromdate Week start timestamp.
+ * @param array $program  Program row with overrides already applied.
+ */
+function apply_multiple_child_discount_for_week($pid, $aid, $fromdate, $program) {
+    $multiple = (float)($program['multiple_discount'] ?? 0);
+    if ($multiple <= 0) {
+        return;
+    }
+
+    $rows = get_db_result(
+        "SELECT id, bill, exempt FROM billing_perchild
+         WHERE pid = ||pid|| AND fromdate = ||fromdate||
+           AND chid IN (SELECT chid FROM children WHERE aid = ||aid||)
+         ORDER BY id",
+        ['pid' => $pid, 'fromdate' => $fromdate, 'aid' => $aid]
+    );
+    if (!$rows) {
+        return;
+    }
+
+    $charges = [];
+    $family_total = 0.0;
+    while ($row = fetch_row($rows)) {
+        $bill = (float)$row['bill'];
+        $exempt = (int)($row['exempt'] ?? 0);
+        $charges[] = [
+            'id'     => $row['id'],
+            'exempt' => $exempt,
+            'bill'   => $bill,
+        ];
+        if (!$exempt && $bill > 0) {
+            $family_total += $bill;
+        }
+    }
+
+    $threshold = (float)($program['discount_rule'] ?? 0);
+    // Threshold of 0 (or unset) means always apply when multiple_discount > 0
+    if ($threshold > 0 && $family_total <= $threshold) {
+        return;
+    }
+
+    usort($charges, function ($a, $b) {
+        return $b['bill'] <=> $a['bill'];
+    });
+
+    $first = true;
+    foreach ($charges as $c) {
+        if ($c['exempt'] || $c['bill'] <= 0) {
+            continue;
+        }
+        if ($first) {
+            $first = false;
+            continue;
+        }
+        $newbill = max(0, $c['bill'] - $multiple);
+        if (abs($newbill - $c['bill']) > 0.001) {
+            $pc = get_db_row("SELECT * FROM billing_perchild WHERE id = ||id||", false, ['id' => $c['id']]);
+            if ($pc) {
+                // $$ so preg_replace treats $ as a literal dollar sign (not a backreference)
+                $receipt = preg_replace(
+                    '/\$\d+\.\d{2}$/',
+                    '$$' . number_format($newbill, 2),
+                    $pc['receipt']
+                );
+                $receipt = preg_replace(
+                    '/\$\d+\.\d{2}$/',
+                    '\$' . number_format($newbill, 2),   // or "\\$" . number_format(...)
+                    $pc['receipt']
+                );
+                execute_db_sql(
+                    "UPDATE billing_perchild SET bill = ||bill||, receipt = ||receipt|| WHERE id = ||id||",
+                    ['bill' => $newbill, 'receipt' => $receipt, 'id' => $c['id']]
+                );
+            }
+        }
+    }
+}
+
+/**
+ *
+ * Recalculate every child on an account for one week, then rebuild the billing row.
+ *
+ *
+ * @param int $pid      Parent / person id.
+ * @param int $aid      Account id.
+ * @param int $fromdate Week start timestamp.
  */
 function rebuild_account_week_invoices($pid, $aid, $fromdate) {
     $program = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ['pid' => $pid]);
@@ -1058,48 +1151,13 @@ function rebuild_account_week_invoices($pid, $aid, $fromdate) {
         ['pid' => $pid, 'fromdate' => $fromdate, 'aid' => $aid]
     );
 
-    $charges = [];
     if ($rows) {
         while ($row = fetch_row($rows)) {
-            $amount = recalculate_completed_child_invoice($program, $row);
-            $charges[] = [
-                'id'     => $row['id'],
-                'exempt' => (int)($row['exempt'] ?? 0),
-                'vacation' => (int)($row['vacation'] ?? 0),
-                'bill'   => $amount,
-            ];
+            recalculate_completed_child_invoice($program, $row);
         }
     }
 
-    // Re-apply multiple_child discount: highest bill first, subsequent non-exempt get discount
-    if (!empty($charges) && (float)$program['multiple_discount'] > 0) {
-        usort($charges, function ($a, $b) {
-            return $b['bill'] <=> $a['bill'];
-        });
-        $first = true;
-        foreach ($charges as $c) {
-            if ($c['exempt'] || $c['bill'] <= 0) {
-                continue;
-            }
-            if ($first) {
-                $first = false;
-                continue;
-            }
-            $newbill = max(0, $c['bill'] - (float)$program['multiple_discount']);
-            if (abs($newbill - $c['bill']) > 0.001) {
-                // Update bill; leave receipt text as-is except amount suffix when possible
-                $pc = get_db_row("SELECT * FROM billing_perchild WHERE id = ||id||", false, ['id' => $c['id']]);
-                if ($pc) {
-                    $receipt = preg_replace('/\$\d+\.\d{2}$/', '$' . number_format($newbill, 2), $pc['receipt']);
-                    execute_db_sql(
-                        "UPDATE billing_perchild SET bill = ||bill||, receipt = ||receipt|| WHERE id = ||id||",
-                        ['bill' => $newbill, 'receipt' => $receipt, 'id' => $c['id']]
-                    );
-                }
-            }
-            $first = false;
-        }
-    }
+    apply_multiple_child_discount_for_week($pid, $aid, $fromdate, $program);
 
     execute_db_sql(
         "DELETE FROM billing WHERE fromdate = ||fromdate|| AND pid = ||pid|| AND aid = ||aid||",
@@ -1108,6 +1166,15 @@ function rebuild_account_week_invoices($pid, $aid, $fromdate) {
     make_account_invoice($pid, $aid, $fromdate);
 }
 
+/**
+ *
+ * Return the effective enrollment billing method for a program or account.
+ *
+ *
+ * @param int $pid  Parent / person id.
+ * @param int $aid  Account id.
+ * @param int $chid Child id.
+ */
 function get_enrollment_method($pid, $aid = false, $chid = false) {
     $program = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ["pid" => $pid]);
     //you want to remember past settings and there is a history recorded

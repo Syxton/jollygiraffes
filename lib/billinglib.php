@@ -708,27 +708,32 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
     );
     $endofweek = strtotime("+1 week -1 second", $invoiceweek);
 
-    //check to see if in the past the user was exempt, if no history is found or you don't want to honor the past, just get it from current enrollment settings
-    $exempt = $honor_past_enrollment && $perchild
+    // On refresh, always use current enrollment settings (not historical perchild flags)
+    // so attendance changes are reflected. Honor past only when not refreshing.
+    $use_history = !empty($honor_past_enrollment) && !empty($perchild) && empty($refresh);
+
+    $exempt = $use_history
         ? $perchild["exempt"]
         : get_db_field("exempt", "enrollments", "chid = ||chid|| AND pid = ||pid||", ["chid" => $chid, "pid" => $pid]);
 
-    $vacation = $honor_past_enrollment && $perchild ? $perchild["vacation"] : 0;
+    $vacation = $use_history ? $perchild["vacation"] : 0;
 
-    $discount = $honor_past_enrollment && $perchild
+    $discount = $use_history
         ? (float)($perchild["discount"] ?? 0)
         : (float)get_db_field("discount", "enrollments", "chid = ||chid|| AND pid = ||pid||", ["chid" => $chid, "pid" => $pid]);
 
-    //you want to remember past settings and there is a history recorded
-    if (!empty($honor_past_enrollment) && !empty($perchild)) {
-        $bill_by = $perchild["days_attending"];  //bill according to the days attended
-    } elseif ($overrides = apply_overrides($program, $pid, $aid)) { //account override is present
+    // Apply account overrides first so bill_by mode is correct.
+    if ($overrides = apply_overrides($program, $pid, $aid)) {
         $program = $overrides;
-        $bill_by = $program["bill_by"];
-    } elseif ($program["bill_by"] == "enrollment") { //there is no history or you don't want to remember the past and the program is now set to enrollment billing
-        $bill_by = get_db_field("days_attending", "enrollments", "chid = ||chid|| AND pid = ||pid||", ["chid" => $chid, "pid" => $pid]); //Get the days attending.
-    } else { //only other choice is that there is no history and the program is set to attendance billing.  This will be built next.
-        // Create a week's enrollment based on attendance instead of the program enrollment settings
+    }
+
+    // On refresh (or when not honoring history), always re-derive bill_by from
+    // current enrollment or actual attendance — never reuse the stored value.
+    if ($use_history) {
+        $bill_by = $perchild["days_attending"];
+    } elseif (($program["bill_by"] ?? '') === "enrollment") {
+        $bill_by = get_db_field("days_attending", "enrollments", "chid = ||chid|| AND pid = ||pid||", ["chid" => $chid, "pid" => $pid]);
+    } else {
         $bill_by = get_child_week_attendance_list($pid, $chid, $invoiceweek);
     }
     $is_enrollment_billing = (($program["bill_by"] ?? '') === 'enrollment');
@@ -737,15 +742,19 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
         "SELECT * FROM activity WHERE tag = 'in' AND pid = ||pid|| AND chid = ||chid|| AND timelog >= ||start|| AND timelog < ||end|| ORDER BY timelog",
         ["pid" => $pid, "chid" => $chid, "start" => $invoiceweek, "end" => $endofweek]
     )) {
-        $sameday = $attendance = 0;
-        $days = "";
+        // Use string sentinel so the first day is not lost to PHP type coercion
+        // (date string == 0 is true). Matches recalculate_completed_child_invoice().
+        $sameday   = '';
+        $day_count = 0;
+        $days_list = [];
         while ($activity = fetch_row($activities)) {
-            $attendance += date("m/d/Y", display_time($activity["timelog"])) == $sameday ? "0" : "1";
-            $days .= date("m/d/Y", display_time($activity["timelog"])) == $sameday ? "" : ($days == "" ? date("D", display_time($activity["timelog"])) : " " . date("D", display_time($activity["timelog"])));
-            $sameday = date("m/d/Y", display_time($activity["timelog"]));
+            $daykey = date("m/d/Y", display_time($activity["timelog"]));
+            if ($daykey !== $sameday) {
+                $day_count++;
+                $days_list[] = date("D", display_time($activity["timelog"]));
+                $sameday = $daykey;
+            }
         }
-
-        $day_count = (int)$attendance;
 
         // See compute_child_week_bill() for the enrollment-vs-attendance rules.
         $bill = compute_child_week_bill($program, $day_count, $is_enrollment_billing);
@@ -762,7 +771,14 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
             $bill = 0.0;
         }
 
-        $attendance .= $attendance > 0 ? ($attendance == 1 ? " day ($days)" : " days ($days)") : " days";
+        $attendance = $day_count > 0
+            ? ($day_count === 1 ? "1 day (" . implode(' ', $days_list) . ")" : $day_count . " days (" . implode(' ', $days_list) . ")")
+            : '';
+
+        // Keep stored days_attending aligned with actual attendance on refresh.
+        if (!$is_enrollment_billing && $day_count > 0) {
+            $bill_by = get_child_week_attendance_list($pid, $chid, $invoiceweek);
+        }
 
         if ($refresh) {
             execute_db_sql(
@@ -771,9 +787,7 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
             );
         }
 
-        if (!$perchild) {
-            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, $attendance, $exempt, $bill_discount, false, false, $vacation);
-        } elseif ($refresh) {
+        if (!$perchild || $refresh) {
             save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, $attendance, $exempt, $bill_discount, false, false, $vacation);
         }
     } else { //Did not attend
@@ -791,6 +805,11 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
             $bill = 0.0;
         }
 
+        // Clear days_attending on refresh when there is no attendance.
+        if ($refresh && !$is_enrollment_billing) {
+            $bill_by = '';
+        }
+
         if ($refresh) {
             execute_db_sql(
                 "DELETE FROM billing_perchild WHERE pid = ||pid|| AND chid = ||chid|| AND fromdate = ||fromdate||",
@@ -798,9 +817,7 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
             );
         }
 
-        if (!$perchild) {
-            save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, "", $exempt, $bill_discount, false, false, $vacation);
-        } elseif ($refresh) {
+        if (!$perchild || $refresh) {
             save_child_invoice($program, $chid, $invoiceweek, $endofweek, $bill_by, $lastid, $bill, "", $exempt, $bill_discount, false, false, $vacation);
         }
     }
@@ -827,13 +844,22 @@ function create_invoices($return = false, $pid = null, $aid = null, $refreshall 
     $program = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ["pid" => $pid]);
     if (empty($aid)) { //All accounts enrolled in program
         if (!empty($refreshall)) {
+            // Clear both account invoices and per-child rows so weeks with
+            // removed attendance are not resurrected from stale billing_perchild.
             execute_db_sql("DELETE FROM billing WHERE pid = ||pid|| AND fromdate >= ||startweek||", ["pid" => $pid, "startweek" => $startweek]);
+            execute_db_sql("DELETE FROM billing_perchild WHERE pid = ||pid|| AND fromdate >= ||startweek||", ["pid" => $pid, "startweek" => $startweek]);
         }
         $SQL = "SELECT * FROM accounts WHERE deleted = '0' AND admin= '0' AND aid IN (SELECT aid FROM children WHERE chid IN (SELECT chid FROM enrollments WHERE pid = ||pid||)) ORDER BY name";
         $accounts = get_db_result($SQL, ["pid" => $pid]);
     } else { //Only selected account
         if (!empty($refreshall)) {
             execute_db_sql("DELETE FROM billing WHERE pid = ||pid|| AND aid = ||aid|| AND fromdate >= ||startweek||", ["pid" => $pid, "aid" => $aid, "startweek" => $startweek]);
+            execute_db_sql(
+                "DELETE FROM billing_perchild
+                 WHERE pid = ||pid|| AND fromdate >= ||startweek||
+                   AND chid IN (SELECT chid FROM children WHERE aid = ||aid||)",
+                ["pid" => $pid, "aid" => $aid, "startweek" => $startweek]
+            );
         }
         $SQL = "SELECT * FROM accounts WHERE aid = ||aid||";
         $accounts = get_db_result($SQL, ["aid" => $aid]);
@@ -873,31 +899,61 @@ function create_invoices($return = false, $pid = null, $aid = null, $refreshall 
 
     if ($accounts) {
         while ($account = fetch_row($accounts)) {
-            $SQL = "SELECT * FROM children WHERE aid = ||aid|| AND chid IN (SELECT chid FROM enrollments WHERE pid = ||pid||) AND chid IN (SELECT chid FROM activity WHERE pid = ||pid|| AND tag = 'in') ORDER BY last, first";
+            // On refresh include all enrolled children (even with no remaining
+            // activity) so weeks where attendance was removed still get rewritten.
+            // On normal create, only children who have checked in at least once.
+            if (!empty($refreshall)) {
+                $SQL = "SELECT * FROM children
+                        WHERE aid = ||aid|| AND deleted = 0
+                          AND chid IN (SELECT chid FROM enrollments WHERE pid = ||pid|| AND deleted = 0)
+                        ORDER BY last, first";
+            } else {
+                $SQL = "SELECT * FROM children
+                        WHERE aid = ||aid||
+                          AND chid IN (SELECT chid FROM enrollments WHERE pid = ||pid||)
+                          AND chid IN (SELECT chid FROM activity WHERE pid = ||pid|| AND tag = 'in')
+                        ORDER BY last, first";
+            }
             if ($children = get_db_result($SQL, ["aid" => $account["aid"], "pid" => $pid])) {
                 while ($child = fetch_row($children)) {
-                    //Child has signed in so he may be billed
-                    if ($firstin = get_db_field("MIN(timelog)", "activity", "pid = ||pid|| AND chid = ||chid|| AND tag = 'in'", ["pid" => $pid, "chid" => $child["chid"]])) {
-                        $firstin = empty($startweek) ? $firstin : ($firstin < $startweek ? $startweek : $firstin);
-                        if (!empty($firstin)) {
-                            if (date('N', $firstin) == "7") { //is already a sunday
-                                $firstweek = strtotime(date('m/d/Y', $firstin));
-                            } else {
-                                $firstweek = strtotime("previous Sunday UTC", $firstin);
-                            }
+                    // On refresh with a startweek, walk every week from that boundary
+                    // so attendance changes (including full removals) are reflected.
+                    // Otherwise start from the child's first check-in.
+                    if (!empty($refreshall) && !empty($startweek) && $startweek !== "0") {
+                        $firstin = $startweek;
+                    } else {
+                        $firstin = get_db_field(
+                            "MIN(timelog)",
+                            "activity",
+                            "pid = ||pid|| AND chid = ||chid|| AND tag = 'in'",
+                            ["pid" => $pid, "chid" => $child["chid"]]
+                        );
+                        if (empty($firstin)) {
+                            continue;
+                        }
+                        $firstin = empty($startweek) || $startweek === "0"
+                            ? $firstin
+                            : ($firstin < $startweek ? $startweek : $firstin);
+                    }
 
-                            $invoiceweek = $firstweek;
+                    if (!empty($firstin)) {
+                        if (date('N', $firstin) == "7") { //is already a sunday
+                            $firstweek = strtotime(date('m/d/Y', $firstin));
+                        } else {
+                            $firstweek = strtotime("previous Sunday UTC", $firstin);
+                        }
 
-                            //Get nearest Saturday, counting today if Saturday
-                            $runtill = date("N", get_timestamp($CFG->timezone)) == 6 ? strtotime("today UTC") : strtotime("previous Saturday UTC");
-                            //go to the end of that Saturday
-                            $runtill = strtotime("+1 day -1 second", $runtill);
+                        $invoiceweek = $firstweek;
 
-                            while ($invoiceweek < $runtill) {
-                                make_child_invoice($pid, $child["chid"], $invoiceweek, $refreshall, $lastid, $honor_past_enrollment);
-                                //Go to next week
-                                $invoiceweek = strtotime("+1 week", $invoiceweek);
-                            }
+                        //Get nearest Saturday, counting today if Saturday
+                        $runtill = date("N", get_timestamp($CFG->timezone)) == 6 ? strtotime("today UTC") : strtotime("previous Saturday UTC");
+                        //go to the end of that Saturday
+                        $runtill = strtotime("+1 day -1 second", $runtill);
+
+                        while ($invoiceweek < $runtill) {
+                            make_child_invoice($pid, $child["chid"], $invoiceweek, $refreshall, $lastid, $honor_past_enrollment);
+                            //Go to next week
+                            $invoiceweek = strtotime("+1 week", $invoiceweek);
                         }
                     }
                 }

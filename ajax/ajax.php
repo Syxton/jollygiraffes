@@ -2743,7 +2743,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
     if ($year !== "all") {
         $beginningofyear = make_timestamp_from_date('01/01/' . $year . 'T00:00:00Z');
         $endofyear = make_timestamp_from_date('12/31/' . $year . 'T00:00:00Z');
-        $beginning_balance = account_balance($pid, $aid, false, $year);
+        $beginning_balance = (float) str_replace(',', '', (string) account_balance($pid, $aid, false, $year));
         $yearsql = "AND fromdate >= ||beginningofyear|| AND fromdate <= ||endofyear||";
         $yearsql2 = "AND timelog >= ||beginningofyear|| AND timelog <= ||endofyear||";
         $year_vars = ["beginningofyear" => $beginningofyear, "endofyear" => $endofyear];
@@ -4492,7 +4492,10 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
             // Override CSS hide of .inactiveaccount when showing all accounts or recovering deleted ones.
             $override        = ($recover || $show_all) ? "display:block;" : "";
             $account_balance = account_balance($pid, $account["aid"], true);
-            $balanceclass    = $account_balance <= 0 ? "balance_good" : "balance_bad";
+            // Strip thousands separator before numeric compare / arithmetic
+            // (account_balance returns number_format() string).
+            $balance_num     = (float) str_replace(',', '', (string) $account_balance);
+            $balanceclass    = $balance_num <= 0 ? "balance_good" : "balance_bad";
 
             $accounts_list .= from_template("selectable_list_item_get_info.php", [
                 "class" => $selected_class . " " . $active,
@@ -4531,7 +4534,7 @@ function get_admin_accounts_form($return = false, $aid = false, $recover = false
                                 });
                                 $(\'.keypad_buttons\').toggleClass(\'selected_button\',true);
                                 $(\'.keypad_buttons\').not($(\'#admin_menu_billing\')).toggleClass(\'selected_button\',false);">
-                                Balance: $' . number_format($account_balance * -1, 2) . '
+                                Balance: $' . number_format($balance_num * -1, 2) . '
                             </a>
                         </div>',
                 ]),

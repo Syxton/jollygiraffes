@@ -8,6 +8,10 @@
  * Compute the raw (pre-discount, pre-exempt, pre-vacation) charge for one
  * child for one week.
  *
+ * When consider_full is 0 or negative, any attendance (day_count >= 0 after the
+ * day_count > 0 gate, i.e. any positive day_count) immediately triggers the
+ * fulltime rate because the comparison day_count >= consider_full succeeds.
+ *
  * @param array $program
  * @param int   $day_count
  * @param bool  $is_enrollment_billing
@@ -54,6 +58,11 @@ function apply_individual_discount($program, $raw_bill, $discount, $is_enrollmen
  *
  * $children: id => ['final' => float, 'exempt' => 0|1, 'did_not_attend' => 0|1]
  * Did Not Attend children never receive multi-child reduction.
+ *
+ * The "no-discount" (highest-final) child is chosen purely by highest final
+ * across all entries, including exempt / did-not-attend ones. Callers must
+ * already zero out exempt final values, or an exempt child with a nonzero
+ * final could wrongly occupy the discount-free slot.
  *
  * @return array id => final amount after multi-child discount
  */
@@ -107,6 +116,9 @@ function apply_multi_child_discount(array $children, $multiple, $threshold = 0.0
 
 /**
  * Does the multi-child discount apply to this specific child?
+ *
+ * Recomputes the full discount pass per call (fine for small families;
+ * O(n²) if called once per sibling as build_child_receipt() does).
  *
  * @return bool
  */

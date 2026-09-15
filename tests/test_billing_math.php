@@ -252,6 +252,111 @@ assert_true('unknown child is false', !child_gets_multi_child_discount('Z', $kid
 end_section();
 
 // ---------------------------------------------------------------------------
+// Additional edge / regression cases from review
+// ---------------------------------------------------------------------------
+
+start_section('Negative / erroneous individual discount');
+// Nothing currently stops a negative discount from raising the bill above the raw amount.
+$prog_neg = ['fulltime' => 100, 'perday' => 20, 'consider_full' => 5, 'minimumactive' => 0, 'minimuminactive' => 0];
+$raw_neg  = compute_child_week_bill($prog_neg, 3, false); // 60
+$after_neg = apply_individual_discount($prog_neg, $raw_neg, -10.00, false, 3); // discount = -10 raises bill
+assert_eq('negative discount raises bill to 70', 70.00, $after_neg);
+// Positive discount still floors at minimumactive when set
+$prog_floor = ['fulltime' => 100, 'perday' => 20, 'consider_full' => 5, 'minimumactive' => 40, 'minimuminactive' => 0];
+$after_floor = apply_individual_discount($prog_floor, 60.00, 30.00, false, 3);
+assert_eq('large positive discount floors at minimumactive 40', 40.00, $after_floor);
+end_section();
+
+start_section('compute_child_week_bill with consider_full = 0');
+// When consider_full is 0, any positive day_count triggers fulltime rate.
+$prog_cf0 = ['fulltime' => 150.00, 'perday' => 25.00, 'consider_full' => 0, 'minimumactive' => 0, 'minimuminactive' => 10];
+assert_eq('consider_full=0, 1 day → fulltime', 150.00, compute_child_week_bill($prog_cf0, 1, false));
+assert_eq('consider_full=0, 3 days → fulltime', 150.00, compute_child_week_bill($prog_cf0, 3, false));
+assert_eq('consider_full=0, 0 days → minimuminactive', 10.00, compute_child_week_bill($prog_cf0, 0, false));
+$prog_cf_neg = ['fulltime' => 150.00, 'perday' => 25.00, 'consider_full' => -1, 'minimumactive' => 0, 'minimuminactive' => 10];
+assert_eq('consider_full=-1, 1 day → fulltime', 150.00, compute_child_week_bill($prog_cf_neg, 1, false));
+end_section();
+
+start_section('Multi-child: highest-final child is itself exempt (data-bug sim)');
+// Exempt child with nonzero final should not occupy the discount-free slot if
+// callers correctly zero finals; this test documents current pure-function behavior
+// when a nonzero exempt final is present (caller bug scenario).
+$kids_ex_high = [
+    'E' => ['final' => 200.00, 'exempt' => 1, 'did_not_attend' => 0], // wrongly nonzero
+    'A' => ['final' => 100.00, 'exempt' => 0, 'did_not_attend' => 0],
+    'B' => ['final' =>  80.00, 'exempt' => 0, 'did_not_attend' => 0],
+];
+$after_ex_high = apply_multi_child_discount($kids_ex_high, 15.00, 0.00);
+// Pure function picks highest final (E) as no-discount slot; A and B both get reduced.
+assert_eq('exempt-with-nonzero is treated as highest (no reduction)', 200.00, $after_ex_high['E']);
+assert_eq('next non-exempt A reduced', 85.00, $after_ex_high['A']);
+assert_eq('next non-exempt B reduced', 65.00, $after_ex_high['B']);
+// Correct caller behavior: zero the exempt final first
+$kids_ex_zero = [
+    'E' => ['final' => 0.00, 'exempt' => 1, 'did_not_attend' => 0],
+    'A' => ['final' => 100.00, 'exempt' => 0, 'did_not_attend' => 0],
+    'B' => ['final' =>  80.00, 'exempt' => 0, 'did_not_attend' => 0],
+];
+$after_ex_zero = apply_multi_child_discount($kids_ex_zero, 15.00, 0.00);
+assert_eq('zeroed exempt stays 0', 0.00, $after_ex_zero['E']);
+assert_eq('highest non-exempt A keeps full', 100.00, $after_ex_zero['A']);
+assert_eq('lower non-exempt B reduced', 65.00, $after_ex_zero['B']);
+end_section();
+
+start_section('Rounding edge: multi=0.05, final=10.15');
+$kids_round = [
+    'H' => ['final' => 20.00, 'exempt' => 0, 'did_not_attend' => 0],
+    'L' => ['final' => 10.15, 'exempt' => 0, 'did_not_attend' => 0],
+];
+$after_round = apply_multi_child_discount($kids_round, 0.05, 0.00);
+assert_eq('highest keeps 20', 20.00, $after_round['H']);
+assert_eq('10.15 - 0.05 → clean 10.10', 10.10, $after_round['L']);
+end_section();
+
+start_section('Combined: exempt + did-not-attend + normal in 3+ child family');
+$kids_combo = [
+    'EX'  => ['final' => 0.00,  'exempt' => 1, 'did_not_attend' => 0],
+    'DNA' => ['final' => 50.00, 'exempt' => 0, 'did_not_attend' => 1], // present final but DNA flag
+    'N1'  => ['final' => 120.00, 'exempt' => 0, 'did_not_attend' => 0],
+    'N2'  => ['final' =>  90.00, 'exempt' => 0, 'did_not_attend' => 0],
+];
+$after_combo = apply_multi_child_discount($kids_combo, 20.00, 0.00);
+assert_eq('exempt stays 0', 0.00, $after_combo['EX']);
+assert_eq('did-not-attend never reduced', 50.00, $after_combo['DNA']);
+assert_eq('highest normal keeps full', 120.00, $after_combo['N1']);
+assert_eq('lower normal reduced by 20', 70.00, $after_combo['N2']);
+end_section();
+
+start_section('End-to-end pure-function chain (mirrors week_balance / make_child_invoice)');
+// compute_child_week_bill → apply_individual_discount → apply_multi_child_discount
+$prog_e2e = [
+    'fulltime' => 200.00, 'perday' => 40.00, 'consider_full' => 5,
+    'minimumactive' => 0, 'minimuminactive' => 0,
+];
+// Child A: 4 days, $10 individual discount
+$raw_a = compute_child_week_bill($prog_e2e, 4, false); // 160
+$fin_a = apply_individual_discount($prog_e2e, $raw_a, 10.00, false, 4); // 150
+// Child B: 2 days, $0 discount
+$raw_b = compute_child_week_bill($prog_e2e, 2, false); // 80
+$fin_b = apply_individual_discount($prog_e2e, $raw_b, 0.00, false, 2); // 80
+// Child C: 0 days (did not attend), minimuminactive=0
+$raw_c = compute_child_week_bill($prog_e2e, 0, false); // 0
+$fin_c = apply_individual_discount($prog_e2e, $raw_c, 0.00, false, 0); // 0
+$kids_e2e = [
+    'A' => ['final' => $fin_a, 'exempt' => 0, 'did_not_attend' => 0],
+    'B' => ['final' => $fin_b, 'exempt' => 0, 'did_not_attend' => 0],
+    'C' => ['final' => $fin_c, 'exempt' => 0, 'did_not_attend' => 1],
+];
+$after_e2e = apply_multi_child_discount($kids_e2e, 25.00, 0.00);
+assert_eq('e2e A raw 160 after indiv 150', 150.00, $fin_a);
+assert_eq('e2e B raw 80 after indiv 80', 80.00, $fin_b);
+assert_eq('e2e highest A keeps 150', 150.00, $after_e2e['A']);
+assert_eq('e2e B reduced to 55', 55.00, $after_e2e['B']);
+assert_eq('e2e DNA C stays 0', 0.00, $after_e2e['C']);
+assert_eq('e2e family total 205', 205.00, $after_e2e['A'] + $after_e2e['B'] + $after_e2e['C']);
+end_section();
+
+// ---------------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------------
 

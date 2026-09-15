@@ -36,15 +36,14 @@ function account_balance($pid, $aid, $running_balance = false, $year = false) {
     }
 
     $total_paid = get_db_field("SUM(payment)", "billing_payments", "pid = ||pid|| AND aid = ||aid|| $payment_year_sql", $vars);
-    $total_paid = empty($total_paid) ? "0.00" : $total_paid;
+    $total_paid = empty($total_paid) ? 0.0 : (float)$total_paid;
     $total_owed = get_db_field("SUM(owed)", "billing", "pid = ||pid|| AND aid = ||aid|| $billing_year_sql", $vars);
-    $total_owed = empty($total_owed) ? "0.00" : $total_owed;
+    $total_owed = empty($total_owed) ? 0.0 : (float)$total_owed;
 
     if ($running_balance) {
-        $running_balance = week_balance($pid, $aid);
-        $running_balance = empty($running_balance) ? "0.00" : $running_balance;
-
-        $total_owed += $running_balance;
+        // week_balance returns a raw float; do not number_format until the final return
+        $running = week_balance($pid, $aid);
+        $total_owed += (float)$running;
     }
     return number_format($total_owed - $total_paid, 2);
 }
@@ -79,21 +78,33 @@ function apply_overrides($program, $pid, $aid) {
  * minimum floors are applied. Vacation weeks charge the vacation rate only
  * (no discount). Labels: [Did Not Attend] when absent, [Vacation Rate] when flagged.
  *
+ * Week boundary is Sunday 00:00 through Saturday 23:59:59 (inclusive), matching
+ * make_child_invoice() / recalculate_completed_child_invoice().
+ *
+ * Uses $CFG->timezone (via get_timestamp) so "current week" agrees with create_invoices().
+ *
+ * Returns a raw float for internal arithmetic. Callers that display the value
+ * should number_format() it; do not feed the return value back into arithmetic
+ * without casting (previous number_format-with-comma version truncated >= $1,000).
+ *
  * @param int  $pid
  * @param int  $aid
  * @param bool $use_enrollment
  * @param bool $nextweek
- * @return string
+ * @return float
  */
 function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
     global $CFG;
 
-    $invoiceweek = (date('N') == 7) ? strtotime('today') : strtotime('previous Sunday');
-    $endofweek   = strtotime('next Saturday', $invoiceweek);
+    // Align "today" / week start with create_invoices() timezone handling.
+    $now = function_exists('get_timestamp') ? get_timestamp($CFG->timezone) : time();
+    $invoiceweek = (date('N', $now) == 7) ? strtotime('today', $now) : strtotime('previous Sunday', $now);
+    // Inclusive end-of-week (Saturday 23:59:59), same as make_child_invoice().
+    $endofweek   = strtotime('+1 week -1 second', $invoiceweek);
 
     $program = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ['pid' => $pid]);
     if (!$program) {
-        return number_format(0, 2);
+        return 0.0;
     }
     if ($overrides = apply_overrides($program, $pid, $aid)) {
         $program = $overrides;
@@ -104,7 +115,7 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
 
     $accounts = get_db_result("SELECT * FROM accounts WHERE aid = ||aid||", ['aid' => $aid]);
     if (!$accounts) {
-        return number_format(0, 2);
+        return 0.0;
     }
 
     while ($account = fetch_row($accounts)) {
@@ -181,10 +192,12 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
                     $billed_by = 'attendance';
                 }
 
+                // Inclusive upper bound (timelog <= end) so Saturday attendance is counted,
+                // matching recalculate_completed_child_invoice() / make_child_invoice().
                 $activities = get_db_result(
                     "SELECT * FROM activity
                      WHERE tag = 'in' AND pid = ||pid|| AND chid = ||chid||
-                       AND timelog >= ||start|| AND timelog < ||end||
+                       AND timelog >= ||start|| AND timelog <= ||end||
                      ORDER BY timelog",
                     [
                         'pid'   => $pid,
@@ -248,7 +261,7 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
     }
 
     if (empty($charges)) {
-        return number_format(0, 2);
+        return 0.0;
     }
 
     $kids = [];
@@ -267,7 +280,8 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
     foreach ($after as $bill) {
         $total += (float)$bill;
     }
-    return number_format($total, 2);
+    // Return raw float; formatting belongs at display sites / account_balance().
+    return round($total, 2);
 }
 
 
@@ -485,19 +499,49 @@ function build_child_receipt(
         }
     }
 
-    $parts   = [];
-    $parts[] = '&nbsp;&nbsp;&nbsp;$' . number_format($rate_amount, 2, '.', '') . ' [' . $rate_label . ']';
+    // Table layout so operator, $, decimal points, and labels always align,
+    // independent of font metrics or parent CSS.
+    // Columns: [op] [$] [amount right-aligned] [label]
+    // Last detail row (before total) gets an underline under $ + amount only.
+    $rows = [];
+    $rows[] = ['', $rate_amount, $rate_label];
     if ($discount > 0 && $indiv_applied > 0) {
-        $parts[] = '$' . number_format($indiv_applied, 2, '.', '') . ' [Individual Discount]';
+        $rows[] = ['-', $indiv_applied, 'Individual Discount'];
     } else if ($discount > 0 && $indiv_applied == 0) {
-        $parts[] = '$' . number_format($indiv_applied, 2, '.', '') . ' [Individual Discount Dismissed]';
+        $rows[] = ['-', $indiv_applied, 'Individual Discount Dismissed'];
     }
-
     if ($multi_applied > 0) {
-        $parts[] = '$' . number_format($multi_applied, 2, '.', '') . ' [Multi-Child Discount]';
+        $rows[] = ['-', $multi_applied, 'Multi-Child Discount'];
     }
+    $rows[] = ['', $bill, '']; // total — no operator; underline comes from prior row
 
-    return $header . "<br />" . implode('<br />&nbsp;-&nbsp;', $parts) . '<br /> = $' . number_format($bill, 2, '.', '');
+    $last_detail_idx = count($rows) - 2; // row just above the total
+
+    $html = $header
+        . '<br /><table style="border-collapse:collapse;margin:0;padding:0;font:inherit;color:inherit">'
+        . '<colgroup>'
+        . '<col style="width:1.2em">'   // op
+        . '<col style="width:1em">'    // $
+        . '<col>'                      // amount
+        . '<col>'                      // label
+        . '</colgroup>';
+    foreach ($rows as $i => $row) {
+        list($op, $amt, $label) = $row;
+        $op_cell    = htmlspecialchars($op);
+        $num_cell   = number_format((float)$amt, 2, '.', '');
+        $label_cell = $label !== '' ? '&nbsp;[' . htmlspecialchars($label) . ']' : '';
+        $uline = ($i === $last_detail_idx)
+            ? 'border-bottom:1px solid currentColor;'
+            : '';
+        $html .= '<tr>'
+            . '<td style="padding:0 2px 0 0;text-align:right;vertical-align:baseline;white-space:nowrap">' . $op_cell . '</td>'
+            . '<td style="padding:0;text-align:right;vertical-align:baseline;white-space:nowrap;' . $uline . '">$</td>'
+            . '<td style="padding:0 0 0 1px;text-align:right;vertical-align:baseline;white-space:nowrap;font-variant-numeric:tabular-nums;' . $uline . '">' . $num_cell . '</td>'
+            . '<td style="padding:0 0 0 4px;text-align:left;vertical-align:baseline;white-space:nowrap">' . $label_cell . '</td>'
+            . '</tr>';
+    }
+    $html .= '</table>';
+    return $html;
 }
 
 /**
@@ -798,8 +842,9 @@ function make_child_invoice($pid, $chid, $invoiceweek, $refresh = false, $lastid
  */
 function create_invoices($return = false, $pid = null, $aid = null, $refreshall = false, $startweek = "0", $honor_past_enrollment = true) {
     global $CFG, $MYVARS;
-    $pid = $pid !== null ? $pid : (empty($MYVARS->GET["pid"]) ? get_pid() : $MYVARS->GET["pid"]);
-    $aid = $aid !== null ? $aid : (empty($MYVARS->GET["aid"]) ? false : $MYVARS->GET["aid"]);
+    // Cast GET-sourced ids to int (defense-in-depth; matches pattern used elsewhere).
+    $pid = $pid !== null ? (int)$pid : (empty($MYVARS->GET["pid"]) ? get_pid() : (int)$MYVARS->GET["pid"]);
+    $aid = $aid !== null ? ($aid === false ? false : (int)$aid) : (empty($MYVARS->GET["aid"]) ? false : (int)$MYVARS->GET["aid"]);
     $returnme = "";
 
     $program = get_db_row("SELECT * FROM programs WHERE pid = ||pid||", false, ["pid" => $pid]);

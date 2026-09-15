@@ -13,12 +13,7 @@ if (!isset($LIBHEADER)) {
 }
 $BILLINGLIB = true;
 
-// Schema for discount/vacation columns is applied once via
-// check_and_run_upgrades() in pagelib.php (version 2026091100) and on
-// fresh install via install.php. Do not run information_schema checks
-// on every request here — billinglib is included from header.php on
-// every page.
-
+require_once __DIR__ . '/billing_math.php';
 
 /**
  *
@@ -74,78 +69,6 @@ function apply_overrides($program, $pid, $aid) {
     }
 
     return false;
-}
-
-/**
- * Compute the raw (pre-discount, pre-exempt, pre-vacation) charge for one
- * child for one week.
- *
- * - Enrollment billing: always $program['fulltime'], regardless of
- *   attendance (including zero days). Minimum Active / Minimum Inactive
- *   never apply.
- * - Attendance billing: perday * day_count, floored at Minimum Active once
- *   the child attended >=1 day, replaced by Fulltime once attendance
- *   reaches consider_full days, or Minimum Inactive if no attendance at
- *   all. This still holds when consider_full is 8, a sentinel meaning
- *   "charge strictly by the day" (a week maxes out at 7 days, so Fulltime
- *   never triggers and the Minimum Active/Inactive floor is what applies).
- *
- * @param array $program               Program row (with overrides applied).
- * @param int   $day_count             Days attended this week (0 if none).
- * @param bool  $is_enrollment_billing True when the effective bill_by is 'enrollment'.
- * @return float
- */
-function compute_child_week_bill($program, $day_count, $is_enrollment_billing) {
-    if ($is_enrollment_billing) {
-        // Billed by enrollment: full price no matter attendance.
-        return (float)$program['fulltime'];
-    }
-
-    // Billed by attendance.
-    if ($day_count > 0) {
-        if ($day_count >= (int)$program['consider_full']) {
-            return (float)$program['fulltime'];
-        }
-
-        $bill = $day_count * (float)$program['perday'];
-        $min_active = (float)$program['minimumactive'];
-        if ($min_active > 0 && $bill < $min_active) {
-            $bill = $min_active;
-        }
-        return $bill;
-    }
-
-    // Did not attend at all.
-    return (float)$program['minimuminactive'];
-}
-
-/**
- * Apply a child's individual discount to a raw (pre-discount) weekly charge.
- *
- * Applies to every non-exempt, non-vacation bill, enrollment- or
- * attendance-billed. For attendance billing the result is floored at
- * Minimum Active (attended >=1 day, including the fulltime case) or
- * Minimum Inactive (no attendance). Enrollment billing has no floor beyond
- * zero. Caller must skip this call entirely for exempt/vacation weeks.
- *
- * @param array $program
- * @param float $raw_bill              Pre-discount charge.
- * @param float $discount              Individual discount amount.
- * @param bool  $is_enrollment_billing
- * @param int   $day_count             Days attended this week (0 if none); ignored for enrollment billing.
- * @return float
- */
-function apply_individual_discount($program, $raw_bill, $discount, $is_enrollment_billing, $day_count) {
-    $final = (float)$raw_bill - (float)$discount;
-
-    if (!$is_enrollment_billing) {
-        $floor = $day_count > 0 ? (float)$program['minimumactive'] : (float)$program['minimuminactive'];
-        if ($floor > 0 && $final < $floor) {
-            $final = $floor;
-        }
-    }
-
-    return max(0, $final);
 }
 
 /**
@@ -328,43 +251,22 @@ function week_balance($pid, $aid, $use_enrollment = true, $nextweek = false) {
         return number_format(0, 2);
     }
 
-    $ord = 0;
-    foreach ($charges as &$c) {
-        $c['_ord'] = $ord++;
-    }
-    unset($c);
-    uasort($charges, function ($a, $b) {
-        $cmp = $b['final'] <=> $a['final'];
-        return $cmp !== 0 ? $cmp : ($a['_ord'] <=> $b['_ord']);
-    });
-
-    // Multi-child discount applies only when family total exceeds the threshold
-    $family_total = 0.0;
-    foreach ($charges as $info) {
-        if (!$info['exempt'] && $info['final'] > 0) {
-            $family_total += (float)$info['final'];
-        }
-    }
-    $multiple = (float)($program['multiple_discount'] ?? 0);
-    $threshold = (float)($program['discount_rule'] ?? 0);
-    $apply_multiple = ($multiple > 0 && ($threshold <= 0 || $family_total > $threshold));
-
-    $total  = 0.0;
-    $first  = true;
-
+    $kids = [];
     foreach ($charges as $chid => $info) {
-        $bill = $info['final'];
+        $kids[$chid] = [
+            'final'          => (float)$info['final'],
+            'exempt'         => (int)$info['exempt'],
+            'did_not_attend' => empty($info['attendance']) ? 1 : 0,
+        ];
+    }
+    $multiple  = (float)($program['multiple_discount'] ?? 0);
+    $threshold = (float)($program['discount_rule'] ?? 0);
+    $after     = apply_multi_child_discount($kids, $multiple, $threshold);
 
-        if ($apply_multiple && !$first && !$info['exempt'] && $bill > 0) {
-            $bill = max(0, $bill - $multiple);
-        }
-        $first = false;
-
-        // Current / next week estimates are display-only.
-        // billing_perchild rows are created only after a week is completed (create_invoices).
+    $total = 0.0;
+    foreach ($after as $bill) {
         $total += (float)$bill;
     }
-
     return number_format($total, 2);
 }
 
@@ -473,6 +375,12 @@ function make_account_invoice($pid, $aid, $invoiceweek = false) {
  * to $bill) is used only for Fulltime / Minimum Active detection so that a
  * later multi-child discount does not change the rate label.
  *
+ * Pass $siblings (chid => ['final' => float, 'exempt' => 0|1]) when you need
+ * multi-child labeling. build_child_receipt() then calls
+ * child_gets_multi_child_discount() using program multiple_discount /
+ * discount_rule. Omit $siblings (or pass null) when family context is unknown
+ * (e.g. the first-pass per-child save before multi is applied).
+ *
  * @param array  $program
  * @param int    $chid
  * @param float  $bill                Amount shown on the receipt
@@ -481,6 +389,7 @@ function make_account_invoice($pid, $aid, $invoiceweek = false) {
  * @param int    $vacation
  * @param string $attendance          e.g. "1 day (Fri)" or "" for none
  * @param float|null $classification_bill  Amount used for rate labels; null = use $bill
+ * @param array|null $siblings        Optional family map keyed by chid for multi-child check
  * @return string
  */
 function build_child_receipt(
@@ -491,7 +400,8 @@ function build_child_receipt(
     $exempt = 0,
     $vacation = 0,
     $attendance = '',
-    $classification_bill = null
+    $classification_bill = null,
+    $siblings = null
 ) {
     $bill     = (float)$bill;
     $discount = (float)$discount;
@@ -506,37 +416,88 @@ function build_child_receipt(
         $discount = 0.0;
     }
 
+    $is_enrollment = (($program['bill_by'] ?? '') === 'enrollment');
+
+    $day_count = 0;
+    if (!empty($attendance) && preg_match('/^(\d+)\s+days?\b/', $attendance, $m)) {
+        $day_count = (int)$m[1];
+    }
+
+    // Effective individual discount (0 when floor blocked it)
+    $indiv_applied = 0.0;
+    if ($discount > 0 && !$vacation && !$exempt) {
+        $raw     = compute_child_week_bill($program, $day_count, $is_enrollment);
+        $with    = apply_individual_discount($program, $raw, $discount, $is_enrollment, $day_count);
+        $without = apply_individual_discount($program, $raw, 0, $is_enrollment, $day_count);
+        if ($with < $without - 0.0005) {
+            $indiv_applied = $discount;
+        }
+    }
+
+    // Multi-child only when it actually reduces a positive pre-multi amount
+    $multi_applied = 0.0;
+    $multi_amt     = (float)($program['multiple_discount'] ?? 0);
+    if (is_array($siblings) && !empty($siblings) && array_key_exists($chid, $siblings)) {
+        $threshold = (float)($program['discount_rule'] ?? 0);
+        $pre_multi = (float)$siblings[$chid]['final'];
+        if ($multi_amt > 0 && $pre_multi > 0.0005
+            && empty($siblings[$chid]['did_not_attend'])
+            && child_gets_multi_child_discount($chid, $siblings, $multi_amt, $threshold)) {
+            $multi_applied = $multi_amt;
+        }
+    }
+
     $name = get_name(['type' => 'chid', 'id' => $chid]);
-    $attendance_text = empty($attendance) ? ' [Did Not Attend]' : ' Attended ' . $attendance;
+    $header = empty($attendance)
+        ? $name . ' - Did Not Attend'
+        : $name . ' - Attended ' . $attendance;
 
     if ($exempt) {
-        return $name . ' - [Exempt] ' . $attendance_text . ': $0.00';
+        return $header . "<br />[Exempt] = $0.00";
     }
     if ($vacation) {
-        return $name . ' - [Vacation Rate] ' . $attendance_text . ': $' . number_format($bill, 2, '.', '');
+        return $header . "<br />[$" . number_format($bill, 2, '.', '') . " Vacation Rate] = $" . number_format($bill, 2, '.', '');
     }
 
-    $disc_txt = $discount > 0
-        ? ' [$' . number_format($discount, 2, '.', '') . ' Individual Discount]'
-        : '';
-
+    // Rate label
     if (empty($attendance)) {
-        $rate = $attendance_text . $disc_txt;
+        if ($is_enrollment) {
+            $rate_label  = 'Fulltime Rate';
+            $rate_amount = (float)$program['fulltime'];
+        } else {
+            $rate_label  = 'Minimum Inactive Rate';
+            $rate_amount = (float)$program['minimuminactive'];
+        }
     } else {
         $is_full = abs($class_bill - (float)$program['fulltime']) < 0.001
                    || abs($class_bill + $discount - (float)$program['fulltime']) < 0.001;
         $is_min_active = abs($class_bill - (float)$program['minimumactive']) < 0.001
                    || abs($class_bill + $discount - (float)$program['minimumactive']) < 0.001;
         if ($is_full) {
-            $rate = '[Fulltime Rate]' . $disc_txt . $attendance_text;
+            $rate_label  = 'Fulltime Rate';
+            $rate_amount = (float)$program['fulltime'];
         } elseif ($is_min_active) {
-            $rate = '[Minimum Active Rate]' . $disc_txt . $attendance_text;
+            $rate_label  = 'Minimum Active Rate';
+            $rate_amount = (float)$program['minimumactive'];
         } else {
-            $rate = '[Part-time Rate]' . $disc_txt . $attendance_text;
+            $rate_label  = 'Part-time Rate ' . $day_count . ' x ' . '$' . number_format((float)$program['perday'], 2, '.', '');
+            $rate_amount = $indiv_applied > 0 ? ($class_bill + $indiv_applied) : $class_bill;
         }
     }
 
-    return $name . ' - ' . $rate . ': $' . number_format($bill, 2, '.', '');
+    $parts   = [];
+    $parts[] = '&nbsp;&nbsp;&nbsp;$' . number_format($rate_amount, 2, '.', '') . ' [' . $rate_label . ']';
+    if ($discount > 0 && $indiv_applied > 0) {
+        $parts[] = '$' . number_format($indiv_applied, 2, '.', '') . ' [Individual Discount]';
+    } else if ($discount > 0 && $indiv_applied == 0) {
+        $parts[] = '$' . number_format($indiv_applied, 2, '.', '') . ' [Individual Discount Dismissed]';
+    }
+
+    if ($multi_applied > 0) {
+        $parts[] = '$' . number_format($multi_applied, 2, '.', '') . ' [Multi-Child Discount]';
+    }
+
+    return $header . "<br />" . implode('<br />&nbsp;-&nbsp;', $parts) . '<br /> = $' . number_format($bill, 2, '.', '');
 }
 
 /**
@@ -1147,7 +1108,7 @@ function apply_multiple_child_discount_for_week($pid, $aid, $fromdate, $program)
     }
 
     $rows = get_db_result(
-        "SELECT id, bill, exempt FROM billing_perchild
+        "SELECT id, chid, bill, exempt, days_attending FROM billing_perchild
          WHERE pid = ||pid|| AND fromdate = ||fromdate||
            AND chid IN (SELECT chid FROM children WHERE aid = ||aid||)
          ORDER BY id",
@@ -1157,76 +1118,74 @@ function apply_multiple_child_discount_for_week($pid, $aid, $fromdate, $program)
         return;
     }
 
-    $charges = [];
-    $family_total = 0.0;
+    $children = [];
+    $siblings = [];
     while ($row = fetch_row($rows)) {
-        $bill = (float)$row['bill'];
-        $exempt = (int)($row['exempt'] ?? 0);
-        $charges[] = [
-            'id'     => $row['id'],
-            'exempt' => $exempt,
-            'bill'   => $bill,
+        $days = trim((string)($row['days_attending'] ?? ''));
+        $did_not_attend = ($days === '' || strtolower($days) === 'attendance') ? 1 : 0;
+        $info = [
+            'final'          => (float)$row['bill'],
+            'exempt'         => (int)($row['exempt'] ?? 0),
+            'did_not_attend' => $did_not_attend,
         ];
-        if (!$exempt && $bill > 0) {
-            $family_total += $bill;
-        }
+        $children[$row['id']]        = $info;
+        $siblings[(int)$row['chid']] = $info;
     }
 
     $threshold = (float)($program['discount_rule'] ?? 0);
-    // Threshold of 0 (or unset) means always apply when multiple_discount > 0
-    if ($threshold > 0 && $family_total <= $threshold) {
-        return;
-    }
+    $after     = apply_multi_child_discount($children, $multiple, $threshold);
 
-    // Highest bill first; equal bills keep relative order by id for stability
-    usort($charges, function ($a, $b) {
-        $cmp = $b['bill'] <=> $a['bill'];
-        return $cmp !== 0 ? $cmp : ($a['id'] <=> $b['id']);
-    });
-
-    $first = true;
-    foreach ($charges as $c) {
-        if ($c['exempt'] || $c['bill'] <= 0) {
+    foreach ($after as $id => $newbill) {
+        $oldbill = $children[$id]['final'];
+        if (abs($newbill - $oldbill) <= 0.001) {
             continue;
         }
-        if ($first) {
-            $first = false;
+
+        $pc = get_db_row("SELECT * FROM billing_perchild WHERE id = ||id||", false, ['id' => $id]);
+        if (!$pc) {
             continue;
         }
-        $newbill = max(0, round($c['bill'] - $multiple, 2));
-        if (abs($newbill - $c['bill']) > 0.001) {
-            $pc = get_db_row("SELECT * FROM billing_perchild WHERE id = ||id||", false, ['id' => $c['id']]);
-            if ($pc) {
-                // Reconstruct attendance text from stored days_attending so the
-                // receipt can be regenerated without relying on the old string.
-                $attendance = '';
-                $billed_by  = trim((string)($pc['days_attending'] ?? ''));
-                if ($billed_by !== '' && strtolower($billed_by) !== 'attendance') {
-                    $days = array_values(array_filter(array_map('trim', explode(',', $billed_by))));
-                    $cnt  = count($days);
-                    if ($cnt > 0) {
-                        $attendance = $cnt . ($cnt === 1 ? ' day' : ' days')
-                                    . ' (' . implode(' ', $days) . ')';
-                    }
+
+        // Map numeric date("w") codes to day names
+        $attendance = '';
+        $billed_by  = trim((string)($pc['days_attending'] ?? ''));
+        if ($billed_by !== '' && strtolower($billed_by) !== 'attendance') {
+            $day_names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            $parts = array_values(array_filter(array_map('trim', explode(',', $billed_by))));
+            $labels = [];
+            foreach ($parts as $p) {
+                if ($p === '') {
+                    continue;
                 }
-
-                $receipt = build_child_receipt(
-                    $program,
-                    (int)$pc['chid'],
-                    $newbill,
-                    (float)($pc['discount'] ?? 0),
-                    (int)($pc['exempt'] ?? 0),
-                    (int)($pc['vacation'] ?? 0),
-                    $attendance,
-                    $c['bill']   // classify rate labels from the pre-multi amount
-                );
-
-                execute_db_sql(
-                    "UPDATE billing_perchild SET bill = ||bill||, receipt = ||receipt|| WHERE id = ||id||",
-                    ['bill' => $newbill, 'receipt' => $receipt, 'id' => $c['id']]
-                );
+                if (ctype_digit((string)$p) && isset($day_names[(int)$p])) {
+                    $labels[] = $day_names[(int)$p];
+                } else {
+                    $labels[] = $p;
+                }
+            }
+            $cnt = count($labels);
+            if ($cnt > 0) {
+                $attendance = $cnt . ($cnt === 1 ? ' day' : ' days')
+                            . ' (' . implode(' ', $labels) . ')';
             }
         }
+
+        $receipt = build_child_receipt(
+            $program,
+            (int)$pc['chid'],
+            $newbill,
+            (float)($pc['discount'] ?? 0),
+            (int)($pc['exempt'] ?? 0),
+            (int)($pc['vacation'] ?? 0),
+            $attendance,
+            $oldbill,
+            $siblings
+        );
+
+        execute_db_sql(
+            "UPDATE billing_perchild SET bill = ||bill||, receipt = ||receipt|| WHERE id = ||id||",
+            ['bill' => $newbill, 'receipt' => $receipt, 'id' => $id]
+        );
     }
 }
 

@@ -1,14 +1,15 @@
 <?php
 /**
- * Self-contained unit tests for billing calculation logic.
- * Mirrors compute_child_week_bill() / apply_individual_discount() /
- * multi-child discount from billinglib.php. No database required.
+ * Unit tests for pure billing math in lib/billing_math.php.
+ * Exercises the real production helpers (no database required).
  *
- * CLI:  php test_billing_math.php
+ * CLI:  php tests/test_billing_math.php
  * Web:  open in browser (auto-detects and renders HTML)
  */
 
 $is_cli = (php_sapi_name() === 'cli');
+
+require_once dirname(__DIR__) . '/lib/billing_math.php';
 
 // ---------------------------------------------------------------------------
 // Output helpers
@@ -68,88 +69,8 @@ function assert_true(string $label, bool $cond): void {
 }
 
 // ---------------------------------------------------------------------------
-// Billing math (mirrors billinglib.php)
+// Local helpers used only by these tests
 // ---------------------------------------------------------------------------
-
-function compute_child_week_bill(array $program, int $day_count, bool $is_enrollment_billing): float {
-    if ($is_enrollment_billing) {
-        return (float)$program['fulltime'];
-    }
-    if ($day_count > 0) {
-        if ($day_count >= (int)$program['consider_full']) {
-            return (float)$program['fulltime'];
-        }
-        $bill = $day_count * (float)$program['perday'];
-        $min_active = (float)$program['minimumactive'];
-        if ($min_active > 0 && $bill < $min_active) {
-            $bill = $min_active;
-        }
-        return $bill;
-    }
-    return (float)$program['minimuminactive'];
-}
-
-function apply_individual_discount(
-    array $program,
-    float $raw_bill,
-    float $discount,
-    bool $is_enrollment_billing,
-    int $day_count
-): float {
-    $final = (float)$raw_bill - (float)$discount;
-    if (!$is_enrollment_billing) {
-        $floor = $day_count > 0
-            ? (float)$program['minimumactive']
-            : (float)$program['minimuminactive'];
-        if ($floor > 0 && $final < $floor) {
-            $final = $floor;
-        }
-    }
-    return max(0.0, $final);
-}
-
-function apply_multi_child_discount(
-    array $children,
-    float $multiple,
-    float $threshold = 0.0
-): array {
-    $family_total = 0.0;
-    foreach ($children as $info) {
-        if (empty($info['exempt']) && $info['final'] > 0) {
-            $family_total += (float)$info['final'];
-        }
-    }
-    if ($multiple <= 0 || ($threshold > 0 && $family_total <= $threshold)) {
-        $out = [];
-        foreach ($children as $id => $info) {
-            $out[$id] = (float)$info['final'];
-        }
-        return $out;
-    }
-
-    $i = 0;
-    foreach ($children as $id => &$info) {
-        $info['_ord'] = $i++;
-    }
-    unset($info);
-
-    uasort($children, function ($a, $b) {
-        $cmp = $b['final'] <=> $a['final'];
-        return $cmp !== 0 ? $cmp : ($a['_ord'] <=> $b['_ord']);
-    });
-
-    $first = true;
-    $result = [];
-    foreach ($children as $id => $info) {
-        $bill = (float)$info['final'];
-        if (!$first && empty($info['exempt']) && $bill > 0) {
-            $bill = max(0.0, round($bill - $multiple, 2));
-        }
-        $first = false;
-        $result[$id] = $bill;
-    }
-    return $result;
-}
 
 function format_money(float $amount): string {
     return '$' . number_format($amount, 2, '.', '');
@@ -314,6 +235,20 @@ $all_ex = [
 ];
 $after_ex = apply_multi_child_discount($all_ex, 10.00, 0.00);
 assert_eq('all exempt stay 0', 0.00, $after_ex['E1'] + $after_ex['E2']);
+end_section();
+
+start_section('child_gets_multi_child_discount (bool helper)');
+$kids_bool = [
+    'A' => ['final' => 100.00, 'exempt' => 0],
+    'B' => ['final' => 50.00,  'exempt' => 0],
+    'C' => ['final' => 0.00,   'exempt' => 1],
+];
+assert_true('highest does not get multi', !child_gets_multi_child_discount('A', $kids_bool, 10.00, 0.00));
+assert_true('second does get multi', child_gets_multi_child_discount('B', $kids_bool, 10.00, 0.00));
+assert_true('exempt does not get multi', !child_gets_multi_child_discount('C', $kids_bool, 10.00, 0.00));
+assert_true('threshold blocks everyone', !child_gets_multi_child_discount('B', $kids_bool, 10.00, 200.00));
+assert_true('solo child does not get multi', !child_gets_multi_child_discount('only', $solo, 10.00, 0.00));
+assert_true('unknown child is false', !child_gets_multi_child_discount('Z', $kids_bool, 10.00, 0.00));
 end_section();
 
 // ---------------------------------------------------------------------------

@@ -3967,7 +3967,8 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
             $selected_class  = $aid && $aid == $account["aid"] || ($pid && !$aid && $i == 0) ? "selected_button" : "";
             $aid             = $selected_class == "selected_button" ? $account["aid"] : $aid;
             $account_balance = account_balance($pid, $account["aid"], true);
-            $balanceclass    = $account_balance <= 0 ? "balance_good" : "balance_bad";
+            $balance_num = (float) str_replace(',', '', (string) $account_balance);
+            $balanceclass = $balance_num <= 0 ? "balance_good" : "balance_bad";
 
             $account_list .= from_template("selectable_list_item_view_invoices.php", [
                 "class" => $selected_class,
@@ -3986,7 +3987,7 @@ function get_admin_billing_form($return = false, $pid = false, $aid = false) {
                         <div class="child_count">
                             Children: ' . $kid_count . '<br />
                             <span class="' . $balanceclass . '">
-                                Balance: $' . number_format($account_balance * -1, 2) . '
+                                Balance: $' . number_format($balance_num * -1, 2) . '
                             </span>
                         </div>',
                 ]),

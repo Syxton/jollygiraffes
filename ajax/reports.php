@@ -59,7 +59,42 @@ $returnme .= '
                     link.click();
                 }
             });
-            ">' . icon('copy', "2") . ' Copy</button></div><div id="printthis" class="printthis fill_height" style="padding-left:10px;width:785px;">';
+            ">' . icon('copy', "2") . ' Copy</button>
+    </div>
+    <div id="printthis" class="printthis fill_height" style="padding-left:10px;width:785px;">
+        <style>
+            @media print {
+                /* All print-specific style overrides go here */
+                .rbd {
+                    flex-direction:row;
+                    flex-wrap:wrap;
+                    column-gap:5px;
+                    row-gap:4px;
+                }
+                .ul {
+                    border: none;
+                }
+                .receipt_total:before {
+                    content: "=";
+                }
+                .receipt_total .amt {
+                    text-align: left;
+                }
+                .receipt_total .amt,
+                .receipt_total .dol {
+                    font-weight:bold;
+                    border: none;
+                }
+                .rbd .amt {
+                    text-align: left;
+                }
+                .rbd .op {
+                    flex: unset;
+                    text-align: left;
+                    padding: 0;
+                }
+            }
+        </style>';
 
 $fromnum = strtotime($from);
 $tonum = strtotime($to);
@@ -462,12 +497,12 @@ switch ($report) {
                                 while ($transaction = fetch_row($transactions)) {
                                     if ($transaction["payment"] < 0) {
                                         $transactionlist .= '
-                                            <div style="padding-left:10px">
+                                            <div>
                                                 <strong>Fee: $' . number_format(abs($transaction["payment"]), 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
                                             </div>';
                                     } else {
                                         $transactionlist .= '
-                                            <div style="padding-left:10px">
+                                            <div>
                                                 <strong>Payment: $' . number_format($transaction["payment"], 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
                                             </div>';
                                     }
@@ -493,12 +528,12 @@ switch ($report) {
                             while ($transaction = fetch_row($transactions)) {
                                 if ($transaction["payment"] < 0) {
                                     $paymentlist .= '
-                                        <div style="padding-left:10px">
+                                        <div>
                                             <strong>Fee: $' . number_format(abs($transaction["payment"]), 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
                                         </div>';
                                 } else {
                                     $paymentlist .= '
-                                        <div style="padding-left:10px">
+                                        <div>
                                             <strong>Payment: $' . number_format($transaction["payment"], 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
                                         </div>';
                                 }
@@ -532,12 +567,12 @@ switch ($report) {
                         while ($transaction = fetch_row($transactions)) {
                             if ($transaction["payment"] < 0) {
                                 $transactionlist .= '
-                                    <div style="padding-left:10px">
+                                    <div>
                                         <strong>Fee: $' . number_format(abs($transaction["payment"]), 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
                                     </div>';
                             } else {
                                 $transactionlist .= '
-                                    <div style="padding-left:10px">
+                                    <div>
                                         <strong>Payment: $' . number_format($transaction["payment"], 2) . '</strong> on ' . date('F \t\h\e jS, Y', display_time($transaction["timelog"])) . ' <em> Note:' . $transaction["note"] . '</em>
                                     </div>';
                             }

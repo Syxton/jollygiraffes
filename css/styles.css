@@ -803,6 +803,81 @@ svg {
     z-index: 0;
 }
 
+.rbd {
+    display:flex;
+    flex-direction:column;
+    font:inherit;
+    color:inherit;
+}
+.rbd .rbd-row {
+    display:flex;
+    align-items:baseline;
+    white-space:nowrap;
+}
+.rbd .op{
+    flex:0 0 1.2em;
+    text-align:right;
+    padding:0 2px 0 0;
+}
+.rbd .dol{
+    flex:0 0 1em;
+    text-align:right;
+    padding:0;
+}
+.rbd .amt{
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+    padding:0 0 0 1px;
+}
+.rbd .lbl{
+    flex:0 0 auto;
+    text-align:left;
+    padding:0 0 0 4px;
+}
+.rbd .ul {
+    border-bottom:1px solid currentColor;
+}
+.printthis {
+    padding-left: 10px;
+    width: 100% !important;
+    box-sizing: border-box;
+}
+.printthis .rbd {
+    flex-direction:row;
+    flex-wrap:wrap;
+    column-gap:5px;
+    row-gap:4px;
+}
+.printthis .op,
+.printthis .amt,
+.printthis .dol,
+.printthis .lbl {
+    padding: 0;
+}
+.printthis .ul {
+    border: none;
+}
+.printthis .receipt_total:before {
+    content: "=";
+}
+.printthis .receipt_total .amt {
+    text-align: left;
+}
+.printthis .receipt_total .amt,
+.printthis .receipt_total .dol {
+    font-weight:bold;
+}
+.printthis .rbd .amt {
+    text-align: left;
+    flex: unset !important;
+}
+.printthis .rbd .op {
+    flex: unset;
+    text-align: left;
+}
+.printthis .receipt_rate .dol {
+    flex: unset;
+}
 
 /* ============================================
    Child / Slider Items

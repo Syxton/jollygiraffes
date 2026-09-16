@@ -499,48 +499,51 @@ function build_child_receipt(
         }
     }
 
-    // Table layout so operator, $, decimal points, and labels always align,
+    // Flex layout so operator, $, decimal points, and labels always align,
     // independent of font metrics or parent CSS.
-    // Columns: [op] [$] [amount right-aligned] [label]
+    // Each row is its own flex row: [op] [$] [amount right-aligned] [label]
+    // Outside .printhis, rows stack vertically. Inside .printhis, rows wrap
+    // side by side to minimize vertical height.
     // Last detail row (before total) gets an underline under $ + amount only.
     $rows = [];
-    $rows[] = ['', $rate_amount, $rate_label];
+    $rows[] = ['', $rate_amount, $rate_label, 'receipt_rate'];
     if ($discount > 0 && $indiv_applied > 0) {
-        $rows[] = ['-', $indiv_applied, 'Individual Discount'];
+        $rows[] = ['-', $indiv_applied, 'Individual Discount', 'receipt_discount'];
     } else if ($discount > 0 && $indiv_applied == 0) {
-        $rows[] = ['-', $indiv_applied, 'Individual Discount Dismissed'];
+        $rows[] = ['-', $indiv_applied, 'Individual Discount Dismissed', 'receipt_discount'];
     }
     if ($multi_applied > 0) {
-        $rows[] = ['-', $multi_applied, 'Multi-Child Discount'];
+        $rows[] = ['-', $multi_applied, 'Multi-Child Discount', 'receipt_multi'];
     }
-    $rows[] = ['', $bill, '']; // total — no operator; underline comes from prior row
+    $rows[] = ['', $bill, '', 'receipt_total']; // total — no operator; underline comes from prior row
 
     $last_detail_idx = count($rows) - 2; // row just above the total
 
-    $html = $header
-        . '<br /><table style="border-collapse:collapse;margin:0;padding:0;font:inherit;color:inherit">'
-        . '<colgroup>'
-        . '<col style="width:1.2em">'   // op
-        . '<col style="width:1em">'    // $
-        . '<col>'                      // amount
-        . '<col>'                      // label
-        . '</colgroup>';
+    // Pre-format amounts and find the widest one so the amount column
+    // stays a fixed character-width (tabular-nums makes 'ch' == digit width).
+    $formatted = array_map(function ($row) {
+        return number_format((float)$row[1], 2, '.', '');
+    }, $rows);
+    $max_amt_len = max(array_map('strlen', $formatted));
+
+    $html = '';
     foreach ($rows as $i => $row) {
-        list($op, $amt, $label) = $row;
+        list($op, $amt, $label, $class) = $row;
         $op_cell    = htmlspecialchars($op);
-        $num_cell   = number_format((float)$amt, 2, '.', '');
+        $num_cell   = $formatted[$i];
         $label_cell = $label !== '' ? '&nbsp;[' . htmlspecialchars($label) . ']' : '';
-        $uline = ($i === $last_detail_idx)
-            ? 'border-bottom:1px solid currentColor;'
-            : '';
-        $html .= '<tr>'
-            . '<td style="padding:0 2px 0 0;text-align:right;vertical-align:baseline;white-space:nowrap">' . $op_cell . '</td>'
-            . '<td style="padding:0;text-align:right;vertical-align:baseline;white-space:nowrap;' . $uline . '">$</td>'
-            . '<td style="padding:0 0 0 1px;text-align:right;vertical-align:baseline;white-space:nowrap;font-variant-numeric:tabular-nums;' . $uline . '">' . $num_cell . '</td>'
-            . '<td style="padding:0 0 0 4px;text-align:left;vertical-align:baseline;white-space:nowrap">' . $label_cell . '</td>'
-            . '</tr>';
+        $uline = ($i === $last_detail_idx) ? ' ul' : '';
+
+        $html .= '
+            <div class="rbd-row ' . ($class ?? '') . '">
+                <div class="op">' . $op_cell . '</div>
+                <div class="dol' . $uline . '">$</div>
+                <div class="amt' . $uline . '" style="flex:0 0 ' . $max_amt_len . 'ch;">' . $num_cell . '</div>
+                <div class="lbl">' . $label_cell . '</div>
+            </div>';
     }
-    $html .= '</table>';
+
+    $html = $header . '<br /><div class="rbd"> ' . $html . '</div>';
     return $html;
 }
 

@@ -358,7 +358,7 @@ h3 {
 }
 
 .list_box_item_left {
-    display: block;
+    display: flex;
     flex: 1 1 60%;
     min-width: 0;
     white-space: normal;
@@ -373,11 +373,18 @@ h3 {
     font-size: clamp(10px, 4vmin, 17px);
     vertical-align: middle;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.list_box_item_right.employee_pay  {
+    flex-direction: row;
 }
 
 .program_name + .list_box_item_right {
     width: 30%;
-    display: inline-block;
+    flex-direction: row;
+    align-items: center;
 }
 
 .program_event_list {
@@ -413,6 +420,7 @@ h3 {
     font-size: clamp(15px, 4vmin, 23px);
     align-items: center;
     flex-wrap: wrap;
+    gap: 10px;
 }
 
 .list_title.leftselector {
@@ -421,10 +429,13 @@ h3 {
 }
 
 .list_links {
-    font-size: 12px;
-    font-weight: normal;
     display: inline-flex;
     flex: 1 1 auto;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: normal;
     min-width: 0;
     max-width: 100%;
     white-space: normal;
@@ -440,8 +451,10 @@ h3 {
 
 .child_buttons {
     display: inline-flex;
+    gap: 5px;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: space-evenly;
 }
 
 .child + .list_title {
@@ -1658,7 +1671,8 @@ div.day-add a {
 
 .layout-split-row > * {
     display: flex;
-    width: 150px;
+    min-width: 95px;
+    width: 35%;
     min-width: 0;
     align-items: center;
 }
@@ -1927,10 +1941,6 @@ div.day-add a {
         display: none;
     }
 
-    .list_links {
-        width: 90vw;
-    }
-
     .list_title {
         padding: 3px;
     }
@@ -1945,7 +1955,7 @@ div.day-add a {
 
     .list_box_item_right {
         display: block;
-        width: 100%;
+        width: 35%;
         left: initial;
         right: initial;
         text-align: center;
@@ -1954,7 +1964,7 @@ div.day-add a {
     .account_name,
     .employee_name {
         width: 100%;
-        display: block;
+        display: flex;
     }
 
     .child_count {

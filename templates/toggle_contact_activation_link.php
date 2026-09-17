@@ -1,4 +1,3 @@
-&nbsp;
 <a  id="a-<?php echo $cid; ?>"
     data="<?php echo $name; ?>"
     href="javascript: void(0);"

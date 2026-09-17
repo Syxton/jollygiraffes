@@ -3,5 +3,5 @@
                     'add_edit_payment_<?php echo $identifier; ?>',
                     300,
                     400)">
-    <?php echo icon('pencil'); ?>
+    <?php echo icon('wrench'); ?>
 </button>

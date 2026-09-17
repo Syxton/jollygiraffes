@@ -3458,7 +3458,11 @@ function get_documents_list($return = false, $aid = null, $chid = null, $cid = n
                         <span class="tag-description">
                             ' . $document["description"] . '
                         </span>
-                        <span class="list_links"><a href="ajax/fileviewer.php?did=' . $document["did"] . '" class="nyroModal"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Document</span></a> <a href="javascript: void(0);" onclick="CreateDialog(\'attach_doc_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all">' . icon('pen-to-square') . ' Update Document</span></a> <a id="a-' . $document["did"] . '" data="' . $document["tag"] . '" href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . icon('trash') . ' Delete Document</span></a></span>
+                        <span class="list_links">
+                            <a href="ajax/fileviewer.php?did=' . $document["did"] . '" class="nyroModal"><span class="inline-button ui-corner-all">' . icon('magnifying-glass') . ' View Document</span></a>
+                            <a href="javascript: void(0);" onclick="CreateDialog(\'attach_doc_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all">' . icon('pen-to-square') . ' Update Document</span></a>
+                            <a id="a-' . $document["did"] . '" data="' . $document["tag"] . '" href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . icon('trash') . ' Delete Document</span></a>
+                        </span>
                     </div>
                 </div>';
         }
@@ -3571,7 +3575,10 @@ function get_notes_list($return = false, $aid = null, $chid = null, $cid = null,
                         <span class="tag-description">
                             ' . $note["note"] . '
                         </span>
-                        <span class="list_links"><a href="javascript: void(0);" onclick="CreateDialog(\'attach_note_' . $identifier . '\', 360, 400)"><span class="inline-button ui-corner-all">' . icon('pen-to-square') . ' Update Note</span></a> <a id="a-' . $note["nid"] . '" data="' . $note["tag"] . '" href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . icon('trash') . ' Delete Note</span></a></span>
+                        <span class="list_links">
+                            <a href="javascript: void(0);" onclick="CreateDialog(\'attach_note_' . $identifier . '\', 360, 400)"><span class="inline-button ui-corner-all">' . icon('pen-to-square') . ' Update Note</span></a>
+                            <a id="a-' . $note["nid"] . '" data="' . $note["tag"] . '" href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . icon('trash') . ' Delete Note</span></a>
+                        </span>
                     </div>
                 </div>';
         }
@@ -4135,7 +4142,7 @@ function get_admin_employees_form($return = false, $employeeid = false, $recover
                         <span class="list_title">
                             ' . $employee["last"] . ', ' . $employee["first"] . '
                         </span>',
-                    "rightclass" => "billing_info",
+                    "rightclass" => "billing_info employee_pay",
                     "right" => '
                         <div class="child_count">
                             <span class="hide_mobile">
@@ -4345,8 +4352,8 @@ function get_tags_info($return = false, $tagtype = null, $tag = null) {
                 ],
                 $identifier
             );
-            $edit_button   = ' <a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_tag_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all">' . icon('wrench') . ' Edit</span></a>';
-            $delete_button = ' <a href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . icon('trash') . ' Delete</span></a>';
+            $edit_button   = '<a href="javascript: void(0);" onclick="CreateDialog(\'add_edit_tag_' . $identifier . '\', 300, 400)"><span class="inline-button ui-corner-all">' . icon('wrench') . ' Edit</span></a>';
+            $delete_button = '<a href="javascript: void(0);" onclick="' . $delete_action . '"><span class="inline-button ui-corner-all">' . icon('trash') . ' Delete</span></a>';
 
             $returnme .= '
                 <div class="ui-corner-all list_box">

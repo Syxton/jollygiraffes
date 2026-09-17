@@ -5,7 +5,6 @@
     $class = isset($class) ? $class : '';
     $button_text = isset($button_text) ? $button_text : '';
 ?>
-&nbsp;
 <a  id="<?php echo $id; ?>"
     data="<?php echo $data; ?>"
     href="javascript: void(0);"

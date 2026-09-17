@@ -1,4 +1,4 @@
-<button style="font-size: 9px;" type="button"
+<button style="height: 36px;font-size: 14px;width: 36px;padding: 5px;" type="button" title="Delete Payment" class="btn btn-danger btn-xs"
         onclick="CreateConfirm(
                     'dialog-confirm',
                     'Are you sure you want to delete this payment?',
@@ -33,5 +33,5 @@
                         });
                     },
                     function(){});">
-    Delete
+    <?php echo icon('trash'); ?>
 </button>

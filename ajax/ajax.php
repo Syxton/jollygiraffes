@@ -2888,6 +2888,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                 if (empty($perchild_invoice["vacation"])) {
                                     $exempt_button = from_template("exempt_button.php", [
                                         "title" => (empty($perchild_invoice["exempt"]) ? "Exempt" : "Rescind Exemption"),
+                                        "icon" => (empty($perchild_invoice["exempt"]) ? icon([["icon" => "sack-xmark", "color" => "red"]]) : icon([["icon" => "sack-xmark", "color" => "silver"]])),
                                         "invoiceid" => $perchild_invoice["id"],
                                         "pid" => $pid,
                                         "aid" => $aid,
@@ -2896,6 +2897,7 @@ function view_invoices($return = false, $pid = null, $aid = null, $print = null,
                                 if (empty($perchild_invoice["exempt"])) {
                                     $vacation_button = from_template("vacation_button.php", [
                                         "title" => (empty($perchild_invoice["vacation"]) ? "Vacation" : "Rescind Vacation"),
+                                        "icon" => (empty($perchild_invoice["vacation"]) ? icon([["icon" => "umbrella-beach", "color" => "orange"]]) : icon([["icon" => "umbrella-beach", "color" => "silver"]])),
                                         "invoiceid" => $perchild_invoice["id"],
                                         "pid" => $pid,
                                         "aid" => $aid,

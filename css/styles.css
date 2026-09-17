@@ -1550,7 +1550,7 @@ div.day-add a {
     gap: 5px;
     justify-content: flex-end;
     flex-direction: column;
-    min-width: 90px;
+    min-width: 40px;
 }
 
 

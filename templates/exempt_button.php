@@ -1,4 +1,8 @@
-<button style="font-size: 9px;" type="button"
+<button
+        style="font-size: 14px;padding: 5px;"
+        type="button"
+        title="<?php echo $title; ?>"
+        class="btn btn-<?php echo $class; ?> btn-xs"
         onclick="$.ajax({
                     type: 'POST',
                     url: 'ajax/ajax.php',
@@ -25,5 +29,5 @@
                         });
                     }
                 });">
-    <?php echo $title; ?>
+    <?php echo (isset($icon) ? $icon : $title); ?>
 </button>

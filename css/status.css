@@ -1597,7 +1597,11 @@ h2 .release-item-btn {
 .release-item-btn {
     background: #E6A817;
 }
-
+.release-icon {
+    color: #E6A817;
+    font-size: 30px;
+    padding-right: 15px;
+}
 .release-btn svg, .activity-release-btn svg, .note-release svg {
     position: relative;
     left: -1px;

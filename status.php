@@ -195,13 +195,14 @@ $sitename = htmlspecialchars($CFG->sitename);
 
         <div class="release-banner" id="admin_release_banner" style="display:none;">
             <div class="release-banner-text">
+                <span class="release-icon"><i class="fa-solid fa-paper-plane"></i></span>
                 <span class="release-badge" id="admin_release_badge">0</span>
                 <span id="admin_release_msg">pending change(s) not yet visible to parents</span>
             </div>
             <div class="release-banner-actions">
-                <button type="button" class="primary-button release-btn" id="release_child_btn" title="Release this child">Release Child</button>
-                <button type="button" class="secondary-button release-btn" id="release_account_btn" title="Release all children in this family">Release Family</button>
-                <button type="button" class="secondary-button release-btn" id="release_all_btn" title="Release every pending change">Release All</button>
+                <button type="button" class="primary-button release-btn" id="release_child_btn" title="Release this child"><i class="fa-solid fa-paper-plane"></i> Release Child</button>
+                <button type="button" class="secondary-button release-btn" id="release_account_btn" title="Release all children in this family"><i class="fa-solid fa-paper-plane"></i> Release Family</button>
+                <button type="button" class="secondary-button release-btn" id="release_all_btn" title="Release every pending change"><i class="fa-solid fa-paper-plane"></i> Release All</button>
             </div>
         </div>
 

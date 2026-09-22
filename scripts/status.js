@@ -26,6 +26,7 @@
         lastAdminDay: null,
         cardCollapsed: {},
         previewMode: false,
+        previewShowPending: false,
         adminPreviewChid: null,
         editingNoteId: null
     };
@@ -273,6 +274,7 @@
         chip.className = 'mood-chip' + (opts.extraClass ? ' ' + opts.extraClass : '');
         if (opts.background) { chip.style.background = opts.background; }
         if (opts.note) { chip.classList.add('mood-chip-with-note'); }
+        if (opts.released === 0 || opts.released === false) { chip.classList.add('unreleased'); }
 
         var row = document.createElement('span');
         row.className = 'mood-chip-row';
@@ -308,7 +310,7 @@
             opts.buttons.forEach(function (b) {
                 var btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'chip-icon-btn';
+                btn.className = 'chip-icon-btn' + (b.class ? ' ' + b.class : '');
                 btn.innerHTML = '<i class="fa-solid fa-' + b.icon + '"></i>';
                 btn.title = b.title;
                 btn.addEventListener('click', b.onClick);
@@ -879,6 +881,11 @@
     function fetchDayParent(daykey) {
         var params = { chid: state.chid };
         if (daykey) { params.daykey = daykey; }
+        // Admin Parent View: default matches real parents (released only).
+        // Toggle "Show pending" to include unreleased items.
+        if (state.previewMode && !state.previewShowPending) {
+            params.released_only = '1';
+        }
         post('get_day', params).then(function (res) {
             if (!res.success) { return; }
             var day = res.day;
@@ -997,13 +1004,14 @@
             background: m.color,
             time: m.time,
             emoji: m.emoji,
-            label: m.label
+            label: m.label,
+            released: m.released
         });
     }
 
     function buildParentNoteChip(n) {
         var item = document.createElement('div');
-        item.className = 'mood-chip mood-chip-with-note';
+        item.className = 'mood-chip mood-chip-with-note' + ((n.released === 0 || n.released === false) ? ' unreleased' : '');
         item.style.background = n.color;
         item.style.color = n.textcolor;
         item.innerHTML = `
@@ -1048,6 +1056,8 @@
     function buildNapChip(nap, editable) {
         var buttons = [];
         if (editable) {
+            var relBtn = maybeReleaseButton(nap.released, 'event', nap.evid);
+            if (relBtn) { buttons.push(relBtn); }
             buttons.push({
                 icon: 'clock',
                 title: 'Change start time',
@@ -1075,6 +1085,7 @@
             time: nap.time,
             emoji: '\ud83d\ude34',
             label: nap.minutes + ' min nap started',
+            released: nap.released,
             buttons: buttons
         });
 
@@ -1089,6 +1100,8 @@
         var amountStr = b.amount ? ' \u00b7 ' + b.amount + 'oz' : '';
         var buttons = [];
         if (editable) {
+            var relBtn = maybeReleaseButton(b.released, 'event', b.evid);
+            if (relBtn) { buttons.push(relBtn); }
             buttons.push({
                 icon: 'glass-water',
                 title: 'Change amount',
@@ -1128,6 +1141,7 @@
             emoji: state.bottle.emoji,
             label: state.bottle.label,
             extraText: amountStr,
+            released: b.released,
             buttons: buttons
         });
 
@@ -1194,6 +1208,84 @@
     // ==================================================================
     var adminBound = false;
 
+    function updateReleaseBanner(day) {
+        var banner = document.getElementById('admin_release_banner');
+        if (!banner) { return; }
+        var count = (day && day.unreleased_count) ? day.unreleased_count : 0;
+        if (count > 0) {
+            banner.style.display = '';
+            document.getElementById('admin_release_badge').textContent = String(count);
+            document.getElementById('admin_release_msg').textContent =
+                count === 1 ? 'Pending change not yet visible to parents' : 'Pending changes not yet visible to parents';
+        } else {
+            banner.style.display = 'none';
+        }
+    }
+
+    function releaseItem(type, id, extra) {
+        var params = Object.assign({ chid: state.chid, type: type, id: id || 0 }, extra || {});
+        return post('release_item', params).then(function (res) {
+            if (res.success) {
+                if (res.day) { renderAdminDay(res.day); }
+            } else {
+                alert(res.message || 'Could not release item.');
+            }
+            return res;
+        }).catch(function () {
+            alert('Could not release item.');
+        });
+    }
+
+    function maybeReleaseButton(released, type, id, extra) {
+        if (released === 0 || released === false) {
+            return {
+                icon: 'paper-plane',
+                title: 'Release this item to parents',
+                class: 'release-btn',
+                onClick: function (e) {
+                    if (e && e.stopPropagation) { e.stopPropagation(); }
+                    releaseItem(type, id, extra);
+                }
+            };
+        }
+        return null;
+    }
+
+    function bindReleaseButtons() {
+        if (bindReleaseButtons._done) { return; }
+        bindReleaseButtons._done = true;
+        function doRelease(action, extra) {
+            var params = Object.assign({ chid: state.chid }, extra || {});
+            // Resolve family aid from selected child
+            if (action === 'release_account') {
+                var child = (state.children || []).find(function (c) { return String(c.chid) === String(state.chid); });
+                if (child && child.aid) { params.aid = child.aid; }
+            }
+            post(action, params).then(function (res) {
+                if (res.success) {
+                    if (res.day) { renderAdminDay(res.day); }
+                    else { updateReleaseBanner({ unreleased_count: res.unreleased_count || 0 }); }
+                } else {
+                    alert(res.message || 'Release failed.');
+                }
+            }).catch(function () { alert('Release failed.'); });
+        }
+        document.getElementById('release_child_btn').addEventListener('click', function () {
+            if (!state.chid) { return; }
+            if (!confirm('Release all pending changes for this child? Parents will see them, and today\'s notifications will send.')) { return; }
+            doRelease('release_child');
+        });
+        document.getElementById('release_account_btn').addEventListener('click', function () {
+            if (!state.chid) { return; }
+            if (!confirm('Release all pending changes for this entire family?')) { return; }
+            doRelease('release_account');
+        });
+        document.getElementById('release_all_btn').addEventListener('click', function () {
+            if (!confirm('Release ALL pending changes for every child? This cannot be undone.')) { return; }
+            doRelease('release_all');
+        });
+    }
+
     function startAdmin() {
         showScreen('screen_admin');
         renderAdminChildSelect();
@@ -1222,20 +1314,35 @@
     function enterParentPreview() {
         if (!state.chid) { return; }
         state.previewMode = true;
+        state.previewShowPending = false;
         state.adminPreviewChid = state.chid;
         document.getElementById('parent_child_tabs').innerHTML = '';
         document.getElementById('preview_banner').style.display = '';
+        var pendingToggle = document.getElementById('preview_show_pending');
+        if (pendingToggle) { pendingToggle.checked = false; }
         closeParentMenu();
         document.getElementById('parent_menu_wrap').style.display = 'none';
         state.daykey = null;
         state.todayDaykey = null;
         showScreen('screen_parent');
         bindParentNav();
+        bindPreviewPendingToggle();
         fetchDayParent();
+    }
+
+    function bindPreviewPendingToggle() {
+        var pendingToggle = document.getElementById('preview_show_pending');
+        if (!pendingToggle || pendingToggle._bound) { return; }
+        pendingToggle._bound = true;
+        pendingToggle.addEventListener('change', function () {
+            state.previewShowPending = !!pendingToggle.checked;
+            fetchDayParent(state.daykey || null);
+        });
     }
 
     function exitParentPreview() {
         state.previewMode = false;
+        state.previewShowPending = false;
         document.getElementById('preview_banner').style.display = 'none';
         document.getElementById('parent_menu_wrap').style.display = '';
         state.chid = state.adminPreviewChid || state.chid;
@@ -1352,6 +1459,8 @@
 
         var buttons = [];
         if (editable) {
+            var relBtn = maybeReleaseButton(p.released, 'event', p.evid);
+            if (relBtn) { buttons.push(relBtn); }
             buttons.push({
                 icon: 'pencil',
                 title: 'Edit',
@@ -1376,6 +1485,7 @@
             label: p.label,
             extraText: extras,
             attachments: p.attachments,
+            released: p.released,
             buttons: buttons
         });
     }
@@ -1496,6 +1606,8 @@
     function buildIncidentChip(inc, editable) {
         var buttons = [];
         if (editable) {
+            var relBtn = maybeReleaseButton(inc.released, 'event', inc.evid);
+            if (relBtn) { buttons.push(relBtn); }
             buttons.push({
                 icon: 'pencil',
                 title: 'Edit',
@@ -1520,6 +1632,7 @@
             label: inc.label,
             attachments: inc.attachments,
             note: inc.note,
+            released: inc.released,
             buttons: buttons
         });
     }
@@ -1625,7 +1738,7 @@
         html += '<div class="potty-attachments" data-role="attachments"></div>';
         if (isDraft) {
             html += '<p class="potty-draft-hint" style="font-size:12px;opacity:0.75;margin:4px 0 0;">' +
-                'Not saved yet. Press Save to create this report (and notify the family). ' +
+                'Not saved yet. Press Save to create this report (pending until you Release). ' +
                 'You can add photos after saving.</p>';
         }
 
@@ -2158,9 +2271,14 @@
 
     function buildAdminMealPanel(mealKey, mealInfo, day) {
         var section = document.createElement('section');
-        section.className = 'card';
+        var mealReleased = (day.menus_released && day.menus_released[mealKey] !== undefined) ? day.menus_released[mealKey] : 1;
+        var hasContent = (day.menus && day.menus[mealKey]) || (day.ratings && day.ratings[mealKey]);
+        section.className = 'card' + ((mealReleased === 0 && hasContent) ? ' unreleased' : '');
+        var releaseMealBtn = (mealReleased === 0 && hasContent)
+            ? '<button type="button" class="secondary-button release-item-btn" data-role="release-meal" title="Release this meal to parents"><i class="fa-solid fa-paper-plane"></i> Release</button>'
+            : '';
         section.innerHTML =
-            '<h2>' + mealInfo.emoji + ' ' + escapeHtml(mealInfo.label) + '</h2>' +
+            '<h2>' + mealInfo.emoji + ' ' + escapeHtml(mealInfo.label) + releaseMealBtn + '</h2>' +
             '<div class="meal-rating-buttons" data-role="rating-buttons"></div>' +
             '<div class="menu-suggestions" data-role="suggestions"></div>' +
             '<textarea class="app-textarea" rows="3" placeholder="' + escapeHtml(mealInfo.label) + ' menu\u2026" data-role="input"></textarea>' +
@@ -2178,6 +2296,13 @@
             '</div>' +
             '<span class="save-status" data-role="copy-status"></span>' +
             '</div>';
+
+        var releaseMeal = section.querySelector('[data-role="release-meal"]');
+        if (releaseMeal) {
+            releaseMeal.addEventListener('click', function () {
+                releaseItem('menu', 0, { meal: mealKey, daykey: day.daykey });
+            });
+        }
 
         var textarea    = section.querySelector('[data-role="input"]');
         var ratingWrap  = section.querySelector('[data-role="rating-buttons"]');
@@ -2285,7 +2410,7 @@
             var entry = activities[key] || { on: false, arid: 0, attachments: [] };
 
             var wrap = document.createElement('div');
-            wrap.className = 'activity-btn-wrap';
+            wrap.className = 'activity-btn-wrap' + ((entry.released === 0 && entry.arid) ? ' unreleased' : '');
 
             var btn = document.createElement('button');
             btn.type = 'button';
@@ -2313,6 +2438,19 @@
                     openActivityPanel(info, entry.arid, entry.attachments);
                 });
                 wrap.appendChild(camBtn);
+            }
+
+            if (entry.released === 0 && entry.arid) {
+                var relAct = document.createElement('button');
+                relAct.type = 'button';
+                relAct.className = 'activity-attach-btn activity-release-btn';
+                relAct.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+                relAct.title = 'Release this activity to parents';
+                relAct.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    releaseItem('activity', entry.arid);
+                });
+                wrap.appendChild(relAct);
             }
 
             buttonsWrap.appendChild(wrap);
@@ -2426,8 +2564,12 @@
             time: m.time,
             emoji: m.emoji,
             label: m.label,
-            buttons: [
-                {
+            released: m.released,
+            buttons: (function () {
+                var buttons = [];
+                var relBtn = maybeReleaseButton(m.released, 'event', m.evid);
+                if (relBtn) { buttons.push(relBtn); }
+                buttons.push({
                     icon: 'clock',
                     title: 'Change time',
                     onClick: function () {
@@ -2480,8 +2622,9 @@
                             if (res.success) { renderAdminDay(res.day); }
                         });
                     }
-                }
-            ]
+                });
+                return buttons;
+            })()
         });
 
         return chip;
@@ -2496,6 +2639,8 @@
 
     function renderAdminDay(day) {
         state.lastAdminDay = day;
+        bindReleaseButtons();
+        updateReleaseBanner(day);
         document.getElementById('admin_day_label').textContent = day.date_label + ' (today)';
 
         // Sticky child bar (stays visible while scrolling so staff always
@@ -2573,6 +2718,20 @@
         napRatingWrap.style.display = day.show_nap_rating ? '' : 'none';
         if (day.show_nap_rating) {
             renderNapRatingButtons(napRatingWrap, day.nap_rating || '');
+            if (day.nap_rating && day.nap_rating_released === 0) {
+                napRatingWrap.classList.add('unreleased');
+                var relNap = document.createElement('button');
+                relNap.type = 'button';
+                relNap.className = 'secondary-button release-item-btn';
+                relNap.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Release rating';
+                relNap.title = 'Release nap rating to parents';
+                relNap.addEventListener('click', function () {
+                    releaseItem('nap_rating', 0, { daykey: day.daykey });
+                });
+                napRatingWrap.appendChild(relNap);
+            } else {
+                napRatingWrap.classList.remove('unreleased');
+            }
         }
 
         naptimeCard.style.display = (day.show_naptime_notice || day.show_naptime_buttons || day.naps.length || day.show_nap_rating) ? '' : 'none';
@@ -2596,9 +2755,12 @@
         notesWrap.innerHTML = '';
         day.notes.forEach(function (n) {
             var item = document.createElement('div');
-            item.className = 'mood-chip mood-chip-with-note';
+            item.className = 'mood-chip mood-chip-with-note' + ((n.released === 0 || n.released === false) ? ' unreleased' : '');
             item.style.background = n.color;
             item.style.color = n.textcolor;
+            var releaseBtn = (n.released === 0 || n.released === false)
+                ? '<button title="Release this note" type="button" class="note-release chip-icon-btn" data-nid="' + n.nid + '"><i class="fa-solid fa-paper-plane"></i></button>'
+                : '';
             item.innerHTML = `
             <div class="mood-chip-row">
                 <span class="chip-time timeandtype">
@@ -2608,6 +2770,7 @@
                     ` + (n.notify == 2 ? ' \ud83d\udccc' : (n.notify ? ' \ud83d\udd14' : '')) + escapeHtml(n.tag_title) + `
                 </span>
                 <div class="chip-button-area">
+                    ` + releaseBtn + `
                     <button title="Edit" type="button" class="note-edit chip-icon-btn" data-nid="` + n.nid + `">
                         <i class="fa-solid fa-pencil"></i>
                     </button>
@@ -2621,7 +2784,8 @@
             </div>
             `;
 
-            notesWrap.appendChild(item);
+
+notesWrap.appendChild(item);
         });
         notesWrap.querySelectorAll('.note-edit').forEach(function (btn) {
             btn.addEventListener('click', function () {
@@ -2638,6 +2802,11 @@
                         renderAdminDay(res.day);
                     }
                 });
+            });
+        });
+        notesWrap.querySelectorAll('.note-release').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                releaseItem('note', parseInt(btn.getAttribute('data-nid'), 10));
             });
         });
         applyCardCollapse('notes', 'notes_card_toggle', 'admin_notes_history', day.notes.length);

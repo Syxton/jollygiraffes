@@ -323,12 +323,334 @@ if (!isset($STATUSLIB)) {
             execute_db_sql("ALTER TABLE status_activity ADD COLUMN active tinyint(1) NOT NULL DEFAULT '1'");
         }
 
+        // ------------------------------------------------------------------
+        // Pending / release system: every admin change is pending (released=0)
+        // until an admin explicitly releases it. Parents only see released=1.
+        // Existing historical rows default to released=1 so nothing disappears.
+        // ------------------------------------------------------------------
+        $release_tables = ['events', 'notes', 'status_menu', 'status_activity', 'documents', 'status_nap_rating'];
+        foreach ($release_tables as $rt) {
+            if (!status_column_exists($rt, 'released')) {
+                // DEFAULT 1 so existing rows are treated as already released.
+                execute_db_sql("ALTER TABLE `$rt` ADD COLUMN released tinyint(1) NOT NULL DEFAULT '1'");
+                execute_db_sql("ALTER TABLE `$rt` ADD KEY released (released)");
+            }
+        }
+
         status_sync_family_access();
 
         // Web Push: creates the notifications table (identifier/contents)
         // on first run and seeds the site's VAPID keypair under
         // identifier='SITE'. See notifications/notification_lib.php.
         notifications_migrate();
+    }
+
+    /**
+     * SQL fragment that restricts rows to released items for parent viewers.
+     * Admins see everything (pending + released).
+     *
+     * @param string $alias Optional table alias prefix (e.g. "e." or "n.").
+     * @return string Empty string for admin, or " AND {alias}released=1" for parent.
+     */
+    /**
+     * True when the viewer should only see released items.
+     * Always true for parents. Admins can force this for Parent View
+     * preview via $GLOBALS['STATUS_FORCE_RELEASED_ONLY'].
+     */
+    function status_view_released_only() {
+        if (status_current_role() === 'parent') {
+            return true;
+        }
+        return !empty($GLOBALS['STATUS_FORCE_RELEASED_ONLY']);
+    }
+
+    function status_released_filter($alias = '') {
+        if (status_view_released_only()) {
+            return ' AND ' . $alias . 'released=1';
+        }
+        return '';
+    }
+
+    /**
+     * Whether the current session is a parent (read-only released view).
+     */
+    function status_is_parent_viewer() {
+        return status_current_role() === 'parent';
+    }
+
+    /**
+     * Count unreleased (pending) status rows for a child, an account, or the whole site.
+     * Used for admin visual alerts.
+     *
+     * @param int|null $chid Child id, or null.
+     * @param int|null $aid  Account id, or null. Ignored if $chid is set.
+     * @return int Total pending rows across events/notes/menu/activity/documents.
+     */
+    function status_count_unreleased($chid = null, $aid = null) {
+        $chid = $chid !== null ? intval($chid) : null;
+        $aid  = $aid !== null ? intval($aid) : null;
+
+        $chid_clause = '';
+        $aid_via_child = '';
+        if ($chid !== null) {
+            $chid_clause = " AND chid='$chid'";
+        } elseif ($aid !== null) {
+            $chid_clause = " AND chid IN (SELECT chid FROM children WHERE aid='$aid' AND deleted=0)";
+            $aid_via_child = $chid_clause;
+        }
+
+        $total = 0;
+        $queries = [
+            "SELECT COUNT(*) AS c FROM events WHERE released=0 AND chid!=0$chid_clause",
+            "SELECT COUNT(*) AS c FROM notes WHERE released=0 AND daykey!=0 AND chid!=0$chid_clause",
+            "SELECT COUNT(*) AS c FROM status_menu WHERE released=0$chid_clause",
+            "SELECT COUNT(*) AS c FROM status_activity WHERE released=0$chid_clause",
+            "SELECT COUNT(*) AS c FROM status_nap_rating WHERE released=0$chid_clause",
+            "SELECT COUNT(*) AS c FROM documents WHERE released=0 AND chid!=0 AND tag IN ('attachment','activity')$chid_clause",
+        ];
+        foreach ($queries as $sql) {
+            $row = get_db_row($sql);
+            if ($row) {
+                $total += intval($row['c']);
+            }
+        }
+        return $total;
+    }
+
+    /**
+     * Collect notifiable pending items for today that will be released by $chid_sql.
+     * Used to send deferred push notifications on release.
+     *
+     * @param string $chid_sql SQL fragment like "chid='5'" or "chid IN (...)"
+     * @return array{incidents: array, photos: array}
+     */
+    function status_pending_notifiables_today($chid_sql) {
+        $today = status_daykey();
+        $incidents = [];
+        $photos = [];
+
+        // Pending incident events for today
+        $inc_tags = "'" . implode("','", array_map('dbescape', array_keys($GLOBALS['STATUS_INCIDENT_TYPES']))) . "'";
+        if ($result = get_db_result("SELECT evid, chid, aid, tag FROM events WHERE released=0 AND daykey='$today' AND tag IN ($inc_tags) AND $chid_sql")) {
+            while ($row = fetch_row($result)) {
+                $incidents[] = $row;
+            }
+        }
+
+        // Pending photo attachments for today (documents with today's-ish timelog or linked to today)
+        // Use documents.timelog daykey approximation via status_daykey(timelog)
+        if ($result = get_db_result("SELECT did, chid, aid, filename, timelog FROM documents WHERE released=0 AND chid!=0 AND tag IN ('attachment','activity') AND $chid_sql")) {
+            while ($row = fetch_row($result)) {
+                if (status_daykey(intval($row['timelog'])) === $today) {
+                    $photos[] = $row;
+                }
+            }
+        }
+
+        return ['incidents' => $incidents, 'photos' => $photos];
+    }
+
+    /**
+     * Mark all pending status rows matching $chid_sql as released, and send
+     * deferred push notifications for today's incidents and photos only.
+     *
+     * @param string $chid_sql SQL fragment selecting children, e.g. "chid='12'" or "chid IN (1,2,3)"
+     * @return array{released_count: int, notified_incidents: int, notified_photos: int}
+     */
+    function status_release_by_chid_sql($chid_sql) {
+        $pending = status_pending_notifiables_today($chid_sql);
+
+        $count = 0;
+        $count += intval(execute_db_sql("UPDATE events SET released=1 WHERE released=0 AND chid!=0 AND $chid_sql"));
+        // execute_db_sql may return last insert id; use affected rows if available
+        // Fall back: count was approximate. Re-query not needed for UX.
+
+        execute_db_sql("UPDATE notes SET released=1 WHERE released=0 AND daykey!=0 AND chid!=0 AND $chid_sql");
+        execute_db_sql("UPDATE status_menu SET released=1 WHERE released=0 AND $chid_sql");
+        execute_db_sql("UPDATE status_activity SET released=1 WHERE released=0 AND $chid_sql");
+        execute_db_sql("UPDATE status_nap_rating SET released=1 WHERE released=0 AND $chid_sql");
+        execute_db_sql("UPDATE documents SET released=1 WHERE released=0 AND chid!=0 AND tag IN ('attachment','activity') AND $chid_sql");
+
+        // Deferred notifications — only for current day
+        $notified_incidents = 0;
+        foreach ($pending['incidents'] as $inc) {
+            status_push_notify_incident(intval($inc['aid']), intval($inc['chid']), $inc['tag']);
+            $notified_incidents++;
+        }
+        $notified_photos = 0;
+        foreach ($pending['photos'] as $photo) {
+            status_push_notify_photo(intval($photo['aid']), intval($photo['chid']), $photo['filename']);
+            $notified_photos++;
+        }
+
+        // Approximate released count from remaining unreleased after update
+        return [
+            'released' => true,
+            'notified_incidents' => $notified_incidents,
+            'notified_photos' => $notified_photos,
+        ];
+    }
+
+    /**
+     * Release all pending changes for one child (any day). Sends notifs for today's items.
+     *
+     * @param int $chid Child id.
+     */
+    function status_release_child($chid) {
+        $chid = intval($chid);
+        return status_release_by_chid_sql("chid='$chid'");
+    }
+
+    /**
+     * Release all pending changes for every child on an account.
+     *
+     * @param int $aid Account id.
+     */
+    function status_release_account($aid) {
+        $aid = intval($aid);
+        return status_release_by_chid_sql("chid IN (SELECT chid FROM children WHERE aid='$aid' AND deleted=0)");
+    }
+
+    /**
+     * Release all pending changes site-wide.
+     */
+    function status_release_all() {
+        return status_release_by_chid_sql("1=1");
+    }
+
+    /**
+     * Release a single pending item.
+     *
+     * Types:
+     *   event      - moods, potty, incidents, naps, bottles (id = evid)
+     *   note       - day-scoped notes (id = nid)
+     *   menu       - meal menu/rating row (id ignored; needs meal + daykey)
+     *   activity   - status_activity row (id = arid / status_activity.id)
+     *   nap_rating - per-day nap rating (id ignored; needs daykey)
+     *   document   - photo attachment (id = did)
+     *
+     * For events: also releases linked incident notes and attachments.
+     * For activities: also releases attachments on that activity.
+     * Sends deferred push only for current-day incidents/photos.
+     *
+     * @param string   $type   Item type key.
+     * @param int      $id     Primary id for the item (evid/nid/arid/did).
+     * @param int      $chid   Child id (ownership check).
+     * @param array    $extra  Optional keys: meal, daykey.
+     * @return array{success:bool, message?:string, notified?:string}
+     */
+    function status_release_item($type, $id, $chid, $extra = []) {
+        global $STATUS_INCIDENT_TYPES;
+        $type = strtolower(trim($type));
+        $id   = intval($id);
+        $chid = intval($chid);
+        $today = status_daykey();
+        $notified = null;
+
+        if (!$chid || !status_can_access_child($chid)) {
+            return ["success" => false, "message" => "Access denied."];
+        }
+
+        if ($type === 'event') {
+            $row = get_db_row("SELECT * FROM events WHERE evid='$id' AND chid='$chid'");
+            if (!$row) {
+                return ["success" => false, "message" => "Item not found."];
+            }
+            if (intval(isset($row['released']) ? $row['released'] : 1) === 1) {
+                return ["success" => true, "message" => "Already released."];
+            }
+            execute_db_sql("UPDATE events SET released=1 WHERE evid='$id' AND chid='$chid'");
+            // Linked incident note
+            $nid = intval($row['nid']);
+            if ($nid) {
+                execute_db_sql("UPDATE notes SET released=1 WHERE nid='$nid' AND chid='$chid'");
+            }
+            // Linked attachments (potty/incident photos)
+            $photo_rows = [];
+            if ($result = get_db_result("SELECT * FROM documents WHERE evid='$id' AND chid='$chid' AND released=0 AND tag IN ('attachment','activity')")) {
+                while ($doc = fetch_row($result)) {
+                    $photo_rows[] = $doc;
+                }
+            }
+            execute_db_sql("UPDATE documents SET released=1 WHERE evid='$id' AND chid='$chid'");
+
+            // Deferred notifications for today only
+            if (intval($row['daykey']) === $today && isset($STATUS_INCIDENT_TYPES[$row['tag']])) {
+                status_push_notify_incident(intval($row['aid']), $chid, $row['tag']);
+                $notified = 'incident';
+            }
+            foreach ($photo_rows as $doc) {
+                if (status_daykey(intval($doc['timelog'])) === $today) {
+                    status_push_notify_photo(intval($doc['aid']), $chid, $doc['filename']);
+                    $notified = $notified ? $notified . '+photo' : 'photo';
+                }
+            }
+            return ["success" => true, "notified" => $notified];
+        }
+
+        if ($type === 'note') {
+            $row = get_db_row("SELECT * FROM notes WHERE nid='$id' AND chid='$chid' AND daykey != 0");
+            if (!$row) {
+                return ["success" => false, "message" => "Note not found."];
+            }
+            execute_db_sql("UPDATE notes SET released=1 WHERE nid='$id' AND chid='$chid'");
+            return ["success" => true];
+        }
+
+        if ($type === 'menu') {
+            $meal = isset($extra['meal']) ? dbescape($extra['meal']) : '';
+            $daykey = isset($extra['daykey']) ? intval($extra['daykey']) : status_daykey();
+            if ($meal === '') {
+                return ["success" => false, "message" => "Meal required."];
+            }
+            execute_db_sql("UPDATE status_menu SET released=1 WHERE chid='$chid' AND daykey='$daykey' AND meal='$meal' AND released=0");
+            return ["success" => true];
+        }
+
+        if ($type === 'activity') {
+            $row = get_db_row("SELECT * FROM status_activity WHERE id='$id' AND chid='$chid'");
+            if (!$row) {
+                return ["success" => false, "message" => "Activity not found."];
+            }
+            execute_db_sql("UPDATE status_activity SET released=1 WHERE id='$id' AND chid='$chid'");
+            // Linked activity photos
+            $photo_rows = [];
+            if ($result = get_db_result("SELECT * FROM documents WHERE arid='$id' AND chid='$chid' AND released=0 AND tag='activity'")) {
+                while ($doc = fetch_row($result)) {
+                    $photo_rows[] = $doc;
+                }
+            }
+            execute_db_sql("UPDATE documents SET released=1 WHERE arid='$id' AND chid='$chid'");
+            foreach ($photo_rows as $doc) {
+                if (status_daykey(intval($doc['timelog'])) === $today) {
+                    status_push_notify_photo(intval($doc['aid']), $chid, $doc['filename']);
+                    $notified = 'photo';
+                }
+            }
+            return ["success" => true, "notified" => $notified];
+        }
+
+        if ($type === 'nap_rating') {
+            $daykey = isset($extra['daykey']) ? intval($extra['daykey']) : status_daykey();
+            execute_db_sql("UPDATE status_nap_rating SET released=1 WHERE chid='$chid' AND daykey='$daykey' AND released=0");
+            return ["success" => true];
+        }
+
+        if ($type === 'document') {
+            $row = get_db_row("SELECT * FROM documents WHERE did='$id' AND chid='$chid'");
+            if (!$row) {
+                return ["success" => false, "message" => "Attachment not found."];
+            }
+            execute_db_sql("UPDATE documents SET released=1 WHERE did='$id' AND chid='$chid'");
+            if (in_array($row['tag'], ['attachment', 'activity'], true)
+                && status_daykey(intval($row['timelog'])) === $today) {
+                status_push_notify_photo(intval($row['aid']), $chid, $row['filename']);
+                $notified = 'photo';
+            }
+            return ["success" => true, "notified" => $notified];
+        }
+
+        return ["success" => false, "message" => "Unknown item type."];
     }
 
     /**
@@ -1155,12 +1477,14 @@ if (!isset($STATUSLIB)) {
         $chid = intval($chid);
         $evid = intval($evid);
         $attachments = [];
-        if ($result = get_db_result("SELECT * FROM documents WHERE chid='$chid' AND evid='$evid' ORDER BY timelog ASC")) {
+        $rf = status_released_filter();
+        if ($result = get_db_result("SELECT * FROM documents WHERE chid='$chid' AND evid='$evid'$rf ORDER BY timelog ASC")) {
             while ($row = fetch_row($result)) {
                 $attachments[] = [
                     "did"      => (int) $row["did"],
                     "filename" => $row["filename"],
                     "url"      => $CFG->fileserveurl . "?did=" . (int) $row["did"],
+                    "released" => (int) (isset($row["released"]) ? $row["released"] : 1),
                 ];
             }
         }
@@ -1190,33 +1514,40 @@ if (!isset($STATUSLIB)) {
             return false;
         }
 
+        // Parents only see released items; admins see pending + released.
+        $rf  = status_released_filter();
+        $rfe = status_released_filter('e.');
+        $rfn = status_released_filter('n.');
+
         // Mood timeline
         $moods = [];
         $moodtags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_MOODS))) . "'";
-        if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag IN ($moodtags) ORDER BY timelog ASC, evid ASC")) {
+        if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag IN ($moodtags)$rf ORDER BY timelog ASC, evid ASC")) {
             while ($row = fetch_row($result)) {
                 $info = $STATUS_MOODS[$row["tag"]];
                 $moods[] = [
-                    "evid"  => (int) $row["evid"],
-                    "mood"  => $row["tag"],
-                    "label" => $info["label"],
-                    "emoji" => $info["emoji"],
-                    "color" => $info["color"],
-                    "time"  => get_date("g:i a", display_time($row["timelog"])),
-                    "hm"    => get_date("H:i", display_time($row["timelog"])),
+                    "evid"     => (int) $row["evid"],
+                    "mood"     => $row["tag"],
+                    "label"    => $info["label"],
+                    "emoji"    => $info["emoji"],
+                    "color"    => $info["color"],
+                    "time"     => get_date("g:i a", display_time($row["timelog"])),
+                    "hm"       => get_date("H:i", display_time($row["timelog"])),
+                    "released" => (int) (isset($row["released"]) ? $row["released"] : 1),
                 ];
             }
         }
 
         // Bottles - only relevant under STATUS_BOTTLE_MAX_MONTHS old
         $bottles = [];
-        if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag='" . dbescape($GLOBALS['STATUS_BOTTLE_TAG']) . "' ORDER BY timelog ASC, evid ASC")) {
+        if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag='" . dbescape($GLOBALS['STATUS_BOTTLE_TAG']) . "'$rf ORDER BY timelog ASC, evid ASC")) {
             while ($row = fetch_row($result)) {
                 $bottles[] = [
-                    "evid"   => (int) $row["evid"],
-                    "time"   => get_date("g:i a", display_time($row["timelog"])),
-                    "hm"     => get_date("H:i", display_time($row["timelog"])),
-                    "amount" => (int) $row["amount"],
+                    "evid"     => (int) $row["evid"],
+                    "time"     => get_date("g:i a", display_time($row["timelog"])),
+                    "hm"       => get_date("H:i", display_time($row["timelog"])),
+                    "amount"   => (int) $row["amount"],
+                    "released" => (int) (isset($row["released"]) ? $row["released"] : 1),
                 ];
             }
         }
@@ -1225,7 +1556,7 @@ if (!isset($STATUSLIB)) {
         // Potty Time - editable, timestamped, with type-specific flags/attachments
         $potty = [];
         $pottytags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_POTTY_TYPES))) . "'";
-        if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag IN ($pottytags) ORDER BY timelog ASC, evid ASC")) {
+        if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag IN ($pottytags)$rf ORDER BY timelog ASC, evid ASC")) {
             while ($row = fetch_row($result)) {
                 $info = $STATUS_POTTY_TYPES[$row["tag"]];
                 $potty[] = [
@@ -1241,6 +1572,7 @@ if (!isset($STATUSLIB)) {
                     "peed"        => (bool) $row["peed"],
                     "pooped"      => (bool) $row["pooped"],
                     "attachments" => status_get_attachments($chid, $row["evid"]),
+                    "released"    => (int) (isset($row["released"]) ? $row["released"] : 1),
                 ];
             }
         }
@@ -1253,7 +1585,7 @@ if (!isset($STATUSLIB)) {
         if ($result = get_db_result("SELECT e.*, n.note AS note_text, n.nid AS note_nid
                                        FROM events e
                                   LEFT JOIN notes n ON n.nid = e.nid AND n.nid != 0
-                                      WHERE e.chid='$chid' AND e.daykey='$daykey' AND e.tag IN ($inctags)
+                                      WHERE e.chid='$chid' AND e.daykey='$daykey' AND e.tag IN ($inctags)$rfe
                                    ORDER BY e.timelog ASC, e.evid ASC")) {
             while ($row = fetch_row($result)) {
                 $info = $STATUS_INCIDENT_TYPES[$row["tag"]];
@@ -1271,6 +1603,7 @@ if (!isset($STATUSLIB)) {
                     "hm"          => get_date("H:i", display_time($row["timelog"])),
                     "note"        => $note_text,
                     "attachments" => status_get_attachments($chid, $row["evid"]),
+                    "released"    => (int) (isset($row["released"]) ? $row["released"] : 1),
                 ];
             }
         }
@@ -1280,13 +1613,14 @@ if (!isset($STATUSLIB)) {
         // for kids under the age cutoff and available any time (naps
         // aren't confined to that window, just commonly clustered there).
         $naps = [];
-        if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag='" . dbescape($STATUS_NAP_TAG) . "' ORDER BY timelog ASC, evid ASC")) {
+        if ($result = get_db_result("SELECT * FROM events WHERE chid='$chid' AND daykey='$daykey' AND tag='" . dbescape($STATUS_NAP_TAG) . "'$rf ORDER BY timelog ASC, evid ASC")) {
             while ($row = fetch_row($result)) {
                 $naps[] = [
-                    "evid"    => (int) $row["evid"],
-                    "minutes" => (int) $row["amount"],
-                    "time"    => get_date("g:i a", display_time($row["timelog"])),
-                    "hm"      => get_date("H:i", display_time($row["timelog"])),
+                    "evid"     => (int) $row["evid"],
+                    "minutes"  => (int) $row["amount"],
+                    "time"     => get_date("g:i a", display_time($row["timelog"])),
+                    "hm"       => get_date("H:i", display_time($row["timelog"])),
+                    "released" => (int) (isset($row["released"]) ? $row["released"] : 1),
                 ];
             }
         }
@@ -1297,10 +1631,12 @@ if (!isset($STATUSLIB)) {
         // individual nap entries - we assume they napped and just record
         // how it went via a simple per-day rating instead.
         $nap_rating = "";
+        $nap_rating_released = 1;
         if (!$show_naptime_buttons) {
-            $row = get_db_row("SELECT rating FROM status_nap_rating WHERE chid='$chid' AND daykey='$daykey'");
+            $row = get_db_row("SELECT rating, released FROM status_nap_rating WHERE chid='$chid' AND daykey='$daykey'$rf");
             if ($row) {
                 $nap_rating = $row["rating"];
+                $nap_rating_released = (int) (isset($row["released"]) ? $row["released"] : 1);
             }
         }
 
@@ -1313,7 +1649,7 @@ if (!isset($STATUSLIB)) {
                                         FROM notes n
                                         LEFT JOIN notes_tags t ON t.tag = n.tag
                                        WHERE n.chid='$chid' AND n.daykey != 0
-                                         AND (n.daykey='$daykey' OR n.notify = 2)
+                                         AND (n.daykey='$daykey' OR n.notify = 2)$rfn
                                        ORDER BY n.timelog ASC")) {
             while ($row = fetch_row($result)) {
                 $notes[] = [
@@ -1327,21 +1663,25 @@ if (!isset($STATUSLIB)) {
                     "persist"   => ((int) $row["notify"] === 2),
                     "time"      => get_date("g:i a", display_time($row["timelog"])),
                     "hm"        => get_date("H:i", display_time($row["timelog"])),
+                    "released"  => (int) (isset($row["released"]) ? $row["released"] : 1),
                 ];
             }
         }
 
         $menus = [];
         $ratings = [];
+        $menus_released = [];
         foreach ($STATUS_MEALS as $mealkey => $mealinfo) {
             $menus[$mealkey] = "";
             $ratings[$mealkey] = "";
+            $menus_released[$mealkey] = 1;
         }
-        if ($result = get_db_result("SELECT meal, menu, rating FROM status_menu WHERE chid='$chid' AND daykey='$daykey'")) {
+        if ($result = get_db_result("SELECT meal, menu, rating, released FROM status_menu WHERE chid='$chid' AND daykey='$daykey'$rf")) {
             while ($row = fetch_row($result)) {
                 if (array_key_exists($row["meal"], $menus)) {
                     $menus[$row["meal"]] = $row["menu"];
                     $ratings[$row["meal"]] = $row["rating"];
+                    $menus_released[$row["meal"]] = (int) (isset($row["released"]) ? $row["released"] : 1);
                 }
             }
         }
@@ -1353,9 +1693,9 @@ if (!isset($STATUSLIB)) {
         // survive an accidental uncheck).
         $activities = [];
         foreach ($STATUS_ACTIVITIES as $actkey => $actinfo) {
-            $activities[$actkey] = ["on" => false, "arid" => 0, "attachments" => []];
+            $activities[$actkey] = ["on" => false, "arid" => 0, "attachments" => [], "released" => 1];
         }
-        if ($result = get_db_result("SELECT * FROM status_activity WHERE chid='$chid' AND daykey='$daykey'")) {
+        if ($result = get_db_result("SELECT * FROM status_activity WHERE chid='$chid' AND daykey='$daykey'$rf")) {
             while ($row = fetch_row($result)) {
                 if (array_key_exists($row["activity"], $activities)) {
                     $arid = (int) $row["id"];
@@ -1363,6 +1703,7 @@ if (!isset($STATUSLIB)) {
                         "on"          => (bool) $row["active"],
                         "arid"        => $arid,
                         "attachments" => status_get_activity_attachments($chid, $arid),
+                        "released"    => (int) (isset($row["released"]) ? $row["released"] : 1),
                     ];
                 }
             }
@@ -1387,13 +1728,16 @@ if (!isset($STATUSLIB)) {
             "show_naptime_notice"  => $show_naptime_notice,
             "show_naptime_buttons" => $show_naptime_buttons,
             "nap_rating"       => $nap_rating,
+            "nap_rating_released" => $nap_rating_released,
             "show_nap_rating"  => !$show_naptime_buttons,
             "menus"        => $menus,
             "ratings"      => $ratings,
+            "menus_released" => $menus_released,
             "activities"   => $activities,
             "notes"        => $notes,
             "bottles"      => $bottles,
             "show_bottles" => $show_bottles,
+            "unreleased_count" => (status_current_role() === 'admin') ? status_count_unreleased($chid) : 0,
         ];
     }
 
@@ -1414,7 +1758,7 @@ if (!isset($STATUSLIB)) {
         $aid  = intval(get_db_field("aid", "children", "chid='$chid'"));
         $time = get_timestamp();
         $day  = status_daykey($time);
-        execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog) VALUES (0,'" . dbescape($mood) . "',0,'$chid','$aid','$day','$time')");
+        execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, released) VALUES (0,'" . dbescape($mood) . "',0,'$chid','$aid','$day','$time',0)");
         return status_get_day($chid, $day);
     }
 
@@ -1445,8 +1789,8 @@ if (!isset($STATUSLIB)) {
         $cream  = ($info['asks_cream'] && $cream)  ? 1 : 0;
         $peed   = ($info['asks_potty'] && $peed)   ? 1 : 0;
         $pooped = ($info['asks_potty'] && $pooped) ? 1 : 0;
-        $evid = execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, cream, peed, pooped)
-                                 VALUES (0,'" . dbescape($type) . "',0,'$chid','$aid','$day','$timelog','$cream','$peed','$pooped')");
+        $evid = execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, cream, peed, pooped, released)
+                                 VALUES (0,'" . dbescape($type) . "',0,'$chid','$aid','$day','$timelog','$cream','$peed','$pooped',0)");
         return ["evid" => $evid, "day" => status_get_day($chid, $day)];
     }
 
@@ -1481,7 +1825,7 @@ if (!isset($STATUSLIB)) {
         $cream  = ($info['asks_cream'] && $cream)  ? 1 : 0;
         $peed   = ($info['asks_potty'] && $peed)   ? 1 : 0;
         $pooped = ($info['asks_potty'] && $pooped) ? 1 : 0;
-        execute_db_sql("UPDATE events SET tag='" . dbescape($type) . "', timelog='$timelog', daykey='$day', cream='$cream', peed='$peed', pooped='$pooped'
+        execute_db_sql("UPDATE events SET tag='" . dbescape($type) . "', timelog='$timelog', daykey='$day', cream='$cream', peed='$peed', pooped='$pooped', released=0
                          WHERE evid='$evid' AND chid='$chid'");
         return status_get_day($chid, $day);
     }
@@ -1607,12 +1951,12 @@ if (!isset($STATUSLIB)) {
         $tag_title = status_incident_note_tag_title($type);
         $tag = make_or_get_tag($tag_title, 'notes');
         // Single-day parent notify for incidents
-        $nid = execute_db_sql("INSERT INTO notes (pid, aid, cid, actid, chid, employeeid, rnid, tag, note, data, timelog, notify, daykey)
-                               VALUES (0,'$aid',0,0,'$chid',0,0,'" . dbescape($tag) . "','" . dbescape($note_text) . "','','$time',1,'$day')");
+        $nid = execute_db_sql("INSERT INTO notes (pid, aid, cid, actid, chid, employeeid, rnid, tag, note, data, timelog, notify, daykey, released)
+                               VALUES (0,'$aid',0,0,'$chid',0,0,'" . dbescape($tag) . "','" . dbescape($note_text) . "','','$time',1,'$day',0)");
         $nid = intval($nid);
-        $evid = execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, note, nid)
-                                 VALUES (0,'" . dbescape($type) . "',0,'$chid','$aid','$day','$time','','$nid')");
-        status_push_notify_incident($aid, $chid, $type);
+        $evid = execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, note, nid, released)
+                                 VALUES (0,'" . dbescape($type) . "',0,'$chid','$aid','$day','$time','','$nid',0)");
+        // Push deferred until release (status_release_*)
         return ["evid" => $evid, "nid" => $nid, "day" => status_get_day($chid, $day)];
     }
 
@@ -1650,7 +1994,7 @@ if (!isset($STATUSLIB)) {
         $tag = make_or_get_tag($tag_title, 'notes');
 
         if ($nid) {
-            execute_db_sql("UPDATE notes SET tag='" . dbescape($tag) . "', note='" . dbescape($note) . "', daykey='$day', timelog='$timelog'
+            execute_db_sql("UPDATE notes SET tag='" . dbescape($tag) . "', note='" . dbescape($note) . "', daykey='$day', timelog='$timelog', released=0
                              WHERE nid='$nid' AND chid='$chid'");
         } else {
             // Legacy row still on events.note - create the notes row now
@@ -1659,7 +2003,7 @@ if (!isset($STATUSLIB)) {
                                    VALUES (0,'$aid',0,0,'$chid',0,0,'" . dbescape($tag) . "','" . dbescape($note) . "','','$timelog',1,'$day')");
             $nid = intval($nid);
         }
-        execute_db_sql("UPDATE events SET tag='" . dbescape($type) . "', note='', nid='$nid', timelog='$timelog', daykey='$day'
+        execute_db_sql("UPDATE events SET tag='" . dbescape($type) . "', note='', nid='$nid', timelog='$timelog', daykey='$day', released=0
                          WHERE evid='$evid' AND chid='$chid'");
         return status_get_day($chid, $day);
     }
@@ -1711,8 +2055,8 @@ if (!isset($STATUSLIB)) {
         $aid  = intval(get_db_field("aid", "children", "chid='$chid'"));
         $timelog = status_clamp_timelog(get_timestamp() - (intval($minutes) * 60));
         $day = status_daykey($timelog);
-        execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, amount)
-                         VALUES (0,'" . dbescape($STATUS_NAP_TAG) . "',0,'$chid','$aid','$day','$timelog','" . intval($minutes) . "')");
+        execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, amount, released)
+                         VALUES (0,'" . dbescape($STATUS_NAP_TAG) . "',0,'$chid','$aid','$day','$timelog','" . intval($minutes) . "',0)");
         return status_get_day($chid, $day);
     }
 
@@ -1735,7 +2079,7 @@ if (!isset($STATUSLIB)) {
         }
         $timelog = status_resolve_timelog($hour, $minute);
         $day = status_daykey($timelog);
-        execute_db_sql("UPDATE events SET timelog='$timelog', daykey='$day' WHERE evid='$evid' AND chid='$chid'");
+        execute_db_sql("UPDATE events SET timelog='$timelog', daykey='$day', released=0 WHERE evid='$evid' AND chid='$chid'");
         return status_get_day($chid, $day);
     }
 
@@ -1773,9 +2117,9 @@ if (!isset($STATUSLIB)) {
         $time = get_timestamp();
         $ratingesc = dbescape($rating);
         if (get_db_count("SELECT id FROM status_nap_rating WHERE chid='$chid' AND daykey='$day'")) {
-            execute_db_sql("UPDATE status_nap_rating SET rating='$ratingesc', timelog='$time' WHERE chid='$chid' AND daykey='$day'");
+            execute_db_sql("UPDATE status_nap_rating SET rating='$ratingesc', timelog='$time', released=0 WHERE chid='$chid' AND daykey='$day'");
         } else {
-            execute_db_sql("INSERT INTO status_nap_rating (chid, daykey, rating, timelog) VALUES ('$chid','$day','$ratingesc','$time')");
+            execute_db_sql("INSERT INTO status_nap_rating (chid, daykey, rating, timelog, released) VALUES ('$chid','$day','$ratingesc','$time',0)");
         }
         return status_get_day($chid, $day);
     }
@@ -1811,9 +2155,9 @@ if (!isset($STATUSLIB)) {
                     if ($existing["rating"] !== '') {
                         continue; // already rated - don't clobber it
                     }
-                    execute_db_sql("UPDATE status_nap_rating SET rating='$ratingesc', timelog='$time' WHERE chid='$chid' AND daykey='$day'");
+                    execute_db_sql("UPDATE status_nap_rating SET rating='$ratingesc', timelog='$time', released=0 WHERE chid='$chid' AND daykey='$day'");
                 } else {
-                    execute_db_sql("INSERT INTO status_nap_rating (chid, daykey, rating, timelog) VALUES ('$chid','$day','$ratingesc','$time')");
+                    execute_db_sql("INSERT INTO status_nap_rating (chid, daykey, rating, timelog, released) VALUES ('$chid','$day','$ratingesc','$time',0)");
                 }
                 $written[] = $chid;
             }
@@ -1841,7 +2185,7 @@ if (!isset($STATUSLIB)) {
         }
         $timelog = status_resolve_timelog($hour, $minute);
         $day = status_daykey($timelog);
-        execute_db_sql("UPDATE events SET timelog='$timelog', daykey='$day' WHERE evid='$evid' AND chid='$chid'");
+        execute_db_sql("UPDATE events SET timelog='$timelog', daykey='$day', released=0 WHERE evid='$evid' AND chid='$chid'");
         return status_get_day($chid, $day);
     }
 
@@ -1863,7 +2207,7 @@ if (!isset($STATUSLIB)) {
         }
         $timelog = status_resolve_timelog($hour, $minute);
         $day = status_daykey($timelog);
-        execute_db_sql("UPDATE events SET timelog='$timelog', daykey='$day' WHERE evid='$evid' AND chid='$chid'");
+        execute_db_sql("UPDATE events SET timelog='$timelog', daykey='$day', released=0 WHERE evid='$evid' AND chid='$chid'");
         return status_get_day($chid, $day);
     }
 
@@ -1882,9 +2226,9 @@ if (!isset($STATUSLIB)) {
         $evid = intval($evid);
         $aid  = intval(get_db_field("aid", "children", "chid='$chid'"));
         $time = get_timestamp();
-        execute_db_sql("INSERT INTO documents (aid, chid, evid, tag, filename, description, timelog)
-                         VALUES ('$aid','$chid','$evid','" . dbescape($tag) . "','" . dbescape($filename) . "','','$time')");
-        status_push_notify_photo($aid, $chid, $filename);
+        execute_db_sql("INSERT INTO documents (aid, chid, evid, tag, filename, description, timelog, released)
+                         VALUES ('$aid','$chid','$evid','" . dbescape($tag) . "','" . dbescape($filename) . "','','$time',0)");
+        // Push deferred until release
         return status_get_attachments($chid, $evid);
     }
 
@@ -1983,9 +2327,9 @@ if (!isset($STATUSLIB)) {
         $mealesc = dbescape($meal);
         $menuesc = dbescape($menu);
         if (get_db_count("SELECT id FROM status_menu WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'")) {
-            execute_db_sql("UPDATE status_menu SET menu='$menuesc', timelog='$time' WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
+            execute_db_sql("UPDATE status_menu SET menu='$menuesc', timelog='$time', released=0 WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
         } else {
-            execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, timelog) VALUES ('$chid','$day','$mealesc','$menuesc','$time')");
+            execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, timelog, released) VALUES ('$chid','$day','$mealesc','$menuesc','$time',0)");
         }
         return status_get_day($chid, $day);
     }
@@ -2013,9 +2357,9 @@ if (!isset($STATUSLIB)) {
         $mealesc   = dbescape($meal);
         $ratingesc = dbescape($rating);
         if (get_db_count("SELECT id FROM status_menu WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'")) {
-            execute_db_sql("UPDATE status_menu SET rating='$ratingesc', timelog='$time' WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
+            execute_db_sql("UPDATE status_menu SET rating='$ratingesc', timelog='$time', released=0 WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
         } else {
-            execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, rating, timelog) VALUES ('$chid','$day','$mealesc','','$ratingesc','$time')");
+            execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, rating, timelog, released) VALUES ('$chid','$day','$mealesc','','$ratingesc','$time',0)");
         }
         return status_get_day($chid, $day);
     }
@@ -2053,9 +2397,9 @@ if (!isset($STATUSLIB)) {
                     if ($existing["rating"] !== '') {
                         continue; // already rated - don't clobber it
                     }
-                    execute_db_sql("UPDATE status_menu SET rating='$ratingesc', timelog='$time' WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
+                    execute_db_sql("UPDATE status_menu SET rating='$ratingesc', timelog='$time', released=0 WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
                 } else {
-                    execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, rating, timelog) VALUES ('$chid','$day','$mealesc','','$ratingesc','$time')");
+                    execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, rating, timelog, released) VALUES ('$chid','$day','$mealesc','','$ratingesc','$time',0)");
                 }
                 $written[] = $chid;
             }
@@ -2088,9 +2432,9 @@ if (!isset($STATUSLIB)) {
                 continue;
             }
             if (get_db_count("SELECT id FROM status_menu WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'")) {
-                execute_db_sql("UPDATE status_menu SET menu='$menuesc', timelog='$time' WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
+                execute_db_sql("UPDATE status_menu SET menu='$menuesc', timelog='$time', released=0 WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
             } else {
-                execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, timelog) VALUES ('$chid','$day','$mealesc','$menuesc','$time')");
+                execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, timelog, released) VALUES ('$chid','$day','$mealesc','$menuesc','$time',0)");
             }
             $written[] = $chid;
         }
@@ -2157,9 +2501,9 @@ if (!isset($STATUSLIB)) {
         $actesc = dbescape($activity);
         $activeval = $on ? 1 : 0;
         if ($existing = get_db_row("SELECT id FROM status_activity WHERE chid='$chid' AND daykey='$day' AND activity='$actesc'")) {
-            execute_db_sql("UPDATE status_activity SET active='$activeval', timelog='$time' WHERE id='" . intval($existing["id"]) . "'");
+            execute_db_sql("UPDATE status_activity SET active='$activeval', timelog='$time', released=0 WHERE id='" . intval($existing["id"]) . "'");
         } else {
-            execute_db_sql("INSERT INTO status_activity (chid, daykey, activity, active, timelog) VALUES ('$chid','$day','$actesc','$activeval','$time')");
+            execute_db_sql("INSERT INTO status_activity (chid, daykey, activity, active, timelog, released) VALUES ('$chid','$day','$actesc','$activeval','$time',0)");
         }
         return status_get_day($chid, $day);
     }
@@ -2201,7 +2545,7 @@ if (!isset($STATUSLIB)) {
             if ($result = get_db_result("SELECT id, activity FROM status_activity WHERE chid='$chid' AND daykey='$day' AND active=1")) {
                 while ($row = fetch_row($result)) {
                     if (!isset($selectedSet[$row["activity"]])) {
-                        execute_db_sql("UPDATE status_activity SET active=0, timelog='$time' WHERE id='" . intval($row["id"]) . "'");
+                        execute_db_sql("UPDATE status_activity SET active=0, timelog='$time', released=0 WHERE id='" . intval($row["id"]) . "'");
                     }
                 }
             }
@@ -2209,9 +2553,9 @@ if (!isset($STATUSLIB)) {
             foreach ($selected as $activity) {
                 $actesc = dbescape($activity);
                 if ($existing = get_db_row("SELECT id FROM status_activity WHERE chid='$chid' AND daykey='$day' AND activity='$actesc'")) {
-                    execute_db_sql("UPDATE status_activity SET active=1, timelog='$time' WHERE id='" . intval($existing["id"]) . "'");
+                    execute_db_sql("UPDATE status_activity SET active=1, timelog='$time', released=0 WHERE id='" . intval($existing["id"]) . "'");
                 } else {
-                    execute_db_sql("INSERT INTO status_activity (chid, daykey, activity, active, timelog) VALUES ('$chid','$day','$actesc','1','$time')");
+                    execute_db_sql("INSERT INTO status_activity (chid, daykey, activity, active, timelog, released) VALUES ('$chid','$day','$actesc','1','$time',0)");
                 }
             }
             $written[] = $chid;
@@ -2235,12 +2579,14 @@ if (!isset($STATUSLIB)) {
         if (!$arid) {
             return $attachments;
         }
-        if ($result = get_db_result("SELECT * FROM documents WHERE chid='$chid' AND arid='$arid' ORDER BY timelog ASC")) {
+        $rf = status_released_filter();
+        if ($result = get_db_result("SELECT * FROM documents WHERE chid='$chid' AND arid='$arid'$rf ORDER BY timelog ASC")) {
             while ($row = fetch_row($result)) {
                 $attachments[] = [
                     "did"      => (int) $row["did"],
                     "filename" => $row["filename"],
                     "url"      => $CFG->fileserveurl . "?did=" . (int) $row["did"],
+                    "released" => (int) (isset($row["released"]) ? $row["released"] : 1),
                 ];
             }
         }
@@ -2261,9 +2607,9 @@ if (!isset($STATUSLIB)) {
         $arid = intval($arid);
         $aid  = intval(get_db_field("aid", "children", "chid='$chid'"));
         $time = get_timestamp();
-        execute_db_sql("INSERT INTO documents (aid, chid, arid, tag, filename, description, timelog)
-                         VALUES ('$aid','$chid','$arid','activity','" . dbescape($filename) . "','','$time')");
-        status_push_notify_photo($aid, $chid, $filename);
+        execute_db_sql("INSERT INTO documents (aid, chid, arid, tag, filename, description, timelog, released)
+                         VALUES ('$aid','$chid','$arid','activity','" . dbescape($filename) . "','','$time',0)");
+        // Push deferred until release
         return status_get_activity_attachments($chid, $arid);
     }
 
@@ -2328,8 +2674,8 @@ if (!isset($STATUSLIB)) {
         $notify = status_normalize_notify($notify);
         $note   = dbescape($note);
         $tag    = dbescape($tag);
-        execute_db_sql("INSERT INTO notes (pid, aid, cid, actid, chid, employeeid, rnid, tag, note, data, timelog, notify, daykey)
-                        VALUES (0,'$aid',0,0,'$chid',0,0,'$tag','$note','','$time','$notify','$day')");
+        execute_db_sql("INSERT INTO notes (pid, aid, cid, actid, chid, employeeid, rnid, tag, note, data, timelog, notify, daykey, released)
+                        VALUES (0,'$aid',0,0,'$chid',0,0,'$tag','$note','','$time','$notify','$day',0)");
         return status_get_day($chid, $day);
     }
 
@@ -2355,7 +2701,7 @@ if (!isset($STATUSLIB)) {
         $note   = dbescape($note);
         $tag    = dbescape($tag);
         // Only notes this feature created (daykey != 0)
-        execute_db_sql("UPDATE notes SET tag='$tag', note='$note', notify='$notify'
+        execute_db_sql("UPDATE notes SET tag='$tag', note='$note', notify='$notify', released=0
                          WHERE nid='$nid' AND chid='$chid' AND daykey != 0");
         return status_get_day($chid, status_daykey());
     }
@@ -2400,7 +2746,7 @@ if (!isset($STATUSLIB)) {
         if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($moodtags)")) {
             return false;
         }
-        execute_db_sql("UPDATE events SET tag='" . dbescape($newmood) . "' WHERE evid='$evid' AND chid='$chid'");
+        execute_db_sql("UPDATE events SET tag='" . dbescape($newmood) . "', released=0 WHERE evid='$evid' AND chid='$chid'");
         return status_get_day($chid);
     }
 
@@ -2435,7 +2781,7 @@ if (!isset($STATUSLIB)) {
         $time = get_timestamp();
         $day  = status_daykey($time);
         $amount = ($ounces !== false && $ounces !== '') ? intval($ounces) : 0;
-        execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, amount) VALUES (0,'" . dbescape($GLOBALS['STATUS_BOTTLE_TAG']) . "',0,'$chid','$aid','$day','$time','$amount')");
+        execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, amount, released) VALUES (0,'" . dbescape($GLOBALS['STATUS_BOTTLE_TAG']) . "',0,'$chid','$aid','$day','$time','$amount',0)");
         return status_get_day($chid, $day);
     }
 
@@ -2454,7 +2800,7 @@ if (!isset($STATUSLIB)) {
         if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag='" . dbescape($GLOBALS['STATUS_BOTTLE_TAG']) . "'")) {
             return false;
         }
-        execute_db_sql("UPDATE events SET amount='" . intval($ounces) . "' WHERE evid='$evid' AND chid='$chid'");
+        execute_db_sql("UPDATE events SET amount='" . intval($ounces) . "', released=0 WHERE evid='$evid' AND chid='$chid'");
         return status_get_day($chid);
     }
 

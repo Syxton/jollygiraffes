@@ -104,6 +104,7 @@ switch ($action) {
                 "napRatings" => $GLOBALS['STATUS_NAP_RATINGS'],
                 "bottle"   => $GLOBALS['STATUS_BOTTLE_INFO'],
                 "tags"     => status_notes_tags(),
+                "unreleased_total" => status_count_unreleased(),
             ]);
         } else {
             $children = status_children_for_aid(status_current_aid());
@@ -171,7 +172,14 @@ switch ($action) {
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         $daykey = isset($_POST['daykey']) ? intval($_POST['daykey']) : false;
         status_require_child_access($chid);
+        // Admin Parent View can request a parent-accurate filter (released only).
+        // Real parents always get released-only via status_view_released_only().
+        $GLOBALS['STATUS_FORCE_RELEASED_ONLY'] = false;
+        if (status_current_role() === 'admin' && !empty($_POST['released_only'])) {
+            $GLOBALS['STATUS_FORCE_RELEASED_ONLY'] = true;
+        }
         $day = status_get_day($chid, $daykey);
+        $GLOBALS['STATUS_FORCE_RELEASED_ONLY'] = false;
         if (!$day) {
             status_json(["success" => false, "message" => "Child not found."]);
         }
@@ -587,6 +595,88 @@ switch ($action) {
         status_require_auth();
         $endpoint = isset($_POST['endpoint']) ? $_POST['endpoint'] : '';
         status_json(status_push_unsubscribe(status_current_aid(), $endpoint));
+        break;
+
+    // ---- Pending / release system ----
+    case 'release_child':
+        status_require_admin();
+        $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_child_access($chid);
+        $result = status_release_child($chid);
+        $day = status_get_day($chid);
+        status_json([
+            "success" => true,
+            "result"  => $result,
+            "day"     => $day,
+            "unreleased_count" => status_count_unreleased($chid),
+            "unreleased_total" => status_count_unreleased(),
+        ]);
+        break;
+
+    case 'release_account':
+        status_require_admin();
+        $aid = isset($_POST['aid']) ? intval($_POST['aid']) : 0;
+        if (!$aid || !status_can_access_account($aid)) {
+            status_json(["success" => false, "message" => "Invalid account."]);
+        }
+        $result = status_release_account($aid);
+        $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $day = $chid ? status_get_day($chid) : null;
+        status_json([
+            "success" => true,
+            "result"  => $result,
+            "day"     => $day,
+            "unreleased_count" => $chid ? status_count_unreleased($chid) : 0,
+            "unreleased_total" => status_count_unreleased(),
+        ]);
+        break;
+
+    case 'release_all':
+        status_require_admin();
+        $result = status_release_all();
+        $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $day = $chid ? status_get_day($chid) : null;
+        status_json([
+            "success" => true,
+            "result"  => $result,
+            "day"     => $day,
+            "unreleased_count" => 0,
+            "unreleased_total" => 0,
+        ]);
+        break;
+
+    case 'unreleased_counts':
+        status_require_admin();
+        $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_json([
+            "success" => true,
+            "unreleased_count" => $chid ? status_count_unreleased($chid) : 0,
+            "unreleased_total" => status_count_unreleased(),
+        ]);
+        break;
+
+    // Release one pending item (event/note/menu/activity/nap_rating/document).
+    case 'release_item':
+        status_require_admin();
+        $chid  = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $type  = isset($_POST['type']) ? $_POST['type'] : '';
+        $id    = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        $extra = [];
+        if (isset($_POST['meal'])) { $extra['meal'] = $_POST['meal']; }
+        if (isset($_POST['daykey'])) { $extra['daykey'] = intval($_POST['daykey']); }
+        status_require_child_access($chid);
+        $result = status_release_item($type, $id, $chid, $extra);
+        if (empty($result['success'])) {
+            status_json($result);
+        }
+        $day = status_get_day($chid);
+        status_json([
+            "success" => true,
+            "result"  => $result,
+            "day"     => $day,
+            "unreleased_count" => status_count_unreleased($chid),
+            "unreleased_total" => status_count_unreleased(),
+        ]);
         break;
 
     default:

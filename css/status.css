@@ -1483,3 +1483,162 @@ button:active {
 html.jg-running-as-app body {
     /* reserved for future standalone-only tweaks */
 }
+
+/* ---- Pending / release system ---- */
+.release-banner {
+    margin: 10px 12px 0;
+    padding: 12px 14px;
+    background: #FFF3CD;
+    border: 1px solid #FFECB5;
+    border-left: 4px solid #E6A817;
+    border-radius: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.release-banner-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #7A5B00;
+}
+.release-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    border-radius: 12px;
+    background: #E6A817;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+}
+.release-banner-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.release-btn {
+    font-size: 13px !important;
+    padding: 6px 12px !important;
+}
+
+/* Visual mark on individual pending items (admin only) */
+.status-chip.unreleased,
+.note-card.unreleased,
+.activity-chip.unreleased,
+.meal-section.unreleased {
+    outline: 2px dashed #E6A817;
+    outline-offset: 2px;
+    position: relative;
+}
+.status-chip.unreleased::after,
+.note-card.unreleased::after {
+    content: "Pending";
+    position: absolute;
+    top: -8px;
+    right: -4px;
+    background: #E6A817;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 6px;
+    line-height: 1.3;
+    z-index: 1;
+}
+
+/* Child select badge for pending */
+.child-select option.has-pending {
+    font-weight: 700;
+}
+.admin-pending-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #E6A817;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.release-item-btn {
+    margin-left: 8px !important;
+    font-size: 12px !important;
+    padding: 4px 10px !important;
+    vertical-align: middle;
+}
+h2 .release-item-btn {
+    float: right;
+    margin-top: -2px;
+}
+.activity-release-btn {
+    top: 65px;
+    color: #E6A817 !important;
+    border-color: #E6A817 !important;
+    left: -6px;
+    background: white;
+}
+.activity-btn-wrap.unreleased {
+    outline: 2px dashed #E6A817;
+    outline-offset: 2px;
+    border-radius: 10px;
+}
+.chip-icon-btn.note-release {
+    color: #E6A817 !important;
+    border-color: #E6A817 !important;
+}
+.release-item-btn {
+    background: #E6A817;
+}
+
+.release-btn svg, .activity-release-btn svg, .note-release svg {
+    position: relative;
+    left: -1px;
+    top: -1px;
+}
+.chip-icon-btn.release-btn {
+    color: #E6A817 !important;
+    border-color: #E6A817 !important;
+    background: white !important;
+}
+.primary-button.release-btn {
+    color: white !important;
+    background: #E6A817 !important;
+}
+.secondary-button.release-btn {
+    color: #E6A817 !important;
+    border-color: #E6A817 !important;
+    background: white !important;
+}
+
+.preview-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+}
+.preview-pending-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    margin-left: auto;
+}
+.preview-pending-toggle input {
+    width: 16px;
+    height: 16px;
+    accent-color: #E6A817;
+}
+.preview-banner .preview-exit-btn {
+    margin-left: 0;
+}

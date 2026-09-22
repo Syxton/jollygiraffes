@@ -36,7 +36,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <script data-search-pseudo-elements defer
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026082105">
+    <link rel="stylesheet" href="css/status.css?version=2026092203">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -79,6 +79,10 @@ $sitename = htmlspecialchars($CFG->sitename);
     <div id="screen_parent" class="status-screen" style="display:none;">
         <div class="preview-banner" id="preview_banner" style="display:none;">
             <span><i class="fa-solid fa-person-pregnant"></i>&nbsp;Parent View</span>
+            <label class="preview-pending-toggle" title="When off, matches what parents actually see (released only)">
+                <input type="checkbox" id="preview_show_pending">
+                <span>Show pending</span>
+            </label>
             <button type="button" class="preview-exit-btn" id="exit_preview_btn">Exit Preview</button>
         </div>
         <div class="topbar-wrap">
@@ -188,6 +192,18 @@ $sitename = htmlspecialchars($CFG->sitename);
         </div>
 
         <select id="admin_child_select" class="child-select"></select>
+
+        <div class="release-banner" id="admin_release_banner" style="display:none;">
+            <div class="release-banner-text">
+                <span class="release-badge" id="admin_release_badge">0</span>
+                <span id="admin_release_msg">pending change(s) not yet visible to parents</span>
+            </div>
+            <div class="release-banner-actions">
+                <button type="button" class="primary-button release-btn" id="release_child_btn" title="Release this child">Release Child</button>
+                <button type="button" class="secondary-button release-btn" id="release_account_btn" title="Release all children in this family">Release Family</button>
+                <button type="button" class="secondary-button release-btn" id="release_all_btn" title="Release every pending change">Release All</button>
+            </div>
+        </div>
 
         <div class="naptime-notice-text" id="admin_naptime_notice_text" style="display:none;">Shhh... It's naptime (1pm - 3pm).</div>
         <div class="avatar-editable" id="avatar_wrap">
@@ -348,6 +364,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js?version=2026082105"></script>
+<script src="scripts/status.js?version=2026092203"></script>
 </body>
 </html>

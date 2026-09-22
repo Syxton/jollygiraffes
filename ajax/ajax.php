@@ -529,15 +529,29 @@ function get_notifications($pid, $chid = false, $aid = false, $separate = false,
 
     $vars = ["pid" => $pid, "chid" => $chid, "aid" => $aid, "daykey" => $daykey, "offset" => $offset];
 
+    // Daily Status pending items use notes.released=0 until an admin releases
+    // them. Never surface those on the check-in/out kiosk notification screen.
+    // Bulletins and non-status notes default to released=1 after migration.
+    $released_sql = "";
+    static $notes_has_released = null;
+    if ($notes_has_released === null) {
+        $notes_has_released = (bool) get_db_row(
+            "SELECT column_name FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='notes' AND column_name='released'"
+        );
+    }
+    if ($notes_has_released) {
+        $released_sql = " AND IFNULL(released, 1) = 1";
+    }
+
     if (empty($separate)) { // any combine notifications?
         if ($chid) { // child and bulletin material
-            $SQL = "SELECT * FROM notes WHERE ((chid = ||chid|| AND pid = ||pid||) OR (tag = 'bulletin' AND (aid = ||aid|| OR pid = ||pid||))) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(FROM_UNIXTIME(timelog + ||offset||))) = ||daykey||) OR (notify = 2)) ORDER BY timelog";
+            $SQL = "SELECT * FROM notes WHERE ((chid = ||chid|| AND pid = ||pid||) OR (tag = 'bulletin' AND (aid = ||aid|| OR pid = ||pid||))) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(FROM_UNIXTIME(timelog + ||offset||))) = ||daykey||) OR (notify = 2))$released_sql ORDER BY timelog";
         } else { // bulletin only
             $servertz = get_date('P', time(), $CFG->servertz);
             $localtz = get_date('P', time(), $CFG->timezone);
             $vars["servertz"] = $servertz;
             $vars["localtz"] = $localtz;
-            $SQL = "SELECT * FROM notes WHERE (tag = 'bulletin' AND (aid = ||aid|| OR pid = ||pid||)) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(CONVERT_TZ(FROM_UNIXTIME(timelog), ||servertz||, ||localtz||))) = ||daykey||) OR (notify = 2)) ORDER BY timelog";
+            $SQL = "SELECT * FROM notes WHERE (tag = 'bulletin' AND (aid = ||aid|| OR pid = ||pid||)) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(CONVERT_TZ(FROM_UNIXTIME(timelog), ||servertz||, ||localtz||))) = ||daykey||) OR (notify = 2))$released_sql ORDER BY timelog";
         }
     } else { // specific context notifications, usually for display purposes
         if (!empty($chid)) { // child notes
@@ -545,19 +559,19 @@ function get_notifications($pid, $chid = false, $aid = false, $separate = false,
                 "type" => "chid",
                 "id"   => $chid
             ]);
-            $SQL  = "SELECT * FROM notes WHERE (chid = ||chid|| AND pid = ||pid||) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(FROM_UNIXTIME(timelog + ||offset||))) = ||daykey||) OR (notify = 2)) ORDER BY timelog";
+            $SQL  = "SELECT * FROM notes WHERE (chid = ||chid|| AND pid = ||pid||) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(FROM_UNIXTIME(timelog + ||offset||))) = ||daykey||) OR (notify = 2))$released_sql ORDER BY timelog";
         } elseif (!empty($aid)) { // account bulletins
             $name = get_name([
                 "type" => "aid",
                 "id"   => $aid
             ]);
-            $SQL  = "SELECT * FROM notes WHERE (tag = 'bulletin' AND aid = ||aid||) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(FROM_UNIXTIME(timelog + ||offset||))) = ||daykey||) OR (notify = 2)) ORDER BY timelog";
+            $SQL  = "SELECT * FROM notes WHERE (tag = 'bulletin' AND aid = ||aid||) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(FROM_UNIXTIME(timelog + ||offset||))) = ||daykey||) OR (notify = 2))$released_sql ORDER BY timelog";
         } else { // program bulletins
             $name = get_name([
                 "type" => "pid",
                 "id"   => $pid
             ]);
-            $SQL  = "SELECT * FROM notes WHERE (tag = 'bulletin' AND pid = ||pid||) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(FROM_UNIXTIME(timelog + ||offset||))) = ||daykey||) OR (notify = 2)) ORDER BY timelog";
+            $SQL  = "SELECT * FROM notes WHERE (tag = 'bulletin' AND pid = ||pid||) AND ((notify = 1 AND CONCAT(YEAR(FROM_UNIXTIME(timelog)), MONTH(FROM_UNIXTIME(timelog)), DAY(FROM_UNIXTIME(timelog + ||offset||))) = ||daykey||) OR (notify = 2))$released_sql ORDER BY timelog";
         }
     }
 

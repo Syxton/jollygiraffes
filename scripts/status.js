@@ -1,6 +1,13 @@
 (function () {
     "use strict";
 
+    history.pushState(null, null, window.location.href);
+    // 2. Listen for the 'popstate' event (which fires when the back button is pressed)
+    window.addEventListener('popstate', function (event) {
+        // Re-push the dummy state to keep the user trapped on the current page
+        history.pushState(null, null, window.location.href);
+    });
+
     var app = document.getElementById('status_app');
     var code = app.getAttribute('data-code') || '';
 

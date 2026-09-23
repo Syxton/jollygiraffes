@@ -468,7 +468,7 @@ html, body {
     justify-content: space-between;
     min-height: 40px;
 }
-.mood-chip .emoji { font-size: 30px; }
+.mood-chip .emoji { font-size: 40px; }
 .mood-chip-content {
     display: flex;
     align-items: center;
@@ -480,7 +480,7 @@ html, body {
     font-size: .75em;
     word-break: break-word;
     text-align: right;
-    background: #e7e7e7;
+    background: #fafafa;
     border-radius: 5px;
     color: #000000;
     padding: 10px;
@@ -526,8 +526,10 @@ html, body {
     display: flex;
     align-items: center;
     gap: 6px;
-    width: 120px;
+    width: 75px;
     justify-content: flex-end;
+    flex-direction: row;
+    flex-wrap: wrap;
 }
 .swipe-area .chip-button-area {
     width: 35px;
@@ -799,19 +801,16 @@ html, body {
 }
 
 .meal-rating-badge {
+    display: inline-block;
     background: #E6FCF5;
     color: #22282E;
     border-radius: 999px;
-    padding: 3px 10px;
-    margin-left: 6px;
+    padding: 5px 10px;
+    margin: 0 10px 10px 10px;
     vertical-align: middle;
-    font-size: 20px;
-    font-weight: normal;
+    font-size: 25px;
+    font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    float: left;
-    position: relative;
-    top: -40px;
 }
 
 .notes-list {

@@ -305,6 +305,7 @@ $sitename = htmlspecialchars($CFG->sitename);
                 </div>
             </section>
         </div>
+        <select id="admin_child_select2" class="child-select"></select>
     </div>
 
     <!-- POTTY TIME entry panel (admin) - populated/shown by JS -->

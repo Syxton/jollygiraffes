@@ -1295,6 +1295,7 @@
             var savedIsValid = state.children.some(function (c) { return c.chid === savedChid; });
             state.chid = savedIsValid ? savedChid : state.children[0].chid;
             document.getElementById('admin_child_select').value = state.chid;
+            document.getElementById('admin_child_select2').value = state.chid;
         }
         renderMoodButtons();
         renderPottyTypeButtons();
@@ -1347,6 +1348,7 @@
         document.getElementById('parent_menu_wrap').style.display = '';
         state.chid = state.adminPreviewChid || state.chid;
         document.getElementById('admin_child_select').value = state.chid;
+        document.getElementById('admin_child_select2').value = state.chid;
         showScreen('screen_admin');
         fetchDayAdmin();
     }
@@ -1358,6 +1360,9 @@
             var opt = document.createElement('option');
             opt.textContent = 'No children found';
             select.appendChild(opt);
+            var clone = select.cloneNode(true);
+            clone.id = 'admin_child_select2';
+            document.getElementById('admin_child_select2').replaceWith(clone);
             return;
         }
 
@@ -1374,13 +1379,20 @@
             var groups = {};
             state.children.forEach(function (c) {
                 var fam = c.family_name || 'Family';
-                if (!groups[fam]) { groups[fam] = document.createElement('optgroup'); groups[fam].label = fam; select.appendChild(groups[fam]); }
+                if (!groups[fam]) {
+                    groups[fam] = document.createElement('optgroup');
+                    groups[fam].label = fam;
+                    select.appendChild(groups[fam]);
+                }
                 var opt = document.createElement('option');
                 opt.value = c.chid;
                 opt.textContent = c.name;
-                groups[fam].appendChild(opt);
+                groups[fam].appendChild(opt.cloneNode(true));
             });
         }
+        var clone = select.cloneNode(true);
+        clone.id = 'admin_child_select2';
+        document.getElementById('admin_child_select2').replaceWith(clone);
     }
 
     function renderMoodButtons() {
@@ -2044,6 +2056,22 @@
 
         document.getElementById('admin_child_select').addEventListener('change', function (e) {
             state.chid = parseInt(e.target.value, 10);
+            document.getElementById('admin_child_select2').value = state.chid;
+            window.scrollTo({
+                top: 0,
+                behavior: 'instant'
+            });
+            try { localStorage.setItem('jg_admin_chid', state.chid); } catch (err) { /* ignore */ }
+            stopEditingNote();
+            fetchDayAdmin();
+        });
+        document.getElementById('admin_child_select2').addEventListener('change', function (e) {
+            state.chid = parseInt(e.target.value, 10);
+            document.getElementById('admin_child_select').value = state.chid;
+            window.scrollTo({
+                top: 0,
+                behavior: 'instant'
+            });
             try { localStorage.setItem('jg_admin_chid', state.chid); } catch (err) { /* ignore */ }
             stopEditingNote();
             fetchDayAdmin();

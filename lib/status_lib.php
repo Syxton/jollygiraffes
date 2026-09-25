@@ -20,7 +20,7 @@ if (!isset($STATUSLIB)) {
         'mood_sad'       => ['label' => 'Sad',       'emoji' => '😢', 'color' => '#495fb8'],
         'mood_angry'     => ['label' => 'Angry',     'emoji' => '😠', 'color' => '#ff0000'],
         'mood_tired'     => ['label' => 'Tired',     'emoji' => '😴', 'color' => '#868E96'],
-        'mood_energetic' => ['label' => 'Energetic', 'emoji' => '⚡', 'color' => '#2c297b'],
+        'mood_energetic' => ['label' => 'Energetic', 'emoji' => '🫨', 'color' => '#2c297b'],
         'mood_calm'      => ['label' => 'Calm',      'emoji' => '😌', 'color' => '#22B8CF'],
         'mood_silly'     => ['label' => 'Silly',     'emoji' => '🤪', 'color' => '#e89292'],
         'mood_sick'      => ['label' => 'Not Well',  'emoji' => '🤒', 'color' => '#45c249'],
@@ -105,12 +105,13 @@ if (!isset($STATUSLIB)) {
     // the notes table (events.nid); note_tag is the notes_tags title used
     // when the linked note is created ("behavior" vs "Injury").
     $GLOBALS['STATUS_INCIDENT_TYPES'] = [
-        'inc_hurt'    => ['label' => 'Hurt Someone',    'emoji' => '👊', 'color' => '#E03131', 'default_note' => 'Hurt another child.',           'note_tag' => 'behavior'],
+        'inc_hurt'    => ['label' => 'Hurt Someone',    'emoji' => '👊', 'color' => '#5b5555', 'default_note' => 'Hurt another child.',           'note_tag' => 'behavior'],
         'inc_bit'     => ['label' => 'Bit Someone',     'emoji' => '😬', 'color' => '#c62a2a', 'default_note' => 'Bit another child.',            'note_tag' => 'behavior'],
         'inc_gotbit'  => ['label' => 'Bitten',          'emoji' => '😫', 'color' => '#c65bbd', 'default_note' => 'Was bitten by another child.',  'note_tag' => 'Injury'],
         'inc_booboo'  => ['label' => 'Boo Boo',         'emoji' => '🤕', 'color' => '#926969', 'default_note' => 'Had a minor boo-boo.',          'note_tag' => 'Injury'],
         'inc_bandaid' => ['label' => 'Band-Aid',        'emoji' => '🩹', 'color' => '#6f5dff', 'default_note' => 'Needed a band-aid.',            'note_tag' => 'Medical'],
         'inc_sick'    => ['label' => 'Sick',            'emoji' => '🤢', 'color' => '#8cea84', 'default_note' => 'Got sick',                      'note_tag' => 'Medical'],
+        'inc_fever'    => ['label' => 'Fever',          'emoji' => '🤒', 'color' => '#ec580f', 'default_note' => 'Is running a fever',                      'note_tag' => 'Medical'],
     ];
 
     // Naptime: shown 1pm-3pm for children over this age. Duration

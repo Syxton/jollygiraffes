@@ -36,7 +36,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <script data-search-pseudo-elements defer
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026092300">
+    <link rel="stylesheet" href="css/status.css?version=2026100500">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -217,6 +217,24 @@ $sitename = htmlspecialchars($CFG->sitename);
 
         <div class="day-label" id="admin_day_label">Today</div>
 
+        <section class="card copy-day-card" id="copy_day_card">
+            <button type="button" class="secondary-button" id="copy_day_toggle"><i class="fa-solid fa-copy"></i> Copy Today to Other Kids&hellip;</button>
+            <div class="menu-copy-panel" id="copy_day_panel" style="display:none;">
+                <p class="muted menu-copy-hint">Copy everything logged today for this child. Copies stay <strong>pending</strong> &ndash; parents won't see them until you release.</p>
+                <div class="menu-copy-group-title">What to copy</div>
+                <div class="menu-copy-list copy-day-types" id="copy_day_types"></div>
+                <p class="muted menu-copy-hint">Bottles and individual naps are only copied to kids young enough to have them. Activities are added only (nothing is turned off). Meal menu text is replaced if the source has any; ratings only fill blanks. Photos aren't copied.</p>
+                <div class="menu-copy-group-title">Copy to</div>
+                <label class="menu-copy-item"><input class="styled-checkbox" type="checkbox" id="copy_day_all"> <strong>Select all</strong></label>
+                <div class="menu-copy-list" id="copy_day_list"></div>
+                <div class="menu-copy-buttons">
+                    <button type="button" class="link-button" id="copy_day_cancel">Cancel</button>
+                    <button type="button" class="primary-button" id="copy_day_confirm">Copy</button>
+                    <span class="save-status" id="copy_day_status"></span>
+                </div>
+            </div>
+        </section>
+
         <div class="admin-grid">
             <section class="card">
                 <h2>😎 Mood</h2>
@@ -366,6 +384,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js?version=2026092300"></script>
+<script src="scripts/status.js?version=2026100500"></script>
 </body>
 </html>

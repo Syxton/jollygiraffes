@@ -759,8 +759,19 @@ html, body {
 .menu-copy-panel {
     margin: 10px 0;
     padding: 1px 10px;
-    background: #91ffcd;
+    background: #daffee;
     border-radius: 10px;
+}
+.menu-copy-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 10px 0 8px;
+}
+.menu-copy-buttons .save-status {
+    flex: 1 1 auto;
+    min-width: 0;
 }
 .menu-copy-group-title {
     font-weight: bold;
@@ -1645,3 +1656,6 @@ h2 .release-item-btn {
 .preview-banner .preview-exit-btn {
     margin-left: 0;
 }
+
+.copy-day-card { margin-bottom: 12px; }
+.copy-day-types { margin-bottom: 8px; }

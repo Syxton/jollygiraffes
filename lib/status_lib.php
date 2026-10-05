@@ -2566,6 +2566,210 @@ if (!isset($STATUSLIB)) {
 
     /**
      *
+     * Copy everything logged today for $fromChid onto each target child in one
+     * action: moods, potty, incidents, bottles, naps, meals and activities.
+     *
+     * - Age rules are applied per TARGET child: bottles only go to children
+     *   under STATUS_BOTTLE_MAX_MONTHS, nap entries only to children under
+     *   STATUS_NAP_MAX_MONTHS. Older children get the source's nap rating
+     *   instead (only if they don't already have one). When the source has a
+     *   nap rating but no nap events (older source → younger target), the
+     *   rating is still applied so the target is not left empty.
+     * - Everything copied is written with released=0, so nothing reaches
+     *   parents until staff release it.
+     * - Safe to run twice: events already on the target with the same tag
+     *   and time are skipped, activities already on are left alone, and
+     *   existing meal ratings / nap ratings are never overwritten.
+     * - Meal menu text from a non-empty source replaces the target's menu
+     *   text; meal ratings only fill a blank (never overwrite).
+     * - Activities are additive only: missing ones are turned on; activities
+     *   already on the target are never turned off (unlike status_copy_activities).
+     * - Photos/attachments are NOT copied (they belong to one child).
+     * - General notes are not included (they have their own copy tool).
+     * - Only targets that actually received at least one new item are listed
+     *   in "written".
+     *
+     * @param int        $fromChid Source child id.
+     * @param array      $chids    Target child ids.
+     * @param array|null $types    Subset of: moods, potty, incidents, bottles, naps, meals, activities. Null = all.
+     * @return array ["written" => [chids], "counts" => [chid => [type => n]], "skipped" => [chid => [type => n]]]
+     */
+    function status_copy_day($fromChid, $chids, $types = null) {
+        global $STATUS_MOODS, $STATUS_POTTY_TYPES, $STATUS_INCIDENT_TYPES, $STATUS_NAP_TAG;
+        $fromChid = intval($fromChid);
+        $day  = status_daykey();
+        $time = get_timestamp();
+
+        $allTypes = ['moods', 'potty', 'incidents', 'bottles', 'naps', 'meals', 'activities'];
+        $types = (is_array($types) && count($types)) ? array_values(array_intersect($allTypes, $types)) : $allTypes;
+        $want = array_flip($types);
+
+        // Tag -> type map for the event types we may copy.
+        $tagType = [];
+        if (isset($want['moods']))     { foreach (array_keys($STATUS_MOODS) as $t)          { $tagType[$t] = 'moods'; } }
+        if (isset($want['potty']))     { foreach (array_keys($STATUS_POTTY_TYPES) as $t)    { $tagType[$t] = 'potty'; } }
+        if (isset($want['incidents'])) { foreach (array_keys($STATUS_INCIDENT_TYPES) as $t) { $tagType[$t] = 'incidents'; } }
+        if (isset($want['bottles']))   { $tagType[$GLOBALS['STATUS_BOTTLE_TAG']] = 'bottles'; }
+        if (isset($want['naps']))      { $tagType[$STATUS_NAP_TAG] = 'naps'; }
+
+        // ---- Load the source child's day once ----
+        $srcEvents = [];
+        if (count($tagType)) {
+            $taglist = "'" . implode("','", array_map('dbescape', array_keys($tagType))) . "'";
+            if ($result = get_db_result("SELECT * FROM events WHERE chid='$fromChid' AND daykey='$day' AND tag IN ($taglist) ORDER BY timelog ASC, evid ASC")) {
+                while ($row = fetch_row($result)) {
+                    $srcEvents[] = $row;
+                }
+            }
+        }
+        $srcMeals = [];
+        if (isset($want['meals']) && ($result = get_db_result("SELECT * FROM status_menu WHERE chid='$fromChid' AND daykey='$day'"))) {
+            while ($row = fetch_row($result)) {
+                if ($row["menu"] !== '' || $row["rating"] !== '') {
+                    $srcMeals[] = $row;
+                }
+            }
+        }
+        $srcActivities = [];
+        if (isset($want['activities']) && ($result = get_db_result("SELECT activity FROM status_activity WHERE chid='$fromChid' AND daykey='$day' AND active=1"))) {
+            while ($row = fetch_row($result)) {
+                if (isset($GLOBALS['STATUS_ACTIVITIES'][$row["activity"]])) {
+                    $srcActivities[] = $row["activity"];
+                }
+            }
+        }
+        $srcNapRating = '';
+        if (isset($want['naps'])) {
+            $row = get_db_row("SELECT rating FROM status_nap_rating WHERE chid='$fromChid' AND daykey='$day'");
+            if ($row && $row["rating"] !== '' && isset($GLOBALS['STATUS_NAP_RATINGS'][$row["rating"]])) {
+                $srcNapRating = $row["rating"];
+            }
+        }
+        // Incident notes (parent-facing text lives in notes via events.nid)
+        $srcNotes = [];
+        foreach ($srcEvents as $ev) {
+            if ($tagType[$ev["tag"]] === 'incidents' && intval($ev["nid"])) {
+                $n = get_db_row("SELECT tag, note FROM notes WHERE nid='" . intval($ev["nid"]) . "'");
+                if ($n) {
+                    $srcNotes[intval($ev["nid"])] = $n;
+                }
+            }
+        }
+
+        $written = [];
+        $counts  = [];
+        $skipped = [];
+
+        foreach ($chids as $chid) {
+            $chid = intval($chid);
+            if (!$chid || $chid === $fromChid) {
+                continue;
+            }
+            if (!status_can_access_child($chid)) {
+                continue;
+            }
+            $child = get_db_row("SELECT chid, aid, birthdate FROM children WHERE chid='$chid' AND deleted=0");
+            if (!$child) {
+                continue;
+            }
+            $aid = intval($child["aid"]);
+            $canBottle = status_eligible_for_bottles($child["birthdate"], $day);
+            $canNap    = status_eligible_for_naptime($child["birthdate"]);
+            $counts[$chid]  = [];
+            $skipped[$chid] = [];
+            $bump = function (&$arr, $type) { $arr[$type] = (isset($arr[$type]) ? $arr[$type] : 0) + 1; };
+
+            // ---- Events ----
+            foreach ($srcEvents as $ev) {
+                $type = $tagType[$ev["tag"]];
+                if ($type === 'bottles' && !$canBottle) { $bump($skipped[$chid], 'bottles'); continue; }
+                if ($type === 'naps' && !$canNap)       { $bump($skipped[$chid], 'naps');    continue; }
+
+                $tagesc = dbescape($ev["tag"]);
+                $tl     = intval($ev["timelog"]);
+                if (get_db_count("SELECT evid FROM events WHERE chid='$chid' AND daykey='$day' AND tag='$tagesc' AND timelog='$tl'")) {
+                    $bump($skipped[$chid], $type); // already there (earlier copy or logged by hand)
+                    continue;
+                }
+
+                $nid = 0;
+                if ($type === 'incidents' && isset($srcNotes[intval($ev["nid"])])) {
+                    // Give the target its own note row so editing/releasing stays per-child.
+                    $n = $srcNotes[intval($ev["nid"])];
+                    $nid = intval(execute_db_sql("INSERT INTO notes (pid, aid, cid, actid, chid, employeeid, rnid, tag, note, data, timelog, notify, daykey, released)
+                                                  VALUES (0,'$aid',0,0,'$chid',0,0,'" . dbescape((string) ($n["tag"] ?? '')) . "','" . dbescape((string) ($n["note"] ?? '')) . "','','$tl',1,'$day',0)"));
+                }
+                // Coalesce nullable DB columns so dbescape never receives null (PHP 8.1+).
+                execute_db_sql("INSERT INTO events (pid, tag, sort, chid, aid, daykey, timelog, amount, cream, peed, pooped, note, nid, released)
+                                VALUES (0,'$tagesc',0,'$chid','$aid','$day','$tl','" . intval($ev["amount"]) . "','" . intval($ev["cream"]) . "','" . intval($ev["peed"]) . "','" . intval($ev["pooped"]) . "','" . dbescape((string) ($ev["note"] ?? '')) . "','$nid',0)");
+                $bump($counts[$chid], $type);
+            }
+
+            // ---- Nap rating ----
+            // Always apply when the source has a rating and the target does not
+            // yet: covers older→older, and older→younger (no nap events on source).
+            // Young targets that already received nap events from the loop above
+            // still benefit if the source also recorded a day rating.
+            if (isset($want['naps']) && $srcNapRating !== '') {
+                $existing = get_db_row("SELECT id, rating FROM status_nap_rating WHERE chid='$chid' AND daykey='$day'");
+                $ratingesc = dbescape((string) $srcNapRating);
+                if ($existing && ($existing["rating"] ?? '') !== '') {
+                    $bump($skipped[$chid], 'naps');
+                } else {
+                    if ($existing) {
+                        execute_db_sql("UPDATE status_nap_rating SET rating='$ratingesc', timelog='$time', released=0 WHERE id='" . intval($existing["id"]) . "'");
+                    } else {
+                        execute_db_sql("INSERT INTO status_nap_rating (chid, daykey, rating, timelog, released) VALUES ('$chid','$day','$ratingesc','$time',0)");
+                    }
+                    $bump($counts[$chid], 'naps');
+                }
+            }
+
+            // ---- Meals (menu text from non-empty source replaces; rating only fills blank) ----
+            foreach ($srcMeals as $m) {
+                $srcMenu   = (string) ($m["menu"] ?? '');
+                $srcRating = (string) ($m["rating"] ?? '');
+                $mealesc = dbescape((string) ($m["meal"] ?? ''));
+                $existing = get_db_row("SELECT id, menu, rating FROM status_menu WHERE chid='$chid' AND daykey='$day' AND meal='$mealesc'");
+                if ($existing) {
+                    $exMenu    = (string) ($existing["menu"] ?? '');
+                    $exRating  = (string) ($existing["rating"] ?? '');
+                    $newMenu   = ($srcMenu !== '') ? $srcMenu : $exMenu;
+                    $newRating = ($exRating === '') ? $srcRating : $exRating;
+                    if ($newMenu === $exMenu && $newRating === $exRating) {
+                        $bump($skipped[$chid], 'meals');
+                        continue;
+                    }
+                    execute_db_sql("UPDATE status_menu SET menu='" . dbescape($newMenu) . "', rating='" . dbescape($newRating) . "', timelog='$time', released=0 WHERE id='" . intval($existing["id"]) . "'");
+                } else {
+                    execute_db_sql("INSERT INTO status_menu (chid, daykey, meal, menu, rating, timelog, released) VALUES ('$chid','$day','$mealesc','" . dbescape($srcMenu) . "','" . dbescape($srcRating) . "','$time',0)");
+                }
+                $bump($counts[$chid], 'meals');
+            }
+
+            // ---- Activities (additive only: turn on missing; never turn off) ----
+            foreach ($srcActivities as $activity) {
+                $actesc = dbescape($activity);
+                $existing = get_db_row("SELECT id, active FROM status_activity WHERE chid='$chid' AND daykey='$day' AND activity='$actesc'");
+                if ($existing) {
+                    if (intval($existing["active"]) === 1) { $bump($skipped[$chid], 'activities'); continue; }
+                    execute_db_sql("UPDATE status_activity SET active=1, timelog='$time', released=0 WHERE id='" . intval($existing["id"]) . "'");
+                } else {
+                    execute_db_sql("INSERT INTO status_activity (chid, daykey, activity, active, timelog, released) VALUES ('$chid','$day','$actesc','1','$time',0)");
+                }
+                $bump($counts[$chid], 'activities');
+            }
+
+            // Only count kids that actually received at least one new item.
+            if (!empty($counts[$chid])) {
+                $written[] = $chid;
+            }
+        }
+        return ["written" => $written, "counts" => $counts, "skipped" => $skipped];
+    }
+
+    /**
+     *
      * Attachments for one status_activity row.
      *
      *

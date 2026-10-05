@@ -483,6 +483,21 @@ switch ($action) {
         status_json(["success" => true, "written" => $written]);
         break;
 
+    case 'copy_day_to_children':
+        status_require_admin();
+        $chid      = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        $chids_raw = isset($_POST['chids']) ? $_POST['chids'] : '';
+        $chids     = array_filter(array_map('intval', explode(',', $chids_raw)));
+        $types_raw = isset($_POST['types']) ? $_POST['types'] : '';
+        $types     = $types_raw === '' ? null : explode(',', $types_raw);
+        if (empty($chid) || empty($chids)) {
+            status_json(["success" => false, "message" => "Choose at least one child."]);
+        }
+        status_require_child_access($chid);
+        $result = status_copy_day($chid, $chids, $types);
+        status_json(["success" => true, "written" => $result["written"], "counts" => $result["counts"], "skipped" => $result["skipped"]]);
+        break;
+
     case 'upload_avatar':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;

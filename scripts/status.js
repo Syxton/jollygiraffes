@@ -2166,6 +2166,7 @@
         });
 
         bindActivitiesCopyPanel();
+        bindCopyDayPanel();
 
         document.getElementById('avatar_upload_btn').addEventListener('click', function () {
             document.getElementById('avatar_upload_input').click();
@@ -2585,6 +2586,148 @@
                     status_.textContent = res.message || 'Could not copy.';
                 }
                 setTimeout(function () { status_.textContent = ''; }, 2500);
+            });
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // Copy the whole day (moods, potty, incidents, bottles, naps, meals,
+    // activities) from the current child to any/all other children.
+    // Everything copied lands as pending - parents see it only after release.
+    // ------------------------------------------------------------------
+    var COPY_DAY_TYPES = [
+        { key: 'moods',      label: '😊 Moods' },
+        { key: 'potty',      label: '🚽 Potty / diapers' },
+        { key: 'incidents',  label: '🚀 Incidents' },
+        { key: 'bottles',    label: '🍼 Bottles (babies only)' },
+        { key: 'naps',       label: '😴 Naps (by age)' },
+        { key: 'meals',      label: '🍽️ Meals' },
+        { key: 'activities', label: '🎨 Activities' }
+    ];
+
+    function bindCopyDayPanel() {
+        var toggle   = document.getElementById('copy_day_toggle');
+        if (!toggle) { return; }
+        var panel    = document.getElementById('copy_day_panel');
+        var list     = document.getElementById('copy_day_list');
+        var typesEl  = document.getElementById('copy_day_types');
+        var allBox   = document.getElementById('copy_day_all');
+        var status_  = document.getElementById('copy_day_status');
+
+        function renderTypes() {
+            typesEl.innerHTML = '';
+            COPY_DAY_TYPES.forEach(function (t) {
+                var label = document.createElement('label');
+                label.className = 'menu-copy-item';
+                label.innerHTML = '<input class="styled-checkbox" type="checkbox" value="' + t.key + '" checked> ' + escapeHtml(t.label);
+                typesEl.appendChild(label);
+            });
+        }
+
+        function syncSelectAll() {
+            var boxes = list.querySelectorAll('input[type="checkbox"]');
+            if (!boxes.length) {
+                allBox.checked = false;
+                allBox.indeterminate = false;
+                return;
+            }
+            var checked = 0;
+            Array.prototype.forEach.call(boxes, function (cb) {
+                if (cb.checked) { checked++; }
+            });
+            allBox.checked = checked === boxes.length;
+            allBox.indeterminate = checked > 0 && checked < boxes.length;
+        }
+
+        toggle.addEventListener('click', function () {
+            var opening = panel.style.display === 'none';
+            panel.style.display = opening ? '' : 'none';
+            if (opening) {
+                renderTypes();
+                allBox.checked = false;
+                allBox.indeterminate = false;
+                renderActivitiesCopyList(list);
+            }
+        });
+        allBox.addEventListener('change', function () {
+            allBox.indeterminate = false;
+            Array.prototype.forEach.call(list.querySelectorAll('input[type="checkbox"]'), function (cb) {
+                cb.checked = allBox.checked;
+            });
+        });
+        // Keep Select All in sync when individual kids are toggled
+        list.addEventListener('change', function (e) {
+            if (e.target && e.target.type === 'checkbox') {
+                syncSelectAll();
+            }
+        });
+        var cancelBtn = document.getElementById('copy_day_cancel');
+        var confirmBtn = document.getElementById('copy_day_confirm');
+
+        function setPanelLocked(locked) {
+            confirmBtn.disabled = locked;
+            cancelBtn.disabled = locked;
+            allBox.disabled = locked;
+            Array.prototype.forEach.call(panel.querySelectorAll('input[type="checkbox"]'), function (cb) {
+                cb.disabled = locked;
+            });
+            if (!locked) {
+                confirmBtn.textContent = 'Copy';
+            }
+        }
+
+        cancelBtn.addEventListener('click', function () {
+            if (cancelBtn.disabled) { return; }
+            panel.style.display = 'none';
+        });
+        confirmBtn.addEventListener('click', function () {
+            if (confirmBtn.disabled) { return; }
+            var chids = Array.prototype.map.call(list.querySelectorAll('input[type="checkbox"]:checked'), function (cb) { return cb.value; });
+            var types = Array.prototype.map.call(typesEl.querySelectorAll('input[type="checkbox"]:checked'), function (cb) { return cb.value; });
+            if (!chids.length) { status_.textContent = 'Select at least one child.'; return; }
+            if (!types.length) { status_.textContent = 'Select what to copy.'; return; }
+            setPanelLocked(true);
+            confirmBtn.textContent = 'Copying\u2026';
+            post('copy_day_to_children', { chid: state.chid, chids: chids.join(','), types: types.join(',') }).then(function (res) {
+                var closeAfter = false;
+                if (res.success) {
+                    var items = 0, skipped = 0;
+                    Object.keys(res.counts || {}).forEach(function (k) {
+                        Object.keys(res.counts[k] || {}).forEach(function (t) { items += res.counts[k][t]; });
+                    });
+                    Object.keys(res.skipped || {}).forEach(function (k) {
+                        Object.keys(res.skipped[k] || {}).forEach(function (t) { skipped += res.skipped[k][t]; });
+                    });
+                    var kids = (res.written || []).length;
+                    if (items === 0) {
+                        status_.textContent = skipped
+                            ? 'Nothing new to copy (everything already present or age-skipped).'
+                            : 'Nothing to copy for the selected types.';
+                    } else {
+                        status_.textContent = 'Copied ' + items + ' item' + (items === 1 ? '' : 's') +
+                            ' to ' + kids + ' kid' + (kids === 1 ? '' : 's') +
+                            (skipped ? ' (' + skipped + ' skipped)' : '') +
+                            ' (pending release).';
+                        closeAfter = true;
+                    }
+                } else {
+                    status_.textContent = res.message || 'Could not copy.';
+                }
+                // Leave the message visible for a few seconds, then clear (and close on success).
+                // Keep controls locked on success until the panel closes.
+                setTimeout(function () {
+                    status_.textContent = '';
+                    if (closeAfter) {
+                        panel.style.display = 'none';
+                    }
+                    setPanelLocked(false);
+                }, 3000);
+            }).catch(function () {
+                status_.textContent = 'Could not copy.';
+                setTimeout(function () {
+                    status_.textContent = '';
+                    setPanelLocked(false);
+                }, 3000);
             });
         });
     }

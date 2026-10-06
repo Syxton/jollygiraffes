@@ -396,10 +396,10 @@ assert_eq('same day earlier → kept', $same_day, status_clamp_timelog($same_day
 $other_day = test_local_timestamp(2024, 7, 3, 12, 0, 0);
 assert_eq('other day → now', $now, status_clamp_timelog($other_day));
 
-// status_clamp_timelog compares calendar days via DateTime("@ts") which is
-// always UTC, so use a future time that is still the same UTC day as $now.
-$future_same_utc_day = $now + 3600; // one hour later, still same UTC day for midday
-assert_eq('same UTC day future → kept', $future_same_utc_day, status_clamp_timelog($future_same_utc_day));
+// Local evening (still same local calendar day) must be kept — clamp uses
+// $CFG->timezone after constructing from @timestamp.
+$future_same_local_day = test_local_timestamp(2024, 7, 4, 20, 0, 0);
+assert_eq('same local day evening → kept', $future_same_local_day, status_clamp_timelog($future_same_local_day));
 $GLOBALS['_test_now'] = null;
 end_section();
 

@@ -79,6 +79,23 @@ function status_require_child_access($chid) {
     }
 }
 
+/**
+ *
+ * Require a real, non-deleted child id. Rejects chid &lt; 1 and missing rows.
+ *
+ *
+ * @param int $chid Child id.
+ */
+function status_require_valid_child($chid) {
+    $chid = intval($chid);
+    if ($chid < 1) {
+        status_json(["success" => false, "message" => "Invalid child."]);
+    }
+    if (!get_db_count("SELECT chid FROM children WHERE chid='$chid' AND deleted=0")) {
+        status_json(["success" => false, "message" => "Child not found."]);
+    }
+}
+
 switch ($action) {
 
     case 'session_check':
@@ -171,6 +188,7 @@ switch ($action) {
         status_require_auth();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         $daykey = isset($_POST['daykey']) ? intval($_POST['daykey']) : false;
+        status_require_valid_child($chid);
         status_require_child_access($chid);
         // Admin Parent View can request a parent-accurate filter (released only).
         // Real parents always get released-only via status_view_released_only().
@@ -189,6 +207,7 @@ switch ($action) {
     case 'add_mood':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $mood = isset($_POST['mood']) ? $_POST['mood'] : '';
         $day  = status_add_mood($chid, $mood);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't log that."]);
@@ -197,6 +216,7 @@ switch ($action) {
     case 'add_potty':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $type   = isset($_POST['type']) ? $_POST['type'] : '';
         $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
         $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
@@ -210,6 +230,7 @@ switch ($action) {
     case 'edit_potty':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $type   = isset($_POST['type']) ? $_POST['type'] : '';
         $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
@@ -224,14 +245,16 @@ switch ($action) {
     case 'delete_potty':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $day  = status_delete_potty($chid, $evid);
-        status_json(["success" => true, "day" => $day]);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Item not found."]);
         break;
 
     case 'add_incident':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $type   = isset($_POST['type']) ? $_POST['type'] : '';
         $note   = array_key_exists('note', $_POST) ? $_POST['note'] : null;
         $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
@@ -243,6 +266,7 @@ switch ($action) {
     case 'edit_incident':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $type   = isset($_POST['type']) ? $_POST['type'] : '';
         $note   = isset($_POST['note']) ? $_POST['note'] : '';
@@ -255,14 +279,16 @@ switch ($action) {
     case 'delete_incident':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $day  = status_delete_incident($chid, $evid);
-        status_json(["success" => true, "day" => $day]);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Item not found."]);
         break;
 
     case 'add_nap':
         status_require_admin();
         $chid    = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $minutes = isset($_POST['minutes']) ? intval($_POST['minutes']) : 0;
         $day     = status_add_nap($chid, $minutes);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't log that."]);
@@ -271,6 +297,7 @@ switch ($action) {
     case 'edit_nap_time':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
         $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
@@ -281,14 +308,16 @@ switch ($action) {
     case 'delete_nap':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $day  = status_delete_nap($chid, $evid);
-        status_json(["success" => true, "day" => $day]);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Item not found."]);
         break;
 
     case 'set_nap_rating':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $rating = isset($_POST['rating']) ? $_POST['rating'] : '';
         $day    = status_set_nap_rating($chid, $rating);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Invalid rating."]);
@@ -309,6 +338,7 @@ switch ($action) {
         $evid    = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $arid    = isset($_POST['arid']) ? intval($_POST['arid']) : 0;
         $context = isset($_POST['context']) ? $_POST['context'] : 'attachment';
+        status_require_valid_child($chid);
         status_require_child_access($chid);
         if (empty($_FILES['file']['name']) || empty($_FILES['file']['tmp_name']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
             status_json(["success" => false, "message" => "No file received."]);
@@ -339,14 +369,18 @@ switch ($action) {
     case 'delete_attachment':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $did  = isset($_POST['did']) ? intval($_POST['did']) : 0;
         $attachments = status_delete_attachment($chid, $did);
-        status_json(["success" => true, "attachments" => $attachments]);
+        status_json($attachments !== false
+            ? ["success" => true, "attachments" => $attachments]
+            : ["success" => false, "message" => "Item not found."]);
         break;
 
     case 'quick_note':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $key  = isset($_POST['key']) ? $_POST['key'] : '';
         $day  = status_quick_note($chid, $key);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't add that note."]);
@@ -355,6 +389,7 @@ switch ($action) {
     case 'edit_mood_time':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
         $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
@@ -365,6 +400,7 @@ switch ($action) {
     case 'edit_bottle_time':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
         $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
@@ -375,6 +411,7 @@ switch ($action) {
     case 'edit_mood':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $mood = isset($_POST['mood']) ? $_POST['mood'] : '';
         $day  = status_edit_mood($chid, $evid, $mood);
@@ -384,14 +421,16 @@ switch ($action) {
     case 'delete_mood':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $day  = status_delete_mood($chid, $evid);
-        status_json(["success" => true, "day" => $day]);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Item not found."]);
         break;
 
     case 'add_bottle':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $ounces = (isset($_POST['ounces']) && $_POST['ounces'] !== '') ? intval($_POST['ounces']) : false;
         $day    = status_add_bottle($chid, $ounces);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't log that."]);
@@ -400,6 +439,7 @@ switch ($action) {
     case 'edit_bottle_ounces':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $ounces = isset($_POST['ounces']) ? intval($_POST['ounces']) : 0;
         $day    = status_edit_bottle_ounces($chid, $evid, $ounces);
@@ -409,14 +449,16 @@ switch ($action) {
     case 'delete_bottle':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
         $day  = status_delete_bottle($chid, $evid);
-        status_json(["success" => true, "day" => $day]);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Item not found."]);
         break;
 
     case 'save_menu':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $meal = isset($_POST['meal']) ? $_POST['meal'] : '';
         $menu = isset($_POST['menu']) ? $_POST['menu'] : '';
         $day  = status_save_menu($chid, $meal, $menu);
@@ -426,6 +468,7 @@ switch ($action) {
     case 'set_meal_rating':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $meal   = isset($_POST['meal']) ? $_POST['meal'] : '';
         $rating = isset($_POST['rating']) ? $_POST['rating'] : '';
         $day    = status_set_meal_rating($chid, $meal, $rating);
@@ -458,6 +501,7 @@ switch ($action) {
     case 'get_menu_suggestions':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $meal = isset($_POST['meal']) ? $_POST['meal'] : '';
         status_json(["success" => true, "suggestions" => status_menu_suggestions($chid, $meal)]);
         break;
@@ -465,6 +509,7 @@ switch ($action) {
     case 'toggle_activity':
         status_require_admin();
         $chid     = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $activity = isset($_POST['activity']) ? $_POST['activity'] : '';
         $on       = !empty($_POST['on']);
         $day      = status_toggle_activity($chid, $activity, $on);
@@ -474,9 +519,10 @@ switch ($action) {
     case 'copy_activities_to_children':
         status_require_admin();
         $chid      = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $chids_raw = isset($_POST['chids']) ? $_POST['chids'] : '';
         $chids     = array_filter(array_map('intval', explode(',', $chids_raw)));
-        if (empty($chid) || empty($chids)) {
+        if (empty($chids)) {
             status_json(["success" => false, "message" => "Choose at least one child."]);
         }
         $written = status_copy_activities($chid, $chids);
@@ -486,11 +532,12 @@ switch ($action) {
     case 'copy_day_to_children':
         status_require_admin();
         $chid      = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $chids_raw = isset($_POST['chids']) ? $_POST['chids'] : '';
         $chids     = array_filter(array_map('intval', explode(',', $chids_raw)));
         $types_raw = isset($_POST['types']) ? $_POST['types'] : '';
         $types     = $types_raw === '' ? null : explode(',', $types_raw);
-        if (empty($chid) || empty($chids)) {
+        if (empty($chids)) {
             status_json(["success" => false, "message" => "Choose at least one child."]);
         }
         status_require_child_access($chid);
@@ -501,6 +548,7 @@ switch ($action) {
     case 'upload_avatar':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         status_require_child_access($chid);
         if (empty($_FILES['file']['name']) || empty($_FILES['file']['tmp_name']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
             status_json(["success" => false, "message" => "No file received."]);
@@ -529,6 +577,7 @@ switch ($action) {
     case 'add_note':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $tag    = isset($_POST['tag']) ? $_POST['tag'] : '';
         $note   = isset($_POST['note']) ? trim($_POST['note']) : '';
         // notify: 0 none, 1 single-day, 2 persist. Accept legacy bool-ish too.
@@ -543,6 +592,7 @@ switch ($action) {
     case 'edit_note':
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $nid    = isset($_POST['nid']) ? intval($_POST['nid']) : 0;
         $tag    = isset($_POST['tag']) ? $_POST['tag'] : '';
         $note   = isset($_POST['note']) ? trim($_POST['note']) : '';
@@ -557,9 +607,10 @@ switch ($action) {
     case 'delete_note':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         $nid  = isset($_POST['nid']) ? intval($_POST['nid']) : 0;
         $day  = status_delete_note($nid, $chid);
-        status_json(["success" => true, "day" => $day]);
+        status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Item not found."]);
         break;
 
     case 'change_pin':
@@ -616,6 +667,7 @@ switch ($action) {
     case 'release_child':
         status_require_admin();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
+        status_require_valid_child($chid);
         status_require_child_access($chid);
         $result = status_release_child($chid);
         $day = status_get_day($chid);
@@ -679,6 +731,7 @@ switch ($action) {
         $extra = [];
         if (isset($_POST['meal'])) { $extra['meal'] = $_POST['meal']; }
         if (isset($_POST['daykey'])) { $extra['daykey'] = intval($_POST['daykey']); }
+        status_require_valid_child($chid);
         status_require_child_access($chid);
         $result = status_release_item($type, $id, $chid, $extra);
         if (empty($result['success'])) {

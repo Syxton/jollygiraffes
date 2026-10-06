@@ -837,8 +837,9 @@ if (!isset($STATUSLIB)) {
 
     /**
      *
-     * Return $timelog if it falls on today and is not far in the future.
-     * Otherwise fall back to now. Uses status_daykey() for day comparison.
+     * Return $timelog if it falls on the same local calendar day as now.
+     * Otherwise fall back to now. Compares in $CFG->timezone (DateTime("@ts")
+     * is always UTC until setTimezone is applied).
      *
      *
      * @param int $timelog Stored event timestamp (app UTC convention).
@@ -851,12 +852,14 @@ if (!isset($STATUSLIB)) {
             return $now;
         }
 
-        // Make DateTime objects for comparison.
-        $nowObj = new DateTime("@" . $now, new DateTimeZone($CFG->timezone));
-        $timelogObj = new DateTime("@" . $timelog, new DateTimeZone($CFG->timezone));
+        $tz = new DateTimeZone($CFG->timezone);
+        // "@timestamp" is always UTC regardless of constructor tz argument.
+        $nowObj = new DateTime('@' . $now);
+        $nowObj->setTimezone($tz);
+        $timelogObj = new DateTime('@' . $timelog);
+        $timelogObj->setTimezone($tz);
 
-        // Must be the same day. }
-        if ($nowObj->format('d-m-Y') !== $timelogObj->format('d-m-Y')) {
+        if ($nowObj->format('Y-m-d') !== $timelogObj->format('Y-m-d')) {
             return $now;
         }
         return $timelog;
@@ -1040,10 +1043,32 @@ if (!isset($STATUSLIB)) {
      *
      */
     function status_start_session() {
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            ini_set('session.save_path', realpath(dirname(__FILE__) . '/tmp'));
-            session_start();
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            return;
         }
+
+        $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443)
+            || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
+        // Harden session cookie: HttpOnly, SameSite=Lax, Secure when HTTPS.
+        if (PHP_VERSION_ID >= 70300) {
+            session_set_cookie_params([
+                'lifetime' => 0,
+                'path'     => '/',
+                'secure'   => $secure,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+        } else {
+            session_set_cookie_params(0, '/; samesite=Lax', '', $secure, true);
+        }
+
+        $save_path = realpath(dirname(__FILE__) . '/tmp');
+        if ($save_path !== false) {
+            ini_set('session.save_path', $save_path);
+        }
+        session_start();
     }
 
     /**
@@ -1845,7 +1870,7 @@ if (!isset($STATUSLIB)) {
         $evid = intval($evid);
         $pottytags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_POTTY_TYPES))) . "'";
         if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($pottytags)")) {
-            return status_get_day($chid);
+            return false;
         }
         // Clean up attachments before removing the entry
         if ($result = get_db_result("SELECT * FROM documents WHERE chid='$chid' AND evid='$evid'")) {
@@ -2024,7 +2049,7 @@ if (!isset($STATUSLIB)) {
         $inctags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_INCIDENT_TYPES))) . "'";
         $row = get_db_row("SELECT * FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($inctags)");
         if (!$row) {
-            return status_get_day($chid);
+            return false;
         }
         if ($result = get_db_result("SELECT * FROM documents WHERE chid='$chid' AND evid='$evid'")) {
             while ($doc = fetch_row($result)) {
@@ -2096,6 +2121,9 @@ if (!isset($STATUSLIB)) {
         global $STATUS_NAP_TAG;
         $chid = intval($chid);
         $evid = intval($evid);
+        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag='" . dbescape($STATUS_NAP_TAG) . "'")) {
+            return false;
+        }
         execute_db_sql("DELETE FROM events WHERE evid='$evid' AND chid='$chid' AND tag='" . dbescape($STATUS_NAP_TAG) . "'");
         return status_get_day($chid);
     }
@@ -2269,7 +2297,7 @@ if (!isset($STATUSLIB)) {
             }
             return status_get_attachments($chid, $evid);
         }
-        return [];
+        return false;
     }
 
     /**
@@ -2923,6 +2951,9 @@ if (!isset($STATUSLIB)) {
         $nid  = intval($nid);
         $chid = intval($chid);
         // Only notes this feature created (daykey != 0)
+        if (!get_db_count("SELECT nid FROM notes WHERE nid='$nid' AND chid='$chid' AND daykey != 0")) {
+            return false;
+        }
         execute_db_sql("DELETE FROM notes WHERE nid='$nid' AND chid='$chid' AND daykey != 0");
         // Clear any incident event that pointed at this note
         if (status_column_exists('events', 'nid')) {
@@ -2968,6 +2999,9 @@ if (!isset($STATUSLIB)) {
         $chid = intval($chid);
         $evid = intval($evid);
         $moodtags = "'" . implode("','", array_map('dbescape', array_keys($STATUS_MOODS))) . "'";
+        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($moodtags)")) {
+            return false;
+        }
         execute_db_sql("DELETE FROM events WHERE evid='$evid' AND chid='$chid' AND tag IN ($moodtags)");
         return status_get_day($chid);
     }
@@ -3020,6 +3054,9 @@ if (!isset($STATUSLIB)) {
     function status_delete_bottle($chid, $evid) {
         $chid = intval($chid);
         $evid = intval($evid);
+        if (!get_db_count("SELECT evid FROM events WHERE evid='$evid' AND chid='$chid' AND tag='" . dbescape($GLOBALS['STATUS_BOTTLE_TAG']) . "'")) {
+            return false;
+        }
         execute_db_sql("DELETE FROM events WHERE evid='$evid' AND chid='$chid' AND tag='" . dbescape($GLOBALS['STATUS_BOTTLE_TAG']) . "'");
         return status_get_day($chid);
     }

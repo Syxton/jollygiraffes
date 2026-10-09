@@ -437,6 +437,79 @@ assert_false('morning outside window', status_naptime_window_now());
 $GLOBALS['_test_now'] = null;
 end_section();
 
+// --- Past-day editing (view/edit the last 7 days) ---
+if (!function_exists('get_date')) {
+    function get_date($string, $timestamp, $timezone = 'UTC') {
+        date_default_timezone_set($timezone);
+        $time = date($string, $timestamp);
+        date_default_timezone_set('UTC');
+        return $time;
+    }
+}
+
+start_section('past-day editing: status_day_editable / status_edit_days');
+$GLOBALS['_test_now'] = test_local_timestamp(2024, 8, 20, 12, 0, 0);
+$today = status_daykey();
+assert_true('today is editable', status_day_editable($today));
+assert_true('yesterday is editable', status_day_editable($today - 86400));
+assert_true('7 days back is editable', status_day_editable($today - 7 * 86400));
+assert_false('8 days back is NOT editable', status_day_editable($today - 8 * 86400));
+assert_false('tomorrow is NOT editable', status_day_editable($today + 86400));
+assert_false('off-boundary daykey rejected', status_day_editable($today - 86400 + 3600));
+assert_true('status_is_today(false)', status_is_today(false));
+assert_true('status_is_today(today)', status_is_today($today));
+assert_false('status_is_today(yesterday)', status_is_today($today - 86400));
+assert_eq('status_target_day(false) → today', $today, status_target_day(false));
+assert_eq('status_target_day(0) → today', $today, status_target_day(0));
+assert_eq('status_target_day(past) passes through', $today - 86400, status_target_day($today - 86400));
+
+$days = status_edit_days();
+assert_eq('edit days: today + 7 back = 8 entries', 8, count($days));
+assert_true('first entry is today', $days[0]['is_today'] === true && $days[0]['daykey'] === $today);
+assert_eq('second entry is yesterday', $today - 86400, $days[1]['daykey']);
+assert_eq('last entry is 7 days back', $today - 7 * 86400, $days[7]['daykey']);
+assert_true('only the first entry is today', count(array_filter($days, function ($d) { return $d['is_today']; })) === 1);
+assert_true('every listed day is editable', count(array_filter($days, function ($d) { return !status_day_editable($d['daykey']); })) === 0);
+assert_true('yesterday labelled', strpos($days[1]['label'], 'Yesterday') === 0);
+assert_eq('status_row_day(empty) → today', $today, status_row_day(['daykey' => 0]));
+assert_eq('status_row_day(set)', $today - 86400, status_row_day(['daykey' => $today - 86400]));
+$GLOBALS['_test_now'] = null;
+end_section();
+
+start_section('past-day editing: timelogs land on the chosen day');
+$GLOBALS['_test_now'] = test_local_timestamp(2024, 8, 20, 15, 20, 0);
+$today = status_daykey();
+$yday  = $today - 86400;
+$offset = get_offset();
+assert_eq('time_for_day(today) → now', get_timestamp(), status_time_for_day($today));
+assert_eq('time_for_day(false) → now', get_timestamp(), status_time_for_day(false));
+$past_now = status_time_for_day($yday);
+assert_eq('time_for_day(past) = same clock time yesterday', get_timestamp() - 86400, $past_now);
+assert_eq('time_for_day(past) lands on that day', $yday, status_daykey($past_now));
+
+$t = status_time_from_hm(9, 30, $yday);
+assert_eq('9:30 on a past day', $yday + 9 * 3600 + 30 * 60 - $offset, $t);
+assert_eq('9:30 past-day timelog is on that day (not clamped to today)', $yday, status_daykey($t));
+assert_eq('hour is capped at 23 on past days', $yday + 23 * 3600 + 0 - $offset, status_time_from_hm(25, 0, $yday));
+assert_eq('minute is capped at 59 on past days', $yday + 10 * 3600 + 59 * 60 - $offset, status_time_from_hm(10, 99, $yday));
+assert_eq('00:00 past-day stays on that day', $yday, status_daykey(status_time_from_hm(0, 0, $yday)));
+assert_eq('23:59 past-day stays on that day', $yday, status_daykey(status_time_from_hm(23, 59, $yday)));
+
+// "today" behaviour is unchanged by the new optional argument
+assert_eq('today 9:30 unchanged', status_clamp_timelog($today + 9 * 3600 + 30 * 60 - $offset), status_time_from_hm(9, 30));
+assert_eq('today 9:30 explicit day = same', status_time_from_hm(9, 30), status_time_from_hm(9, 30, $today));
+
+assert_eq('resolve blank hour on past day → same clock time', $past_now, status_resolve_timelog('', 0, $yday));
+assert_eq('resolve false on past day', $past_now, status_resolve_timelog(false, false, $yday));
+assert_eq('resolve 14:45 on past day', status_time_from_hm(14, 45, $yday), status_resolve_timelog(14, 45, $yday));
+assert_eq('resolve blank hour on today → now', get_timestamp(), status_resolve_timelog('', 0));
+
+// Photos are dated by what they are attached to, never by upload time.
+// (No evid/arid on the row → falls back to its own timelog.)
+assert_eq('document without links uses its timelog day', $yday, status_document_daykey(['evid' => 0, 'arid' => 0, 'timelog' => $past_now]));
+$GLOBALS['_test_now'] = null;
+end_section();
+
 // --- Session / role / release filters (no DB) ---
 
 start_section('status role / viewer helpers');

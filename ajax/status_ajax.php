@@ -96,6 +96,72 @@ function status_require_valid_child($chid) {
     }
 }
 
+/**
+ *
+ * The day a write action targets. The staff app sends `daykey` while a past
+ * day is selected; no daykey means today. Anything outside today..7 days back
+ * (or not on a day boundary) is refused so the window can't be bypassed.
+ *
+ *
+ * @return int Validated daykey.
+ */
+function status_post_daykey() {
+    if (!isset($_POST['daykey']) || $_POST['daykey'] === '' || intval($_POST['daykey']) === 0) {
+        return status_daykey();
+    }
+    $dk = intval($_POST['daykey']);
+    if (!status_day_editable($dk)) {
+        status_json(["success" => false, "message" => "That day can no longer be edited."]);
+    }
+    return $dk;
+}
+
+/**
+ *
+ * The day the staff screen is currently showing, used so release actions hand
+ * back the right day. Releasing is not an edit, so any sane day is allowed.
+ *
+ *
+ * @return int|false Daykey, or false (= today).
+ */
+function status_view_daykey() {
+    if (!isset($_POST['daykey']) || intval($_POST['daykey']) === 0) {
+        return false;
+    }
+    return intval($_POST['daykey']);
+}
+
+/**
+ *
+ * Refuse edits to an existing event that lives outside the editable window.
+ *
+ *
+ * @param int $evid Event id.
+ * @param int $chid Child id.
+ */
+function status_require_event_editable($evid, $chid) {
+    // Missing rows fall through so the normal "not found" message is used.
+    if (get_db_count("SELECT evid FROM events WHERE evid='" . intval($evid) . "' AND chid='" . intval($chid) . "'")
+        && !status_event_editable($evid, $chid)) {
+        status_json(["success" => false, "message" => "That entry is outside the days that can be edited."]);
+    }
+}
+
+/**
+ *
+ * Refuse edits to an existing note that lives outside the editable window.
+ *
+ *
+ * @param int $nid  Note id.
+ * @param int $chid Child id.
+ */
+function status_require_note_editable($nid, $chid) {
+    if (get_db_count("SELECT nid FROM notes WHERE nid='" . intval($nid) . "' AND chid='" . intval($chid) . "' AND daykey != 0")
+        && !status_note_editable($nid, $chid)) {
+        status_json(["success" => false, "message" => "That note is outside the days that can be edited."]);
+    }
+}
+
 switch ($action) {
 
     case 'session_check':
@@ -209,7 +275,7 @@ switch ($action) {
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $mood = isset($_POST['mood']) ? $_POST['mood'] : '';
-        $day  = status_add_mood($chid, $mood);
+        $day  = status_add_mood($chid, $mood, status_post_daykey());
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't log that."]);
         break;
 
@@ -223,7 +289,7 @@ switch ($action) {
         $cream  = !empty($_POST['cream']);
         $peed   = !empty($_POST['peed']);
         $pooped = !empty($_POST['pooped']);
-        $result = status_add_potty($chid, $type, $hour, $minute, $cream, $peed, $pooped);
+        $result = status_add_potty($chid, $type, $hour, $minute, $cream, $peed, $pooped, status_post_daykey());
         status_json($result ? ["success" => true, "day" => $result['day'], "evid" => $result['evid']] : ["success" => false, "message" => "Couldn't log that."]);
         break;
 
@@ -232,6 +298,7 @@ switch ($action) {
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        status_require_event_editable($evid, $chid);
         $type   = isset($_POST['type']) ? $_POST['type'] : '';
         $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
         $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
@@ -247,6 +314,7 @@ switch ($action) {
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        status_require_event_editable($evid, $chid);
         $day  = status_delete_potty($chid, $evid);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Item not found."]);
         break;
@@ -259,7 +327,7 @@ switch ($action) {
         $note   = array_key_exists('note', $_POST) ? $_POST['note'] : null;
         $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
         $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
-        $result = status_add_incident($chid, $type, $note, $hour, $minute);
+        $result = status_add_incident($chid, $type, $note, $hour, $minute, status_post_daykey());
         status_json($result ? ["success" => true, "day" => $result['day'], "evid" => $result['evid']] : ["success" => false, "message" => "Couldn't log that."]);
         break;
 
@@ -268,6 +336,7 @@ switch ($action) {
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        status_require_event_editable($evid, $chid);
         $type   = isset($_POST['type']) ? $_POST['type'] : '';
         $note   = isset($_POST['note']) ? $_POST['note'] : '';
         $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
@@ -281,6 +350,7 @@ switch ($action) {
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        status_require_event_editable($evid, $chid);
         $day  = status_delete_incident($chid, $evid);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Item not found."]);
         break;
@@ -290,7 +360,7 @@ switch ($action) {
         $chid    = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $minutes = isset($_POST['minutes']) ? intval($_POST['minutes']) : 0;
-        $day     = status_add_nap($chid, $minutes);
+        $day     = status_add_nap($chid, $minutes, status_post_daykey());
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't log that."]);
         break;
 
@@ -299,6 +369,7 @@ switch ($action) {
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        status_require_event_editable($evid, $chid);
         $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
         $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
         $day    = status_edit_nap_time($chid, $evid, $hour, $minute);
@@ -310,6 +381,7 @@ switch ($action) {
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        status_require_event_editable($evid, $chid);
         $day  = status_delete_nap($chid, $evid);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Item not found."]);
         break;
@@ -319,7 +391,7 @@ switch ($action) {
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $rating = isset($_POST['rating']) ? $_POST['rating'] : '';
-        $day    = status_set_nap_rating($chid, $rating);
+        $day    = status_set_nap_rating($chid, $rating, status_post_daykey());
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Invalid rating."]);
         break;
 
@@ -327,8 +399,9 @@ switch ($action) {
         status_require_admin();
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         $rating = isset($_POST['rating']) ? $_POST['rating'] : '';
-        $written = status_set_nap_rating_for_all($rating);
-        $day = $chid ? status_get_day($chid) : false;
+        $viewDay = status_post_daykey();
+        $written = status_set_nap_rating_for_all($rating, $viewDay);
+        $day = $chid ? status_get_day($chid, $viewDay) : false;
         status_json(["success" => true, "written" => $written, "day" => $day]);
         break;
 
@@ -340,6 +413,14 @@ switch ($action) {
         $context = isset($_POST['context']) ? $_POST['context'] : 'attachment';
         status_require_valid_child($chid);
         status_require_child_access($chid);
+        // Photos belong to the day of the entry they hang off - keep the same edit window.
+        if ($arid) {
+            if (!status_activity_editable($arid, $chid)) {
+                status_json(["success" => false, "message" => "That entry is outside the days that can be edited."]);
+            }
+        } elseif ($evid) {
+            status_require_event_editable($evid, $chid);
+        }
         if (empty($_FILES['file']['name']) || empty($_FILES['file']['tmp_name']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
             status_json(["success" => false, "message" => "No file received."]);
         }
@@ -371,6 +452,9 @@ switch ($action) {
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $did  = isset($_POST['did']) ? intval($_POST['did']) : 0;
+        if (get_db_count("SELECT did FROM documents WHERE did='$did' AND chid='$chid'") && !status_document_editable($did, $chid)) {
+            status_json(["success" => false, "message" => "That entry is outside the days that can be edited."]);
+        }
         $attachments = status_delete_attachment($chid, $did);
         status_json($attachments !== false
             ? ["success" => true, "attachments" => $attachments]
@@ -382,7 +466,7 @@ switch ($action) {
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $key  = isset($_POST['key']) ? $_POST['key'] : '';
-        $day  = status_quick_note($chid, $key);
+        $day  = status_quick_note($chid, $key, status_post_daykey());
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't add that note."]);
         break;
 
@@ -391,6 +475,7 @@ switch ($action) {
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        status_require_event_editable($evid, $chid);
         $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
         $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
         $day    = status_edit_mood_time($chid, $evid, $hour, $minute);
@@ -402,6 +487,7 @@ switch ($action) {
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        status_require_event_editable($evid, $chid);
         $hour   = (isset($_POST['hour']) && $_POST['hour'] !== '') ? intval($_POST['hour']) : false;
         $minute = isset($_POST['minute']) ? intval($_POST['minute']) : 0;
         $day    = status_edit_bottle_time($chid, $evid, $hour, $minute);
@@ -413,6 +499,7 @@ switch ($action) {
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        status_require_event_editable($evid, $chid);
         $mood = isset($_POST['mood']) ? $_POST['mood'] : '';
         $day  = status_edit_mood($chid, $evid, $mood);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't update that."]);
@@ -423,6 +510,7 @@ switch ($action) {
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        status_require_event_editable($evid, $chid);
         $day  = status_delete_mood($chid, $evid);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Item not found."]);
         break;
@@ -432,7 +520,7 @@ switch ($action) {
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $ounces = (isset($_POST['ounces']) && $_POST['ounces'] !== '') ? intval($_POST['ounces']) : false;
-        $day    = status_add_bottle($chid, $ounces);
+        $day    = status_add_bottle($chid, $ounces, status_post_daykey());
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't log that."]);
         break;
 
@@ -441,6 +529,7 @@ switch ($action) {
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $evid   = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        status_require_event_editable($evid, $chid);
         $ounces = isset($_POST['ounces']) ? intval($_POST['ounces']) : 0;
         $day    = status_edit_bottle_ounces($chid, $evid, $ounces);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't update that."]);
@@ -451,6 +540,7 @@ switch ($action) {
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $evid = isset($_POST['evid']) ? intval($_POST['evid']) : 0;
+        status_require_event_editable($evid, $chid);
         $day  = status_delete_bottle($chid, $evid);
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Item not found."]);
         break;
@@ -461,7 +551,7 @@ switch ($action) {
         status_require_valid_child($chid);
         $meal = isset($_POST['meal']) ? $_POST['meal'] : '';
         $menu = isset($_POST['menu']) ? $_POST['menu'] : '';
-        $day  = status_save_menu($chid, $meal, $menu);
+        $day  = status_save_menu($chid, $meal, $menu, status_post_daykey());
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Invalid meal."]);
         break;
 
@@ -471,7 +561,7 @@ switch ($action) {
         status_require_valid_child($chid);
         $meal   = isset($_POST['meal']) ? $_POST['meal'] : '';
         $rating = isset($_POST['rating']) ? $_POST['rating'] : '';
-        $day    = status_set_meal_rating($chid, $meal, $rating);
+        $day    = status_set_meal_rating($chid, $meal, $rating, status_post_daykey());
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Invalid meal or rating."]);
         break;
 
@@ -480,8 +570,9 @@ switch ($action) {
         $chid   = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         $meal   = isset($_POST['meal']) ? $_POST['meal'] : '';
         $rating = isset($_POST['rating']) ? $_POST['rating'] : '';
-        $written = status_set_meal_rating_for_all($meal, $rating);
-        $day = $chid ? status_get_day($chid) : false;
+        $viewDay = status_post_daykey();
+        $written = status_set_meal_rating_for_all($meal, $rating, $viewDay);
+        $day = $chid ? status_get_day($chid, $viewDay) : false;
         status_json(["success" => true, "written" => $written, "day" => $day]);
         break;
 
@@ -494,7 +585,7 @@ switch ($action) {
         if (empty($chids)) {
             status_json(["success" => false, "message" => "Choose at least one child."]);
         }
-        $written = status_copy_menu($meal, $menu, $chids);
+        $written = status_copy_menu($meal, $menu, $chids, status_post_daykey());
         status_json(["success" => true, "written" => $written]);
         break;
 
@@ -503,7 +594,7 @@ switch ($action) {
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $meal = isset($_POST['meal']) ? $_POST['meal'] : '';
-        status_json(["success" => true, "suggestions" => status_menu_suggestions($chid, $meal)]);
+        status_json(["success" => true, "suggestions" => status_menu_suggestions($chid, $meal, status_post_daykey())]);
         break;
 
     case 'toggle_activity':
@@ -512,7 +603,7 @@ switch ($action) {
         status_require_valid_child($chid);
         $activity = isset($_POST['activity']) ? $_POST['activity'] : '';
         $on       = !empty($_POST['on']);
-        $day      = status_toggle_activity($chid, $activity, $on);
+        $day      = status_toggle_activity($chid, $activity, $on, status_post_daykey());
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Invalid activity."]);
         break;
 
@@ -525,7 +616,7 @@ switch ($action) {
         if (empty($chids)) {
             status_json(["success" => false, "message" => "Choose at least one child."]);
         }
-        $written = status_copy_activities($chid, $chids);
+        $written = status_copy_activities($chid, $chids, status_post_daykey());
         status_json(["success" => true, "written" => $written]);
         break;
 
@@ -541,7 +632,7 @@ switch ($action) {
             status_json(["success" => false, "message" => "Choose at least one child."]);
         }
         status_require_child_access($chid);
-        $result = status_copy_day($chid, $chids, $types);
+        $result = status_copy_day($chid, $chids, $types, status_post_daykey());
         status_json(["success" => true, "written" => $result["written"], "counts" => $result["counts"], "skipped" => $result["skipped"]]);
         break;
 
@@ -571,6 +662,9 @@ switch ($action) {
         // Matches the main app's avatar handling (square thumbnail).
         smart_resize_image($dest, 150, 150, true, "file", "true", "false", "60");
         $day = status_set_avatar($chid, $newname);
+        if ($day && !empty($_POST['daykey'])) {
+            $day = status_get_day($chid, status_post_daykey());
+        }
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Couldn't save that photo."]);
         break;
 
@@ -585,7 +679,7 @@ switch ($action) {
         if ($note === '') {
             status_json(["success" => false, "message" => "Note can't be empty."]);
         }
-        $day = status_add_note($chid, $tag, $note, $notify);
+        $day = status_add_note($chid, $tag, $note, $notify, status_post_daykey());
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Please choose a valid tag."]);
         break;
 
@@ -600,7 +694,8 @@ switch ($action) {
         if ($note === '') {
             status_json(["success" => false, "message" => "Note can't be empty."]);
         }
-        $day = status_edit_note($nid, $chid, $tag, $note, $notify);
+        status_require_note_editable($nid, $chid);
+        $day = status_edit_note($nid, $chid, $tag, $note, $notify, status_post_daykey());
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Please choose a valid tag."]);
         break;
 
@@ -609,7 +704,8 @@ switch ($action) {
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
         status_require_valid_child($chid);
         $nid  = isset($_POST['nid']) ? intval($_POST['nid']) : 0;
-        $day  = status_delete_note($nid, $chid);
+        status_require_note_editable($nid, $chid);
+        $day  = status_delete_note($nid, $chid, status_post_daykey());
         status_json($day ? ["success" => true, "day" => $day] : ["success" => false, "message" => "Item not found."]);
         break;
 
@@ -670,7 +766,7 @@ switch ($action) {
         status_require_valid_child($chid);
         status_require_child_access($chid);
         $result = status_release_child($chid);
-        $day = status_get_day($chid);
+        $day = status_get_day($chid, status_view_daykey());
         status_json([
             "success" => true,
             "result"  => $result,
@@ -688,7 +784,7 @@ switch ($action) {
         }
         $result = status_release_account($aid);
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
-        $day = $chid ? status_get_day($chid) : null;
+        $day = $chid ? status_get_day($chid, status_view_daykey()) : null;
         status_json([
             "success" => true,
             "result"  => $result,
@@ -702,7 +798,7 @@ switch ($action) {
         status_require_admin();
         $result = status_release_all();
         $chid = isset($_POST['chid']) ? intval($_POST['chid']) : 0;
-        $day = $chid ? status_get_day($chid) : null;
+        $day = $chid ? status_get_day($chid, status_view_daykey()) : null;
         status_json([
             "success" => true,
             "result"  => $result,
@@ -737,7 +833,7 @@ switch ($action) {
         if (empty($result['success'])) {
             status_json($result);
         }
-        $day = status_get_day($chid);
+        $day = status_get_day($chid, status_view_daykey());
         status_json([
             "success" => true,
             "result"  => $result,

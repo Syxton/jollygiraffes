@@ -36,7 +36,7 @@ $sitename = htmlspecialchars($CFG->sitename);
     <script data-search-pseudo-elements defer
         src="<?php echo $CFG->wwwroot ?>/min/?b=<?php echo $CFG->directory ? $CFG->directory . "/" : ""; ?>scripts/fontawesome&amp;f=fontawesome.min.js,solid.min.js">
     </script>
-    <link rel="stylesheet" href="css/status.css?version=2026100500">
+    <link rel="stylesheet" href="css/status.css?version=2026100800">
     <link rel="shortcut icon" href="favicon.ico" />
 
     <!-- Favicon icons -->
@@ -215,12 +215,24 @@ $sitename = htmlspecialchars($CFG->sitename);
             <input type="file" id="avatar_upload_input" accept="image/*" style="display:none;">
         </div>
 
-        <div class="day-label" id="admin_day_label">Today</div>
+        <div class="admin-day-bar">
+            <label class="admin-day-picker" for="admin_day_select">
+                <i class="fa-solid fa-calendar-day"></i>
+                <select id="admin_day_select" class="day-select" aria-label="Choose day to view or edit">
+                    <option value="">Today</option>
+                </select>
+            </label>
+            <div class="day-label" id="admin_day_label">Today</div>
+        </div>
+        <div class="past-day-banner" id="admin_past_banner" style="display:none;">
+            <span class="past-day-banner-text"><i class="fa-solid fa-clock-rotate-left"></i> Editing a past day &ndash; changes here never send notifications to parents.</span>
+            <button type="button" class="secondary-button" id="admin_back_today">Back to Today</button>
+        </div>
 
         <section class="card copy-day-card" id="copy_day_card">
             <button type="button" class="secondary-button" id="copy_day_toggle"><i class="fa-solid fa-copy"></i> Copy Today to Other Kids&hellip;</button>
             <div class="menu-copy-panel" id="copy_day_panel" style="display:none;">
-                <p class="muted menu-copy-hint">Copy everything logged today for this child. Copies stay <strong>pending</strong> &ndash; parents won't see them until you release.</p>
+                <p class="muted menu-copy-hint">Copy everything logged on this day for this child. Copies stay <strong>pending</strong> &ndash; parents won't see them until you release.</p>
                 <div class="menu-copy-group-title">What to copy</div>
                 <div class="menu-copy-list copy-day-types" id="copy_day_types"></div>
                 <p class="muted menu-copy-hint">Bottles and individual naps are only copied to kids young enough to have them. Activities are added only (nothing is turned off). Meal menu text is replaced if the source has any; ratings only fill blanks. Photos aren't copied.</p>
@@ -251,7 +263,7 @@ $sitename = htmlspecialchars($CFG->sitename);
                 <button type="button" class="secondary-button" id="activities_copy_toggle">Copy to Kids&hellip;</button>
                 <span class="save-status" id="activities_copy_status"></span>
                 <div class="menu-copy-panel" id="activities_copy_panel" style="display:none;">
-                    <p class="muted menu-copy-hint">Copy today's activities to:</p>
+                    <p class="muted menu-copy-hint" id="activities_copy_hint">Copy today's activities to:</p>
                     <div class="menu-copy-list" id="activities_copy_list"></div>
                     <div class="menu-copy-buttons">
                         <button type="button" class="link-button" id="activities_copy_cancel">Cancel</button>
@@ -384,6 +396,6 @@ $sitename = htmlspecialchars($CFG->sitename);
 
 </div>
 
-<script src="scripts/status.js?version=2026100500"></script>
+<script src="scripts/status.js?version=2026100800"></script>
 </body>
 </html>

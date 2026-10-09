@@ -1659,3 +1659,55 @@ h2 .release-item-btn {
 
 .copy-day-card { margin-bottom: 12px; }
 .copy-day-types { margin-bottom: 8px; }
+
+
+/* ---- Staff: past-day picker (view/edit the last 7 days) ---- */
+.admin-day-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin: 4px 16px 0;
+}
+.admin-day-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 420px;
+    padding: 0 12px;
+    border-radius: 12px;
+    border: 1px solid #E7EAEC;
+    background: #fff;
+    color: #3D7EF7;
+}
+.admin-day-picker .day-select {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 4px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: #1E2A32;
+    font-family: inherit;
+}
+.admin-day-bar.is-past .admin-day-picker {
+    border-color: #E6A817;
+    background: #FFF8E1;
+    color: #B47B00;
+}
+.past-day-banner {
+    margin: 8px 12px 0;
+    padding: 10px 14px;
+    background: #FFF3CD;
+    border: 1px solid #FFECB5;
+    border-left: 4px solid #E6A817;
+    border-radius: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 14px;
+}

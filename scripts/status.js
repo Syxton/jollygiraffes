@@ -31,6 +31,7 @@
         daykey: null,
         pin: '',
         lastAdminDay: null,
+        adminDaykey: null,      // null = today; otherwise the past day (daykey) staff are viewing/editing
         cardCollapsed: {},
         previewMode: false,
         previewShowPending: false,
@@ -65,9 +66,23 @@
     // ------------------------------------------------------------------
     // Networking
     // ------------------------------------------------------------------
+    // Staff actions that read or write a specific day. While a past day is
+    // selected, these automatically carry its daykey (no daykey = today).
+    var DAY_SCOPED_ACTIONS = {
+        add_mood: 1, add_potty: 1, add_incident: 1, add_nap: 1, set_nap_rating: 1,
+        set_nap_rating_all: 1, quick_note: 1, add_bottle: 1, save_menu: 1,
+        set_meal_rating: 1, set_meal_rating_all: 1, copy_menu_to_children: 1,
+        get_menu_suggestions: 1, toggle_activity: 1, copy_activities_to_children: 1,
+        copy_day_to_children: 1, add_note: 1, edit_note: 1, delete_note: 1,
+        release_child: 1, release_account: 1, release_all: 1, release_item: 1
+    };
+
     function post(action, params) {
         var body = new URLSearchParams(params || {});
         body.set('action', action);
+        if (state.role === 'admin' && state.adminDaykey && DAY_SCOPED_ACTIONS[action] && !body.has('daykey')) {
+            body.set('daykey', String(state.adminDaykey));
+        }
         return fetch('ajax/status_ajax.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -421,7 +436,7 @@
         var collapsed = state.cardCollapsed[cardId];
         var count = toggleBtn.getAttribute('data-count') || '0';
         historyEl.style.display = collapsed ? 'none' : '';
-        toggleBtn.textContent = (collapsed ? '\u25b8 ' : '\u25be ') + "Today's entries (" + count + ')';
+        toggleBtn.textContent = (collapsed ? '\u25b8 ' : '\u25be ') + (state.adminDaykey ? 'Entries' : "Today's entries") + ' (' + count + ')';
         toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
     }
 
@@ -485,7 +500,7 @@
         btn.type = 'button';
         btn.className = 'rating-set-all-btn';
         btn.textContent = '\ud83d\udccb';
-        btn.title = 'Copy this rating to every kid without one today';
+        btn.title = 'Copy this rating to every kid without one ' + (state.adminDaykey ? 'on this day' : 'today');
 
         function refresh() {
             btn.disabled = !getCurrent();
@@ -496,7 +511,7 @@
             var current = getCurrent();
             if (!current) { return; }
             var label = (ratingsInfo[current] && ratingsInfo[current].label) || current;
-            if (!window.confirm('Set "' + label + '" (' + confirmLabel + ') for every other kid who doesn\'t already have a rating today?')) {
+            if (!window.confirm('Set "' + label + '" (' + confirmLabel + ') for every other kid who doesn\'t already have a rating ' + (state.adminDaykey ? 'on this day' : 'today') + '?')) {
                 return;
             }
             var params = { chid: state.chid, rating: current };
@@ -521,6 +536,7 @@
     function logout(reload) {
         post('logout', {}).then(function () {
             state.role = null;
+            state.adminDaykey = null;
             state.pin = '';
             initLogin();
         });
@@ -1279,7 +1295,7 @@
         }
         document.getElementById('release_child_btn').addEventListener('click', function () {
             if (!state.chid) { return; }
-            if (!confirm('Release all pending changes for this child? Parents will see them, and today\'s notifications will send.')) { return; }
+            if (!confirm('Release all pending changes for this child (every day)? Parents will see them. Notifications only go out for today\'s items - never for past days.')) { return; }
             doRelease('release_child');
         });
         document.getElementById('release_account_btn').addEventListener('click', function () {
@@ -2083,6 +2099,22 @@
             stopEditingNote();
             fetchDayAdmin();
         });
+        document.getElementById('admin_day_select').addEventListener('change', function (e) {
+            state.adminDaykey = e.target.value ? parseInt(e.target.value, 10) : null;
+            stopEditingNote();
+            // Close any open copy panels - they were built for the previous day.
+            ['copy_day_panel', 'activities_copy_panel'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) { el.style.display = 'none'; }
+            });
+            fetchDayAdmin();
+        });
+        document.getElementById('admin_back_today').addEventListener('click', function () {
+            state.adminDaykey = null;
+            stopEditingNote();
+            window.scrollTo({ top: 0, behavior: 'instant' });
+            fetchDayAdmin();
+        });
         document.getElementById('admin_menu_btn').addEventListener('click', function (e) {
             e.stopPropagation();
             toggleAdminMenu();
@@ -2178,6 +2210,7 @@
             var formData = new FormData();
             formData.append('action', 'upload_avatar');
             formData.append('chid', state.chid);
+            if (state.adminDaykey) { formData.append('daykey', state.adminDaykey); }
             formData.append('file', file);
             fetch('ajax/status_ajax.php', { method: 'POST', body: formData })
                 .then(function (r) { return r.json(); })
@@ -2264,7 +2297,7 @@
 
         var label = document.createElement('div');
         label.className = 'menu-suggestions-label';
-        label.textContent = 'Quick fill from today:';
+        label.textContent = state.adminDaykey ? 'Quick fill from this day:' : 'Quick fill from today:';
         wrap.appendChild(label);
 
         var chipRow = document.createElement('div');
@@ -2810,16 +2843,59 @@
 
     function fetchDayAdmin() {
         if (!state.chid) { return; }
-        post('get_day', { chid: state.chid }).then(function (res) {
+        var params = { chid: state.chid };
+        if (state.adminDaykey) { params.daykey = state.adminDaykey; }
+        post('get_day', params).then(function (res) {
             if (res.success) { renderAdminDay(res.day); }
         });
     }
 
+    // Keeps the day picker, past-day banner and day-specific wording in step
+    // with the day that was just rendered. The rendered day is the source of
+    // truth: whatever is on screen is what the next edit will change.
+    function syncAdminDayControls(day) {
+        var sel = document.getElementById('admin_day_select');
+        var days = day.edit_days || [];
+        var sig = days.map(function (d) { return d.daykey + '|' + d.label; }).join(',');
+        if (sel && sel._sig !== sig) {
+            sel._sig = sig;
+            sel.innerHTML = '';
+            days.forEach(function (d) {
+                var opt = document.createElement('option');
+                opt.value = d.is_today ? '' : String(d.daykey);
+                opt.textContent = d.label;
+                sel.appendChild(opt);
+            });
+        }
+        if (sel) { sel.value = day.is_today ? '' : String(day.daykey); }
+
+        var past = !day.is_today;
+        var bar = document.querySelector('.admin-day-bar');
+        if (bar) { bar.classList.toggle('is-past', past); }
+        document.getElementById('admin_past_banner').style.display = past ? '' : 'none';
+        document.getElementById('admin_day_label').textContent = day.date_label + (past ? '' : ' (today)');
+
+        var copyToggle = document.getElementById('copy_day_toggle');
+        if (copyToggle) {
+            copyToggle.innerHTML = '<i class="fa-solid fa-copy"></i> ' + (past ? 'Copy This Day to Other Kids&hellip;' : 'Copy Today to Other Kids&hellip;');
+        }
+        var actHint = document.getElementById('activities_copy_hint');
+        if (actHint) { actHint.textContent = past ? "Copy this day's activities to:" : "Copy today's activities to:"; }
+    }
+
     function renderAdminDay(day) {
+        // The day on screen decides where the next edit lands. A day that has
+        // slipped out of the 7-day window (app left open for days) falls back to today.
+        if (!day.is_today && day.editable === false) {
+            state.adminDaykey = null;
+            fetchDayAdmin();
+            return;
+        }
+        state.adminDaykey = day.is_today ? null : day.daykey;
         state.lastAdminDay = day;
         bindReleaseButtons();
         updateReleaseBanner(day);
-        document.getElementById('admin_day_label').textContent = day.date_label + ' (today)';
+        syncAdminDayControls(day);
 
         // Sticky child bar (stays visible while scrolling so staff always
         // know which child's log they're editing)
